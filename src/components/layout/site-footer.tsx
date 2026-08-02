@@ -72,10 +72,16 @@ export function SiteFooter() {
   )
 }
 
+/*
+  h2 y no h4: los titulos del pie son secciones de primer nivel dentro del pie,
+  no subapartados de lo ultimo que hubiera en la pagina. Con h4 el documento
+  saltaba de h2 a h4 en cualquier pagina sin h3, que es lo que un lector de
+  pantalla lee como "falta un nivel".
+*/
 function FooterHeading({ children }: { children: React.ReactNode }) {
   return (
-    <h4 className="mb-4 text-xs font-bold tracking-widest uppercase">
+    <h2 className="mb-4 text-xs font-bold tracking-widest uppercase">
       {children}
-    </h4>
+    </h2>
   )
 }

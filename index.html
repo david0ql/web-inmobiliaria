@@ -8,14 +8,14 @@
     <!-- La foto del mapa es el elemento mas grande de la portada. Precargarla
          aqui es lo que separa verla en 1,5 s de verla en 4,7: el navegador la
          descubre con el HTML, sin esperar a que React monte la seccion. -->
-    <link
+    <!--home--><link
       rel="preload"
       as="image"
       href="/mapa-santander.webp"
       imagesrcset="/mapa-santander-sm.webp 760w, /mapa-santander.webp 1280w"
       imagesizes="100vw"
       fetchpriority="high"
-    />
+    /><!--/home-->
     <!-- Las teselas de OSM solo se piden si alguien activa el mapa; abrir el TLS
          antes le ahorra un par de vueltas cuando ocurra. -->
     <link rel="dns-prefetch" href="https://a.tile.openstreetmap.org" />
@@ -92,7 +92,7 @@
             />
           </div>
         </header>
-        <div
+        <!--home--><div
           class="relative h-[300px] w-full overflow-hidden bg-secondary sm:h-[380px] lg:h-[450px]"
         >
           <img
@@ -106,7 +106,7 @@
             decoding="sync"
             class="size-full object-cover"
           />
-        </div>
+        </div><!--/home-->
       </div>
     </div>
     <script type="module" src="/src/main.tsx"></script>
