@@ -35,6 +35,9 @@ export function PropertiesMap({ properties }: { properties: Property[] }) {
     })
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      // En pantallas de alta densidad pide un zoom mas y las dibuja a la mitad:
+      // sin esto las teselas se ven borrosas en cualquier movil.
+      detectRetina: true,
       attribution: '&copy; OpenStreetMap',
       maxZoom: 19,
     }).addTo(map)
@@ -69,7 +72,13 @@ export function PropertiesMap({ properties }: { properties: Property[] }) {
           }).bindPopup(popup),
         )
       } else {
-        cluster.addLayer(L.marker(position, { icon: pin() }).bindPopup(popup))
+        cluster.addLayer(
+          // El `title` es lo que da nombre al marcador: Leaflet le pone
+          // role="button" y sin texto queda mudo para un lector de pantalla.
+          L.marker(position, { icon: pin(), title: property.title }).bindPopup(
+            popup,
+          ),
+        )
       }
     }
 

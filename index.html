@@ -5,11 +5,13 @@
     <link rel="icon" type="image/png" href="/logo.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="color-scheme" content="light" />
-    <!-- El mapa de la portada tira de las teselas de OSM. Abrir el TLS mientras
-         se descarga el resto le ahorra un par de vueltas cuando le toque. -->
-    <link rel="preconnect" href="https://a.tile.openstreetmap.org" crossorigin />
-    <link rel="dns-prefetch" href="https://b.tile.openstreetmap.org" />
-    <link rel="dns-prefetch" href="https://c.tile.openstreetmap.org" />
+    <!-- La foto del mapa es el elemento mas grande de la portada. Precargarla
+         aqui es lo que separa verla en 1,5 s de verla en 4,7: el navegador la
+         descubre con el HTML, sin esperar a que React monte la seccion. -->
+    <link rel="preload" as="image" href="/mapa-santander.webp" fetchpriority="high" />
+    <!-- Las teselas de OSM solo se piden si alguien activa el mapa; abrir el TLS
+         antes le ahorra un par de vueltas cuando ocurra. -->
+    <link rel="dns-prefetch" href="https://a.tile.openstreetmap.org" />
     <!-- Lo de aqui es el respaldo servido con el HTML: es lo unico que ven
          WhatsApp y Facebook al previsualizar un enlace, porque no ejecutan
          JavaScript. Cada ruta lo reescribe al montar (src/lib/seo.ts) para
@@ -51,16 +53,9 @@
     <meta name="twitter:card" content="summary_large_image" />
   </head>
   <body>
-    <!--
-      El armazon, escrito a mano y servido con el HTML.
-
-      La hoja de estilos bloquea el pintado de todas formas y llega mucho antes
-      que el JavaScript; con esto dentro, la barra negra y el logo aparecen en
-      cuanto llega el CSS, sin esperar a que React arranque. `createRoot` vacia el
-      contenedor en su primer render, asi que esto se sustituye solo.
-
-      Tiene que coincidir con lo que pintan TopBar y SiteHeader, o habra un salto.
-    -->
+    <!-- Armazon servido con el HTML: pinta la barra y el logo en cuanto llega
+         el CSS, sin esperar a React. `createRoot` lo sustituye solo. Si se
+         borra, la portada queda en blanco ~1 s mas. -->
     <div id="root">
       <div class="flex min-h-screen flex-col">
         <section class="border-t-4 border-[#333] bg-[#0d0d0d] text-white">
