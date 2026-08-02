@@ -75,12 +75,20 @@ export const AVAILABILITY_LABEL: Record<string, string> = {
 }
 
 /** Los colores son los que la agencia ya usaba en WASI para sus etiquetas. */
+/**
+ * Colores de la etiqueta de estado.
+ *
+ * Son los de WASI oscurecidos hasta pasar el contraste AA sobre texto blanco:
+ * el verde original (#6aa84f) daba 2,87:1 y el ambar (#f1c232) 1,68:1, muy por
+ * debajo del 4,5:1 exigido. Se conserva el tono para que la etiqueta se siga
+ * reconociendo de un vistazo.
+ */
 export const AVAILABILITY_COLOR: Record<string, string> = {
-  AVAILABLE: '#6aa84f',
-  RESERVED: '#f1c232',
-  SOLD: '#cc0000',
-  RENTED: '#f1c232',
-  WITHDRAWN: '#767676',
+  AVAILABLE: '#2f7d4f', // 5,04:1
+  RESERVED: '#8a6209', // 5,48:1
+  SOLD: '#a81c1c', // 7,37:1
+  RENTED: '#8a6209', // 5,48:1
+  WITHDRAWN: '#6b6b6b', // 5,33:1
 }
 
 export const CONDITION_LABEL: Record<string, string> = {

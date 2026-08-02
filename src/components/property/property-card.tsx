@@ -51,7 +51,19 @@ export function PropertyCard({
             {cover ? (
               <img
                 src={cover.url}
-                srcSet={`${cover.url} 560w, ${cover.urlLarge} 1600w`}
+                /*
+                  El paso intermedio de 1024 px existe por el movil: una
+                  tarjeta ocupa 412 px logicos, que a densidad 1,75 son 721 px
+                  reales. Sin el, el navegador se saltaba el thumb y bajaba la
+                  de 1600 px — 405 kB por tarjeta en vez de 120.
+                */
+                srcSet={[
+                  `${cover.url} 560w`,
+                  cover.urlMedium ? `${cover.urlMedium} 1024w` : '',
+                  `${cover.urlLarge} 1600w`,
+                ]
+                  .filter(Boolean)
+                  .join(', ')}
                 sizes="(min-width: 992px) 360px, (min-width: 576px) 50vw, 100vw"
                 alt={cover.description ?? property.title}
                 width={560}

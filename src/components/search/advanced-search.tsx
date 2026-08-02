@@ -118,7 +118,7 @@ function AdvancedSearchForm({ initial }: { initial?: Filters }) {
             }))
           }}
         >
-          <SelectTrigger>
+          <SelectTrigger aria-label="Ciudad">
             <SelectValue placeholder="Todas" />
           </SelectTrigger>
           <SelectContent>
@@ -138,7 +138,7 @@ function AdvancedSearchForm({ initial }: { initial?: Filters }) {
           onValueChange={(value) => set('zoneId', value === ANY ? '' : value)}
           disabled={!filters.cityId || zones.length === 0}
         >
-          <SelectTrigger>
+          <SelectTrigger aria-label="Zona / barrio">
             <SelectValue placeholder={filters.cityId ? 'Todos' : 'Elige ciudad'} />
           </SelectTrigger>
           <SelectContent>
@@ -159,7 +159,7 @@ function AdvancedSearchForm({ initial }: { initial?: Filters }) {
             set('propertyTypeId', value === ANY ? '' : value)
           }
         >
-          <SelectTrigger>
+          <SelectTrigger aria-label="Tipo de inmueble">
             <SelectValue placeholder="Todos" />
           </SelectTrigger>
           <SelectContent>
@@ -178,7 +178,7 @@ function AdvancedSearchForm({ initial }: { initial?: Filters }) {
           value={filters.condition || ANY}
           onValueChange={(value) => set('condition', value === ANY ? '' : value)}
         >
-          <SelectTrigger>
+          <SelectTrigger aria-label="Estado">
             <SelectValue placeholder="Todos" />
           </SelectTrigger>
           <SelectContent>
@@ -199,7 +199,7 @@ function AdvancedSearchForm({ initial }: { initial?: Filters }) {
             set('businessType', value === ANY ? '' : value)
           }
         >
-          <SelectTrigger>
+          <SelectTrigger aria-label="Tipo de negocio">
             <SelectValue placeholder="Todos" />
           </SelectTrigger>
           <SelectContent>
@@ -215,6 +215,7 @@ function AdvancedSearchForm({ initial }: { initial?: Filters }) {
 
       <FieldShell label="Alcobas" className="col-span-1 lg:col-span-2">
         <RoomSelect
+          label="Alcobas"
           value={filters.bedrooms}
           onChange={(value) => set('bedrooms', value)}
         />
@@ -222,6 +223,7 @@ function AdvancedSearchForm({ initial }: { initial?: Filters }) {
 
       <FieldShell label="Baños" className="col-span-1 lg:col-span-2">
         <RoomSelect
+          label="Baños"
           value={filters.bathrooms}
           onChange={(value) => set('bathrooms', value)}
         />
@@ -229,6 +231,7 @@ function AdvancedSearchForm({ initial }: { initial?: Filters }) {
 
       <FieldShell label="Precio desde" className="col-span-1 lg:col-span-2">
         <Input
+          aria-label="Precio desde"
           inputMode="numeric"
           placeholder="Desde"
           value={filters.minPrice}
@@ -238,6 +241,7 @@ function AdvancedSearchForm({ initial }: { initial?: Filters }) {
 
       <FieldShell label="Precio hasta" className="col-span-1 lg:col-span-2">
         <Input
+          aria-label="Precio hasta"
           inputMode="numeric"
           placeholder="Hasta"
           value={filters.maxPrice}
@@ -255,10 +259,13 @@ function AdvancedSearchForm({ initial }: { initial?: Filters }) {
   )
 }
 
+/** Se usa para alcobas y para banos: el nombre accesible viene de fuera. */
 function RoomSelect({
+  label,
   value,
   onChange,
 }: {
+  label: string
   value: string
   onChange: (value: string) => void
 }) {
@@ -267,7 +274,7 @@ function RoomSelect({
       value={value || ANY}
       onValueChange={(next) => onChange(next === ANY ? '' : next)}
     >
-      <SelectTrigger>
+      <SelectTrigger aria-label={label}>
         <SelectValue placeholder="Todos" />
       </SelectTrigger>
       <SelectContent>

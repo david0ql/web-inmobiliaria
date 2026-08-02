@@ -1,6 +1,7 @@
 import { LogIn, Mail, Phone } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
+import { CreditButton } from '@/components/credit/credit-button'
 import { OfferButton } from '@/components/layout/offer-button'
 import { SocialLinks } from '@/components/layout/social-links'
 import { Button } from '@/components/ui/button'
@@ -55,9 +56,11 @@ export function MobileNav({
             Proyectos
           </Link>
 
-          <Link to={ROUTES.credits} onClick={close} className={ITEM}>
-            Créditos
-          </Link>
+          {/* Abre la consulta de viabilidad. El panel lateral se queda abierto
+              debajo a proposito: cerrarlo desmontaria el boton, y con el el
+              modal que acaba de abrir. Al cerrar la consulta se vuelve al menu,
+              que es de donde se venia. */}
+          <CreditButton className={`${ITEM} w-full text-left`} />
 
           <Accordion type="single" collapsible defaultValue="ventas">
             <AccordionItem value="ventas">

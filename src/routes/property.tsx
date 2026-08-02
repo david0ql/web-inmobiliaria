@@ -13,8 +13,11 @@ import { SpecTable } from '@/components/property/spec-table'
 import { VisitForm } from '@/components/property/visit-form'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/misc'
-import { businessType, price } from '@/lib/format'
-import { ROUTES } from '@/lib/site'
+import { businessType, money, price } from '@/lib/format'
+import { breadcrumbJsonLd, propertyJsonLd } from '@/lib/seo'
+import { ROUTES, SITE } from '@/lib/site'
+import { propertyPath } from '@/lib/slug'
+import { useSeo } from '@/lib/use-seo'
 import type { PropertyData } from '@/routes/loaders'
 import type { Property } from '@/lib/types'
 
@@ -54,6 +57,43 @@ function Detail({ data }: { data: PropertyData }) {
   const property = use(data.property)
   const siblings = data.siblings
   const amount = property.salePrice ?? property.rentPrice
+
+  const canonical = SITE.url + propertyPath(property)
+  const place = [property.zone?.name, property.city?.name]
+    .filter(Boolean)
+    .join(', ')
+  const cover =
+    property.images?.find((image) => image.isMain) ?? property.images?.[0]
+
+  useSeo(
+    {
+      // El titulo repite lo que la gente teclea: tipo, operacion y barrio.
+      title: `${property.title} · ${SITE.name}`,
+      description:
+        `${property.propertyType?.name ?? 'Inmueble'} en ${place || 'Santander'}` +
+        [
+          property.area ? `${property.area} m²` : '',
+          property.bedrooms ? `${property.bedrooms} alcobas` : '',
+          property.bathrooms ? `${property.bathrooms} baños` : '',
+          amount ? money(amount) : '',
+        ]
+          .filter(Boolean)
+          .map((part) => ` · ${part}`)
+          .join('') +
+        '. Agenda tu visita en línea.',
+      canonical,
+      image: cover?.urlLarge ?? cover?.url,
+      type: 'article',
+    },
+    {
+      property: propertyJsonLd(property, canonical),
+      crumbs: breadcrumbJsonLd([
+        { name: 'Inicio', url: '/' },
+        { name: 'Ventas', url: ROUTES.sales },
+        { name: property.title, url: propertyPath(property) },
+      ]),
+    },
+  )
 
   return (
     <div className="container-site py-8">

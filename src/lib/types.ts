@@ -54,6 +54,7 @@ export interface PropertyImage {
   /** Miniatura, 560px. Rutas relativas servidas desde /media. */
   url: string
   /** 1600px. */
+  urlMedium: string | null
   urlLarge: string
   /** Archivo, 2560px. */
   urlOriginal: string
@@ -196,4 +197,9 @@ export interface ConsignmentResult {
   reference: string
   message: string
   files: number
+}
+
+export interface CreditRequestResult {
+  reference: string
+  message: string
 }

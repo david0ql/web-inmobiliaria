@@ -12,6 +12,7 @@ import type {
   BookVisitResult,
   Catalogs,
   ConsignmentResult,
+  CreditRequestResult,
   Paginated,
   Property,
   TypeCount,
@@ -175,6 +176,11 @@ export function bookVisit(payload: BookVisitPayload) {
 
 export function submitConsignment(form: FormData) {
   return api.post<ConsignmentResult>('/public/consignments', form)
+}
+
+/** Consulta de viabilidad de credito. Es un lead: no aprueba nada. */
+export function submitCreditRequest(payload: unknown) {
+  return api.post<CreditRequestResult>('/public/credit-requests', payload)
 }
 
 /** Los barrios de una ciudad. Sin `cityId` son varios miles: no se pide asi. */

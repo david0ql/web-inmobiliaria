@@ -2,6 +2,7 @@ import { LogIn, Menu, Search } from 'lucide-react'
 import { lazy, Suspense, useState } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 
+import { CreditButton } from '@/components/credit/credit-button'
 import { OfferButton } from '@/components/layout/offer-button'
 
 import {
@@ -47,7 +48,12 @@ export function SiteHeader() {
   const [searchOpen, setSearchOpen] = useState(false)
 
   return (
-    <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/85">
+    <header
+      // Lo lee `scrollToListTop` para descontar el alto de la cabecera al
+      // traer una lista a la vista: si no, tapa las primeras tarjetas.
+      data-site-header
+      className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/85"
+    >
       <div className="container-site flex items-center gap-4 py-3">
         <Link to={ROUTES.home} className="shrink-0">
           <img
@@ -76,12 +82,11 @@ export function SiteHeader() {
                 </NavigationMenuLink>
               </NavigationMenuItem>
 
+              {/* Créditos no lleva a ninguna parte: abre la consulta de
+                  viabilidad aqui mismo. Va en la lista igualmente porque es
+                  donde el visitante lo busca. */}
               <NavigationMenuItem>
-                <NavigationMenuLink asChild>
-                  <NavLink to={ROUTES.credits} className={linkClass}>
-                    Créditos
-                  </NavLink>
-                </NavigationMenuLink>
+                <CreditButton className={linkClass} />
               </NavigationMenuItem>
 
               <NavigationMenuItem>

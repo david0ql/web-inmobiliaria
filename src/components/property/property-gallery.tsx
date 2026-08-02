@@ -67,7 +67,14 @@ export function PropertyGallery({
               <div key={image.id} className="min-w-0 shrink-0 grow-0 basis-full">
                 <img
                   src={image.urlLarge}
-                  srcSet={`${image.url} 560w, ${image.urlLarge} 1600w, ${image.urlOriginal} 2560w`}
+                  srcSet={[
+                    `${image.url} 560w`,
+                    image.urlMedium ? `${image.urlMedium} 1024w` : '',
+                    `${image.urlLarge} 1600w`,
+                    `${image.urlOriginal} 2560w`,
+                  ]
+                    .filter(Boolean)
+                    .join(', ')}
                   sizes="(min-width: 1200px) 840px, (min-width: 992px) 60vw, 100vw"
                   alt={image.description ?? `${title} — foto ${index + 1}`}
                   /* La portada entra en el LCP: esa se carga ya, el resto no. */

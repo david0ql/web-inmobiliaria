@@ -7,6 +7,9 @@ import {
   useNavigation,
   useSearchParams,
 } from 'react-router-dom'
+import { breadcrumbJsonLd } from '@/lib/seo'
+import { ROUTES, SITE } from '@/lib/site'
+import { useSeo } from '@/lib/use-seo'
 
 import { SectionHeading } from '@/components/common/section-heading'
 import { ProjectCard } from '@/components/project/project-card'
@@ -30,7 +33,7 @@ import {
   type ProjectFilters,
   type ProjectSummary,
 } from '@/lib/projects'
-import { ROUTES } from '@/lib/site'
+import { useListAnchor } from '@/lib/scroll'
 import { useSiteData } from '@/lib/site-data'
 import type { Paginated } from '@/lib/types'
 
@@ -54,6 +57,19 @@ export async function loader({
 }
 
 export function ProjectsList() {
+  useSeo({
+    title: `Proyectos de vivienda nueva en Santander · ${SITE.name}`,
+    description:
+      'Conjuntos y proyectos con unidades disponibles en Bucaramanga y su ' +
+      'área metropolitana. Compara tipologías, áreas y precios desde.',
+    canonical: SITE.url + ROUTES.projects,
+  }, {
+    crumbs: breadcrumbJsonLd([
+      { name: 'Inicio', url: '/' },
+      { name: 'Proyectos', url: ROUTES.projects },
+    ]),
+  })
+
   const { filters, results } = useLoaderData() as ProjectsData
   const [, setSearchParams] = useSearchParams()
   const navigation = useNavigation()
@@ -61,15 +77,18 @@ export function ProjectsList() {
 
   const filtered = filters.match !== '' || filters.cityId !== ''
   const { total, page, pages } = results.meta
+  // Aqui la lista no cuelga de un `Suspense`: el ancla puede ser el contenedor.
+  const [anchor, onNavigate] = useListAnchor()
 
   const update = (next: Partial<ProjectFilters>) => {
     setSearchParams(writeProjectFilters({ ...filters, ...next }), {
-      preventScrollReset: next.page === undefined,
+      preventScrollReset: true,
     })
+    onNavigate()
   }
 
   return (
-    <div className="container-site py-10">
+    <div ref={anchor} className="container-site py-10">
       <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         {/* `min-w-0`: sin esto el rotulo estira la fila y desborda en movil. */}
         <div className="min-w-0">

@@ -9,12 +9,31 @@ import {
 } from '@/components/property/property-grid'
 import { AdvancedSearch } from '@/components/search/advanced-search'
 import { Button } from '@/components/ui/button'
-import { ROUTES } from '@/lib/site'
+import {
+  breadcrumbJsonLd,
+  organizationJsonLd,
+  websiteJsonLd,
+} from '@/lib/seo'
+import { ROUTES, SITE } from '@/lib/site'
+import { useSeo } from '@/lib/use-seo'
 import type { HomeData } from '@/routes/loaders'
 import type { Property } from '@/lib/types'
 
 export function Home() {
   const data = useLoaderData() as HomeData
+
+  useSeo(
+    {
+      title: `${SITE.name} · Apartamentos, casas y lotes en Bucaramanga`,
+      description: SITE.description,
+      canonical: SITE.url + '/',
+    },
+    {
+      org: organizationJsonLd(),
+      site: websiteJsonLd(),
+      crumbs: breadcrumbJsonLd([{ name: 'Inicio', url: '/' }]),
+    },
+  )
 
   return (
     <>

@@ -7,12 +7,38 @@
 export const SITE = {
   name: 'Serrano Inmobiliaria',
   tagline: 'Lideres en compra y venta de inmuebles en Colombia',
+  /**
+   * La descripcion que ve alguien en el resultado de Google. Dice donde
+   * operamos y que vendemos, porque "lideres en Colombia" no responde a
+   * ninguna busqueda real: quien busca escribe "apartamentos en venta en
+   * Bucaramanga".
+   */
+  description:
+    'Apartamentos, casas y lotes en venta en Bucaramanga, Floridablanca, ' +
+    'Girón y Piedecuesta. Más de 600 inmuebles con fotos, ubicación y visita ' +
+    'agendable en línea.',
   phone: '+573222023280',
   phoneHref: 'tel:+573222023280',
   email: 'contacto@serrano-inmobiliaria.com',
   address: 'Carrera 29 #45-45',
   city: 'Bucaramanga - Santander - Colombia',
   logo: '/logo.png',
+  url: 'https://web-clientes-inmobiliaria.nordikhat.com',
+  /** Los municipios del area metropolitana donde hay inventario. */
+  areaServed: [
+    'Bucaramanga',
+    'Floridablanca',
+    'Girón',
+    'Piedecuesta',
+    'Lebrija',
+    'Los Santos',
+  ],
+  social: [
+    'https://www.facebook.com/profile.php?id=61565195281888',
+    'https://www.instagram.com/serrano_inmobiliaria/',
+    'https://www.youtube.com/@SerranoInmobiliaria',
+    'https://www.tiktok.com/@serrano_inmobiliaria',
+  ],
 } as const
 
 export const SOCIAL = [
@@ -35,7 +61,8 @@ export const ROUTES = {
   search: '/s',
   sales: '/s/ventas',
   projects: '/proyectos',
-  credits: '/creditos',
+  // Creditos no esta aqui: no es una pagina, es el modal de consulta de
+  // viabilidad que abre `CreditButton` desde el menu.
   contact: '/main-contactenos.htm',
   privacy: '/main-contenido-cat-6.htm',
 } as const
