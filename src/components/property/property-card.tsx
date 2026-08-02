@@ -129,11 +129,11 @@ export function PropertyCard({
         <p className="text-xs tracking-wide text-muted-foreground uppercase">
           {property.propertyType?.name ?? 'Inmueble'}
         </p>
-        <h3 className="line-clamp-2-title text-sm leading-snug font-semibold uppercase">
+        <h2 className="line-clamp-2-title text-sm leading-snug font-semibold uppercase">
           <Link to={to} className="hover:underline">
             {property.title}
           </Link>
-        </h3>
+        </h2>
         <p className="line-clamp-2-title text-xs text-muted-foreground">
           Código: {property.code}
           {property.zone ? ` · ${property.zone.name}` : ''}

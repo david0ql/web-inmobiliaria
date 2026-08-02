@@ -37,11 +37,22 @@ export function Home() {
 
   return (
     <>
+      {/*
+        El h1 de la portada. Va oculto a la vista porque encima del mapa no
+        cabe un titular sin estropear el diseño, pero tiene que existir: es lo
+        primero que lee un lector de pantalla y lo que le dice a un buscador de
+        que va este sitio. Sin el, la portada no tenia ningun h1.
+      */}
+      <h1 className="sr-only">
+        Inmobiliaria en Bucaramanga: apartamentos, casas y lotes en venta en
+        Floridablanca, Girón y Piedecuesta
+      </h1>
+
       <MapSection />
 
       <section className="container-site relative z-10 -mt-8 mb-14 lg:-mt-10">
         <div className="rounded-lg border bg-card p-5 shadow-lg lg:p-6">
-          <SectionHeading as="h3" light="Búsqueda" strong="avanzada" />
+          <SectionHeading as="h2" light="Búsqueda" strong="avanzada" />
           <AdvancedSearch />
         </div>
       </section>
