@@ -11,7 +11,6 @@ import type {
   BookVisitPayload,
   BookVisitResult,
   Catalogs,
-  ConsignmentResult,
   CreditRequestResult,
   Paginated,
   Property,
@@ -174,9 +173,6 @@ export function bookVisit(payload: BookVisitPayload) {
   return api.post<BookVisitResult>('/public/visits', payload)
 }
 
-export function submitConsignment(form: FormData) {
-  return api.post<ConsignmentResult>('/public/consignments', form)
-}
 
 /** Consulta de viabilidad de credito. Es un lead: no aprueba nada. */
 export function submitCreditRequest(payload: unknown) {

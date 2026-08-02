@@ -1,4 +1,5 @@
 import { ApiError } from './api'
+import type { ConsignmentResult } from './types'
 
 /**
  * Sesión del propietario en el portal.
@@ -286,8 +287,8 @@ export const portal = {
   requests: (signal?: AbortSignal) =>
     request<PortalRequest[]>('/portal/requests', { signal }),
   createConsignment: (body: FormData) =>
-    request<{ reference: string; message: string; files: number }>(
-      '/portal/consignments',
-      { method: 'POST', body },
-    ),
+    request<ConsignmentResult>('/portal/consignments', {
+      method: 'POST',
+      body,
+    }),
 }

@@ -26,7 +26,7 @@ import {
 } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { ApiError, getZones, submitConsignment } from '@/lib/api'
+import { ApiError, getZones } from '@/lib/api'
 import { portal } from '@/lib/portal'
 import { digits } from '@/lib/search-params'
 import { useSiteData } from '@/lib/site-data'
@@ -318,17 +318,10 @@ export function ConsignmentDialog({
   children,
   defaultOpen = false,
   onOpenChange,
-  /**
-   * Desde el portal. El paso "Tus datos" desaparece —la API los toma de la
-   * sesion y descarta lo que llegue en el cuerpo— y la solicitud queda ligada
-   * a la cuenta, asi que el propietario la ve luego en «Mis solicitudes».
-   */
-  authenticated = false,
 }: {
   children?: React.ReactNode
   defaultOpen?: boolean
   onOpenChange?: (open: boolean) => void
-  authenticated?: boolean
 }) {
   const [open, setOpen] = useState(defaultOpen)
   const [index, setIndex] = useState(0)
@@ -399,7 +392,7 @@ export function ConsignmentDialog({
    * aqui es lo mismo que se va a guardar.
    */
   useEffect(() => {
-    if (!authenticated || !open) return
+    if (!open) return
     let alive = true
     void portal
       .profile()
@@ -415,11 +408,10 @@ export function ConsignmentDialog({
       alive = false
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authenticated, open])
+  }, [open])
 
-  const steps = authenticated
-    ? STEPS.filter((entry) => entry.id !== 'owner')
-    : STEPS
+  // Sin el paso "Tus datos": siempre hay sesion, y la API los toma de ella.
+  const steps = STEPS.filter((entry) => entry.id !== 'owner')
   const step = steps[index]
   const last = index === steps.length - 1
 
@@ -467,12 +459,10 @@ export function ConsignmentDialog({
         )?.name ?? '',
     }
 
-    const body = toFormData(values, names, documents, photos, !authenticated)
+    const body = toFormData(values, names, documents, photos)
 
     try {
-      const result = authenticated
-        ? await portal.createConsignment(body)
-        : await submitConsignment(body)
+      const result = await portal.createConsignment(body)
       toast.success(`Solicitud ${result.reference} recibida`, {
         description: result.message,
       })
@@ -582,11 +572,6 @@ function toFormData(
   names: { cityName: string; propertyTypeName: string },
   documents: Record<string, File>,
   photos: File[],
-  /**
-   * Con sesion los datos del propietario NO viajan: el endpoint del portal ni
-   * siquiera los admite —los toma de la sesion— y mandarlos seria un 400.
-   */
-  includeOwner: boolean,
 ): FormData {
   const body = new FormData()
   const set = (key: string, value: string | undefined) => {
@@ -630,12 +615,8 @@ function toFormData(
   set('rentAmount', digits(values.rentAmount ?? ''))
   set('leaseEndsOn', values.leaseEndsOn)
 
-  if (includeOwner) {
-    set('ownerFirstName', values.ownerFirstName)
-    set('ownerLastName', values.ownerLastName)
-    set('ownerEmail', values.ownerEmail)
-    set('ownerPhone', values.ownerPhone)
-  }
+  // Los datos del propietario NO viajan: el endpoint del portal ni siquiera
+  // los admite —los toma de la sesion— y mandarlos seria un 400.
   set('notes', values.notes)
 
   if (values.visitDate && values.visitTime) {

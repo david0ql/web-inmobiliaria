@@ -85,7 +85,7 @@ function Portal() {
         </div>
 
         <div className="flex shrink-0 gap-2">
-          <ConsignmentDialog authenticated>
+          <ConsignmentDialog>
             <Button>
               <Plus />
               Publicar inmueble
