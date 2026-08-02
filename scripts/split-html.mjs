@@ -16,7 +16,7 @@ const DIST = new URL('../dist/', import.meta.url).pathname
 const MARCA_INI = '<!--home-->'
 const MARCA_FIN = '<!--/home-->'
 
-const html = readFileSync(join(DIST, 'index.html'), 'utf8')
+const html = enLinea(readFileSync(join(DIST, 'index.html'), 'utf8'))
 const ini = html.indexOf(MARCA_INI)
 const fin = html.indexOf(MARCA_FIN)
 
@@ -41,6 +41,31 @@ for (;;) {
   resto = resto.slice(0, a) + resto.slice(b + MARCA_FIN.length)
 }
 writeFileSync(join(DIST, 'index.html'), resto)
+
+/*
+  La hoja de estilos, dentro del HTML.
+
+  Bloquea el pintado: hasta que llega, no se ve nada. Y como es un fichero
+  aparte, el navegador tiene que descubrirla leyendo el HTML y pedirla en otra
+  vuelta de red — en movil, unos 150 ms de nada antes de poder empezar. Dentro
+  llega con el documento.
+
+  No se pierde cache: el HTML se sirve con `no-cache`, que significa
+  "revalida", asi que en la segunda visita el navegador recibe un 304 y reusa
+  el que ya tiene, con los estilos dentro.
+*/
+function enLinea(html) {
+  const link = html.match(
+    /<link[^>]*rel="stylesheet"[^>]*href="([^"]+)"[^>]*>/,
+  )
+  if (!link) {
+    console.error('split-html: no se encontro la hoja de estilos')
+    process.exit(1)
+  }
+
+  const css = readFileSync(join(DIST, link[1].replace(/^\//, '')), 'utf8')
+  return html.replace(link[0], `<style>${css}</style>`)
+}
 
 const kb = (s) => (Buffer.byteLength(s) / 1024).toFixed(1)
 console.log(`home.html ${kb(html)} kB · index.html ${kb(resto)} kB`)
