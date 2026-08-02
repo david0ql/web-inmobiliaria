@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="/logo.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light" />
+    <!-- El mapa de la portada tira de las teselas de OSM. Abrir el TLS mientras
+         se descarga el resto le ahorra un par de vueltas cuando le toque. -->
+    <link rel="preconnect" href="https://a.tile.openstreetmap.org" crossorigin />
+    <link rel="dns-prefetch" href="https://b.tile.openstreetmap.org" />
+    <link rel="dns-prefetch" href="https://c.tile.openstreetmap.org" />
+    <title>Serrano Inmobiliaria</title>
+    <meta
+      name="description"
+      content="Lideres en compra y venta de inmuebles en Colombia"
+    />
+    <meta property="og:site_name" content="serrano-inmobiliaria.com" />
+    <meta property="og:title" content="Serrano Inmobiliaria" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://serrano-inmobiliaria.com" />
+    <meta
+      property="og:description"
+      content="Lideres en compra y venta de inmuebles en Colombia"
+    />
+    <meta property="og:image" content="/logo.png" />
+  </head>
+  <body>
+    <!--
+      El armazon, escrito a mano y servido con el HTML.
+
+      La hoja de estilos bloquea el pintado de todas formas y llega mucho antes
+      que el JavaScript; con esto dentro, la barra negra y el logo aparecen en
+      cuanto llega el CSS, sin esperar a que React arranque. `createRoot` vacia el
+      contenedor en su primer render, asi que esto se sustituye solo.
+
+      Tiene que coincidir con lo que pintan TopBar y SiteHeader, o habra un salto.
+    -->
+    <div id="root">
+      <div class="flex min-h-screen flex-col">
+        <section class="border-t-4 border-[#333] bg-[#0d0d0d] text-white">
+          <div class="container-site flex items-center justify-between gap-4 py-2">
+            <div class="hidden md:block">
+              <div class="h-8 w-[280px] rounded-md bg-white/10"></div>
+            </div>
+            <div class="flex flex-1 items-center justify-center gap-3 md:justify-end">
+              <span class="text-xs font-medium tracking-wide">+573222023280</span>
+            </div>
+          </div>
+        </section>
+        <header class="border-b bg-background">
+          <div class="container-site flex items-center gap-4 py-3">
+            <img
+              src="/logo.png"
+              width="250"
+              height="90"
+              alt="Serrano Inmobiliaria"
+              fetchpriority="high"
+              class="h-11 w-auto lg:h-14"
+            />
+          </div>
+        </header>
+      </div>
+    </div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

@@ -1,0 +1,221 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import '@fontsource-variable/roboto';
+
+/*
+  Serrano Inmobiliaria — sitio publico
+
+  El sitio que esto sustituye es un tema de WASI: Bootstrap 5 con el skin "negro"
+  (acento #000 sobre papel blanco), Roboto y esquinas casi rectas. Se conserva ese
+  vocabulario tal cual; lo que cambia es el acabado — anillos de foco visibles,
+  transiciones cortas y radios de 6px en lugar de 0/2px.
+
+  Los breakpoints NO son los de Tailwind: son los de Bootstrap 5, porque toda la
+  maquetacion original esta escrita contra ellos (col-sm-6, hidden-md-down,
+  d-lg-block...) y el encargo es que el responsive se comporte igual.
+*/
+
+@theme {
+  /* Bootstrap 5 exacto — Tailwind trae 40/48/64/80/96rem, que no cuadran */
+  --breakpoint-sm: 576px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 992px;
+  --breakpoint-xl: 1200px;
+  --breakpoint-2xl: 1400px;
+
+  --font-sans: 'Roboto Variable', Roboto, system-ui, -apple-system, 'Segoe UI',
+    'Helvetica Neue', Arial, sans-serif;
+
+  /* .auto_margin del tema original: el sitio nunca pasa de 1152px */
+  --spacing-site: 1152px;
+
+  /* Los verdes y ambares salen de las etiquetas que la agencia ya usa en WASI:
+     #6aa84f "Disponible", #f1c232 "Alquilado". */
+  --color-tag-available: #6aa84f;
+  --color-tag-reserved: #f1c232;
+  --color-tag-sold: #cc0000;
+  --color-tag-muted: #767676;
+
+  /* Radix mide el panel y expone su altura; el acordeon del menu movil la usa. */
+  --animate-accordion-down: accordion-down 0.2s ease-out;
+  --animate-accordion-up: accordion-up 0.2s ease-out;
+
+  @keyframes accordion-down {
+    from {
+      height: 0;
+    }
+    to {
+      height: var(--radix-accordion-content-height);
+    }
+  }
+
+  @keyframes accordion-up {
+    from {
+      height: var(--radix-accordion-content-height);
+    }
+    to {
+      height: 0;
+    }
+  }
+}
+
+:root {
+  --radius: 0.375rem;
+
+  --background: #ffffff;
+  --foreground: #14161a;
+
+  --card: #ffffff;
+  --card-foreground: #14161a;
+  --popover: #ffffff;
+  --popover-foreground: #14161a;
+
+  /* El skin es negro. El acento del tema base era #0568be; el skin lo pisa. */
+  --primary: #0d0d0d;
+  --primary-foreground: #ffffff;
+
+  --secondary: #f4f4f5;
+  --secondary-foreground: #14161a;
+
+  --muted: #f4f4f5;
+  --muted-foreground: #6b7280;
+
+  --accent: #f4f4f5;
+  --accent-foreground: #14161a;
+
+  --destructive: #b42318;
+  --destructive-foreground: #ffffff;
+
+  --border: #e4e4e7;
+  --input: #d8d8dc;
+  --ring: #0d0d0d;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    /* El tema original arranca en 14px, no en 16px */
+    font-size: 0.875rem;
+    line-height: 1.5;
+  }
+
+  /* Precios, areas y codigos van en cifras de ancho fijo: en una rejilla de
+     tarjetas las columnas de numeros tienen que alinearse solas. */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
+  :focus-visible {
+    @apply outline-ring outline-2 outline-offset-2;
+  }
+
+  ::selection {
+    @apply bg-primary text-primary-foreground;
+  }
+}
+
+@layer components {
+  /*
+    El equivalente de .container de Bootstrap: ancho completo con 10px de aire y
+    saltos discretos de max-width, no un porcentaje fluido. Encima, el tope de
+    1152px de .auto_margin.
+  */
+  .container-site {
+    width: 100%;
+    max-width: 1152px;
+    margin-inline: auto;
+    padding-inline: 1rem;
+  }
+
+  @media (min-width: 992px) {
+    .container-site {
+      padding-inline: 1.5rem;
+    }
+  }
+
+  /*
+    La marca bajo los titulos de seccion. El tema anterior ponia un cuadrado de
+    10x10; suelto bajo un titular se lee como una errata, asi que se estira a una
+    barra corta — misma idea, misma tinta, pero se entiende como subrayado.
+  */
+  .tt-square::after {
+    content: '';
+    display: block;
+    width: 40px;
+    height: 3px;
+    margin-top: 0.625rem;
+    background: var(--primary);
+  }
+
+  .line-clamp-2-title {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+}
+
+/*
+  Leaflet reparte sus paneles entre z-index 200 y 700 y su contenedor es
+  `position:relative` con `z-index:auto`, asi que NO crea contexto de apilado y
+  esos 400 compiten con toda la pagina: el mapa se pinta encima de lo que venga
+  despues, que es como la tarjeta de busqueda acababa medio tapada. Con `z-index:0`
+  el contenedor pasa a ser contexto propio y sus paneles se quedan dentro. El tema
+  anterior hacia lo mismo, a mano, en el atributo `style` del div del mapa.
+*/
+.leaflet-container {
+  position: relative;
+  z-index: 0;
+  isolation: isolate;
+  background: #f4f4f5;
+  font-family: inherit;
+}
+
+.leaflet-container a.leaflet-popup-close-button {
+  color: var(--muted-foreground);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
