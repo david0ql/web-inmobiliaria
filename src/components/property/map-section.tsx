@@ -1,44 +1,41 @@
-import { lazy, Suspense, useEffect, useRef, useState } from 'react'
-import { MapPin } from 'lucide-react'
+import { lazy, Suspense, useEffect, useState } from "react";
 
-import { Button } from '@/components/ui/button'
-import { searchProperties } from '@/lib/api'
-import type { Property } from '@/lib/types'
+import { searchProperties } from "@/lib/api";
+import { useCuandoOcioso } from "@/lib/cuando-ocioso";
+import type { Property } from "@/lib/types";
 
 const PropertiesMap = lazy(() =>
-  import('@/components/property/properties-map').then((m) => ({
+  import("@/components/property/properties-map").then((m) => ({
     default: m.PropertiesMap,
   })),
-)
+);
 
 /*
-  El mapa es la portada del sitio, pero es tambien lo mas caro que hay en ella:
-  Leaflet mas el plugin de agrupacion pesan ~150 kB, tira de una veintena de
-  teselas contra un servidor ajeno, y sus datos son ~100 inmuebles completos.
+  El mapa de la portada: siempre sale, pero no se pone por delante de nada.
 
-  Por eso lo que se sirve de entrada es una foto del mapa —una sola imagen
-  nuestra, de 105 kB— y Leaflet solo se monta cuando alguien lo pide.
+  Es lo mas caro de la pagina —Leaflet mas el plugin de agrupacion pesan
+  ~150 kB, tira de una veintena de teselas contra un servidor ajeno y sus datos
+  son ~100 inmuebles completos— y es tambien el elemento mas grande de la
+  pantalla, o sea el que mide el navegador para decidir si la pagina va rapida.
 
-  No es una decision de estilo. Con el mapa vivo, el elemento mas grande de la
-  pantalla en movil era una tesela de openstreetmap.org: 4,7 s hasta pintarla,
-  de los cuales 1,25 s eran esperar a que Leaflet se descargara y arrancara
-  para poder siquiera pedirla. La foto llega con el HTML, se precarga con
-  prioridad alta y se ve entera en cuanto llega el CSS.
+  Asi que lo que se sirve con el HTML es una foto del mapa: 35 kB en movil, en
+  el armazon de index.html, precargada con prioridad alta. Se ve entera en
+  cuanto llega el CSS, sin esperar a React. Cuando la pagina termina de cargar
+  y el hilo queda libre, Leaflet se monta encima y a partir de ahi el mapa es
+  el de verdad, con sus chinchetas.
 
-  Para el visitante el cambio es un boton: ve el mapa, y si quiere moverse por
-  el, lo activa. Quien entra desde el movil y baja directo a los destacados no
-  descarga nunca Leaflet, ni sus teselas, ni los 96 inmuebles del mapa.
+  El visitante no ve el cambio: la foto esta hecha con el mismo centro y el
+  mismo zoom.
 */
 export function MapSection() {
-  const [properties, setProperties] = useState<Property[] | null>(null)
-  const [live, setLive] = useState(false)
-  const frame = useRef<HTMLDivElement>(null)
+  const ocioso = useCuandoOcioso();
+  const [properties, setProperties] = useState<Property[] | null>(null);
 
   useEffect(() => {
-    if (!live) return
-    const controller = new AbortController()
+    if (!ocioso) return;
+    const controller = new AbortController();
 
-    // Dos paginas: el mapa quiere el inventario entero, la API lo pagina de 48.
+    // Dos paginas: el mapa quiere el inventario entero y la API lo da de 48.
     Promise.all([
       searchProperties({ limit: 48 }, controller.signal),
       searchProperties({ limit: 48, page: 2 }, controller.signal),
@@ -50,19 +47,18 @@ export function MapSection() {
           ),
         ),
       )
-      .catch(() => setProperties([]))
+      .catch(() => setProperties([]));
 
-    return () => controller.abort()
-  }, [live])
+    return () => controller.abort();
+  }, [ocioso]);
 
-  if (!live) return <MapPoster ref={frame} onActivate={() => setLive(true)} />
-  if (!properties) return <MapPoster ref={frame} loading />
+  if (!properties?.length) return <MapPoster />;
 
   return (
-    <Suspense fallback={<MapPoster loading />}>
+    <Suspense fallback={<MapPoster />}>
       <PropertiesMap properties={properties} />
     </Suspense>
-  )
+  );
 }
 
 /**
@@ -73,20 +69,9 @@ export function MapSection() {
  * navegador la trata como una imagen mas del cuerpo y la deja para el final,
  * que es exactamente el problema que se venia a resolver.
  */
-function MapPoster({
-  ref,
-  onActivate,
-  loading,
-}: {
-  ref?: React.Ref<HTMLDivElement>
-  onActivate?: () => void
-  loading?: boolean
-}) {
+function MapPoster() {
   return (
-    <div
-      ref={ref}
-      className="relative h-[300px] w-full overflow-hidden bg-secondary sm:h-[380px] lg:h-[450px]"
-    >
+    <div className="relative h-[300px] w-full overflow-hidden bg-secondary sm:h-[380px] lg:h-[450px]">
       <img
         src="/mapa-santander.webp"
         srcSet="/mapa-santander-sm.webp 760w, /mapa-santander.webp 1280w"
@@ -103,22 +88,6 @@ function MapPoster({
       <span className="absolute right-0 bottom-0 bg-white/80 px-1.5 py-0.5 text-[10px] text-neutral-700">
         © OpenStreetMap
       </span>
-
-      {onActivate && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/25">
-          <Button size="lg" onClick={onActivate} className="shadow-lg">
-            <MapPin className="size-4" />
-            Ver el mapa de inmuebles
-          </Button>
-        </div>
-      )}
-
-      {loading && (
-        <div
-          className="absolute inset-0 animate-pulse bg-black/25"
-          aria-hidden="true"
-        />
-      )}
     </div>
-  )
+  );
 }
