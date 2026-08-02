@@ -1,6 +1,6 @@
 import { ArrowLeft, ArrowRight, Check, Loader2, Upload, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { useForm, type UseFormReturn } from 'react-hook-form'
+import { useForm, useWatch, type UseFormReturn } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -387,8 +387,28 @@ export function ConsignmentDialog({
   const step = STEPS[index]
   const last = index === STEPS.length - 1
 
+
+/**
+ * Avanza si el paso valida. Si no, enfoca el primer campo en falta: sin esto,
+ * pulsar "Continuar" con un error mas abajo no hace nada visible y parece que
+ * el boton esta roto.
+ */
   async function next() {
-    if (!(await form.trigger(step.fields))) return
+    if (!(await form.trigger(step.fields))) {
+      const failed = step.fields.find(
+        (field) => form.getFieldState(field).invalid,
+      )
+      // Los botones y los montos no registran un `<input>`, asi que no hay
+      // nada que enfocar: ahi basta con que el mensaje ya este pintado.
+      if (failed) {
+        try {
+          form.setFocus(failed, { shouldSelect: true })
+        } catch {
+          /* campo sin ref */
+        }
+      }
+      return
+    }
     setIndex(index + 1)
   }
 
@@ -591,7 +611,7 @@ function toFormData(
 
 function LocationStep({ form }: { form: Form }) {
   const { catalogs } = useSiteData()
-  const cityId = form.watch('cityId')
+  const cityId = useWatch({ control: form.control, name: 'cityId' })
   const [zones, setZones] = useState<Zone[]>([])
 
   // Los barrios de la ciudad elegida, como sugerencias. No se obliga a elegir
@@ -752,7 +772,9 @@ function PropertyStep({ form }: { form: Form }) {
 
 function AmenitiesStep({ form }: { form: Form }) {
   const { catalogs } = useSiteData()
-  const selected = form.watch('amenityIds')
+  // `useWatch` y no `form.watch`: esto es un hijo, y `form.watch` solo re-pinta
+  // al componente que creo el formulario.
+  const selected = useWatch({ control: form.control, name: 'amenityIds' }) ?? []
 
   // Del nombre del formulario al id del catalogo. Lo que no exista en el
   // catalogo simplemente no se ofrece, en vez de mandar un id inventado.
@@ -769,6 +791,7 @@ function AmenitiesStep({ form }: { form: Form }) {
       selected.includes(id)
         ? selected.filter((value) => value !== id)
         : [...selected, id],
+      { shouldDirty: true },
     )
 
   return (
@@ -810,8 +833,8 @@ function AmenitiesStep({ form }: { form: Form }) {
 }
 
 function MoneyStep({ form }: { form: Form }) {
-  const creditType = form.watch('creditType')
-  const occupancy = form.watch('occupancy')
+  const creditType = useWatch({ control: form.control, name: 'creditType' })
+  const occupancy = useWatch({ control: form.control, name: 'occupancy' })
 
   return (
     <Fieldset legend="Precio y situación">

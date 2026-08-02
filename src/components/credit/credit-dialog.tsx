@@ -1,6 +1,6 @@
 import { ArrowLeft, ArrowRight, Check, Loader2 } from 'lucide-react'
 import { useState } from 'react'
-import { useForm, type Path, type UseFormReturn } from 'react-hook-form'
+import { useForm, useWatch, type Path, type UseFormReturn } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -366,8 +366,28 @@ export function CreditDialog({
   const step = steps[current]
   const last = current === steps.length - 1
 
+
+/**
+ * Avanza si el paso valida. Si no, enfoca el primer campo en falta: sin esto,
+ * pulsar "Continuar" con un error mas abajo no hace nada visible y parece que
+ * el boton esta roto.
+ */
   async function next() {
-    if (!(await form.trigger(step.fields))) return
+    if (!(await form.trigger(step.fields))) {
+      const failed = step.fields.find(
+        (field) => form.getFieldState(field).invalid,
+      )
+      // Los botones y los montos no registran un `<input>`, asi que no hay
+      // nada que enfocar: ahi basta con que el mensaje ya este pintado.
+      if (failed) {
+        try {
+          form.setFocus(failed, { shouldSelect: true })
+        } catch {
+          /* campo sin ref */
+        }
+      }
+      return
+    }
     setIndex(current + 1)
   }
 
@@ -707,7 +727,8 @@ function CreditStep({ form }: { form: Form }) {
 }
 
 function PropertyStep({ form }: { form: Form }) {
-  const picked = form.watch('hasPropertyPicked')
+  // Hijo del formulario: `form.watch` no le re-pintaria. Ver fields.tsx.
+  const picked = useWatch({ control: form.control, name: 'hasPropertyPicked' })
 
   return (
     <Fieldset legend="Hablemos del inmueble">

@@ -1,4 +1,5 @@
 import { useId } from 'react'
+import { useFormState, useWatch } from 'react-hook-form'
 import type { FieldValues, Path, UseFormReturn } from 'react-hook-form'
 
 import { Input } from '@/components/ui/input'
@@ -19,16 +20,29 @@ import { cn } from '@/lib/utils'
 
 type Form<T extends FieldValues> = UseFormReturn<T>
 
-/** `errors` esta tipado por rama; estos formularios son planos. */
-function messageOf<T extends FieldValues>(
+/*
+ * `form.watch(...)` y `form.formState` solo suscriben al componente que llamo a
+ * `useForm`. Leerlos desde un campo hijo devuelve el valor correcto la primera
+ * vez y nunca se entera de los cambios: la casilla no se marca, el boton no se
+ * ilumina y el error no aparece.
+ *
+ * `useWatch` y `useFormState` suscriben al hijo, que es lo que hace falta para
+ * que estas piezas funcionen colgadas de cualquier formulario.
+ */
+
+/** El mensaje de error del campo. `errors` esta tipado por rama; esto es plano. */
+function useMessage<T extends FieldValues>(
   form: Form<T>,
   name: Path<T>,
 ): string | undefined {
-  const errors = form.formState.errors as Record<
-    string,
-    { message?: string } | undefined
-  >
-  return errors[name]?.message
+  const { errors } = useFormState({ control: form.control, name })
+  const flat = errors as Record<string, { message?: string } | undefined>
+  return flat[name]?.message
+}
+
+/** El valor actual del campo, con re-render cuando cambia. */
+function useValue<T extends FieldValues>(form: Form<T>, name: Path<T>) {
+  return useWatch({ control: form.control, name })
 }
 
 export function ErrorText<T extends FieldValues>({
@@ -38,7 +52,7 @@ export function ErrorText<T extends FieldValues>({
   form: Form<T>
   name: Path<T>
 }) {
-  const message = messageOf(form, name)
+  const message = useMessage(form, name)
   if (!message) return null
   return (
     <p role="alert" className="text-xs text-destructive">
@@ -83,7 +97,7 @@ export function Field<T extends FieldValues>({
   className?: string
 } & Omit<React.ComponentProps<'input'>, 'form' | 'name'>) {
   const id = useId()
-  const message = messageOf(form, name)
+  const message = useMessage(form, name)
 
   return (
     <div className={cn('grid content-start gap-1.5', className)}>
@@ -121,8 +135,8 @@ export function MoneyField<T extends FieldValues>({
   className?: string
 }) {
   const id = useId()
-  const message = messageOf(form, name)
-  const raw = digits(String(form.watch(name) ?? ''))
+  const message = useMessage(form, name)
+  const raw = digits(String(useValue(form, name) ?? ''))
 
   return (
     <div className={cn('grid content-start gap-1.5', className)}>
@@ -135,7 +149,8 @@ export function MoneyField<T extends FieldValues>({
         value={raw ? price(Number(raw)) : ''}
         onChange={(event) =>
           form.setValue(name, digits(event.target.value) as never, {
-            shouldValidate: form.formState.isSubmitted,
+            shouldValidate: true,
+            shouldDirty: true,
           })
         }
       />
@@ -165,7 +180,7 @@ export function SelectField<T extends FieldValues>({
   className?: string
 }) {
   const id = useId()
-  const message = messageOf(form, name)
+  const message = useMessage(form, name)
 
   return (
     <div className={cn('grid content-start gap-1.5', className)}>
@@ -210,7 +225,7 @@ export function Choice<T extends FieldValues, V extends string | boolean>({
   options: readonly { value: V; label: string; hint?: string }[]
   className?: string
 }) {
-  const value = form.watch(name)
+  const value = useValue(form, name)
 
   return (
     <div className={cn('grid content-start gap-1.5', className)}>
@@ -233,7 +248,8 @@ export function Choice<T extends FieldValues, V extends string | boolean>({
               aria-checked={active}
               onClick={() =>
                 form.setValue(name, option.value as never, {
-                  shouldValidate: form.formState.isSubmitted,
+                  shouldValidate: true,
+                  shouldDirty: true,
                 })
               }
               className={cn(
