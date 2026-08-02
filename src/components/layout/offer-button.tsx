@@ -13,14 +13,14 @@ import { Button } from '@/components/ui/button'
   ventaja y hace que al hacer clic ya este.
 */
 const OfferDialog = lazy(() =>
-  import('@/components/layout/offer-dialog').then((m) => ({
-    default: m.OfferDialog,
+  import('@/components/consignment/consignment-dialog').then((m) => ({
+    default: m.ConsignmentDialog,
   })),
 )
 
 let preloaded: Promise<unknown> | null = null
 const preload = () => {
-  preloaded ??= import('@/components/layout/offer-dialog')
+  preloaded ??= import('@/components/consignment/consignment-dialog')
 }
 
 export function OfferButton({

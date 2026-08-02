@@ -5,6 +5,16 @@ import { toast } from 'sonner'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 
+import {
+  Choice,
+  Field,
+  Fieldset,
+  MoneyField,
+  Progress,
+  SelectField,
+  Toggle,
+  type Step,
+} from '@/components/form/fields'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -14,11 +24,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { ApiError, submitCreditRequest } from '@/lib/api'
-import { price } from '@/lib/format'
 import { digits } from '@/lib/search-params'
 import { cn } from '@/lib/utils'
 
@@ -123,6 +131,14 @@ const schema = z
   .object({
     ...person,
 
+    /*
+     * Repetir telefono y documento no viaja a la API: es una comprobacion del
+     * navegador contra el error de tecleo. Un digito de mas en el movil deja la
+     * consulta sin forma de contestarla.
+     */
+    phoneConfirm: z.string().trim(),
+    documentNumberConfirm: z.string().trim(),
+
     withCoApplicant: z.boolean(),
     coFirstName: z.string().trim().optional(),
     coLastName: z.string().trim().optional(),
@@ -156,6 +172,21 @@ const schema = z
    * concreto, que es lo que hace que el paso correcto se abra al fallar.
    */
   .superRefine((values, ctx) => {
+    if (digits(values.phone) !== digits(values.phoneConfirm)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['phoneConfirm'],
+        message: 'Los teléfonos no coinciden.',
+      })
+    }
+    if (values.documentNumber.trim() !== values.documentNumberConfirm.trim()) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['documentNumberConfirm'],
+        message: 'Los documentos no coinciden.',
+      })
+    }
+
     if (values.hasPropertyPicked && !Number(digits(values.propertyValue ?? ''))) {
       ctx.addIssue({
         code: 'custom',
@@ -200,13 +231,7 @@ type Form = UseFormReturn<CreditValues>
 
 // --- pasos -----------------------------------------------------------------
 
-interface Step {
-  id: string
-  title: string
-  fields: Path<CreditValues>[]
-}
-
-const STEP_APPLICANT: Step = {
+const STEP_APPLICANT: Step<CreditValues> = {
   id: 'applicant',
   title: 'Tus datos',
   fields: [
@@ -214,16 +239,18 @@ const STEP_APPLICANT: Step = {
     'lastName',
     'birthDate',
     'phone',
+    'phoneConfirm',
     'email',
     'documentType',
     'documentNumber',
+    'documentNumberConfirm',
     'gender',
     'occupation',
     'monthlyIncome',
   ],
 }
 
-const STEP_CO_APPLICANT: Step = {
+const STEP_CO_APPLICANT: Step<CreditValues> = {
   id: 'co-applicant',
   title: 'Segundo solicitante',
   fields: [
@@ -240,7 +267,7 @@ const STEP_CO_APPLICANT: Step = {
   ],
 }
 
-const STEP_CREDIT: Step = {
+const STEP_CREDIT: Step<CreditValues> = {
   id: 'credit',
   title: 'El crédito',
   fields: [
@@ -253,7 +280,7 @@ const STEP_CREDIT: Step = {
   ],
 }
 
-const STEP_PROPERTY: Step = {
+const STEP_PROPERTY: Step<CreditValues> = {
   id: 'property',
   title: 'El inmueble',
   fields: ['hasPropertyPicked', 'propertyValue', 'propertyCode', 'notes', 'acceptedTerms'],
@@ -298,6 +325,8 @@ export function CreditDialog({
       gender: '',
       occupation: 'SALARIED',
       monthlyIncome: '',
+      phoneConfirm: '',
+      documentNumberConfirm: '',
 
       withCoApplicant: false,
       coFirstName: '',
@@ -510,6 +539,15 @@ function ApplicantStep({ form }: { form: Form }) {
       />
       <Field
         form={form}
+        name="phoneConfirm"
+        label="Confirma el teléfono"
+        type="tel"
+        inputMode="tel"
+        // Pegar el primero anula la comprobacion: hay que volver a teclearlo.
+        onPaste={(event) => event.preventDefault()}
+      />
+      <Field
+        form={form}
         name="email"
         label="Correo electrónico"
         type="email"
@@ -527,6 +565,13 @@ function ApplicantStep({ form }: { form: Form }) {
         name="documentNumber"
         label="Número de documento"
         inputMode="numeric"
+      />
+      <Field
+        form={form}
+        name="documentNumberConfirm"
+        label="Confirma el documento"
+        inputMode="numeric"
+        onPaste={(event) => event.preventDefault()}
       />
       <SelectField
         form={form}
@@ -710,263 +755,5 @@ function PropertyStep({ form }: { form: Form }) {
         />
       </div>
     </Fieldset>
-  )
-}
-
-// --- piezas ----------------------------------------------------------------
-
-function Progress({ steps, current }: { steps: Step[]; current: number }) {
-  return (
-    <ol className="flex gap-2" aria-label="Progreso del formulario">
-      {steps.map((step, i) => (
-        <li key={step.id} className="flex-1">
-          <div
-            className={cn(
-              'h-1 rounded-full transition-colors',
-              i <= current ? 'bg-primary' : 'bg-secondary',
-            )}
-          />
-          <span
-            className={cn(
-              'mt-1.5 block text-[11px] leading-tight',
-              i === current
-                ? 'font-semibold text-foreground'
-                : 'text-muted-foreground',
-            )}
-            aria-current={i === current ? 'step' : undefined}
-          >
-            {step.title}
-          </span>
-        </li>
-      ))}
-    </ol>
-  )
-}
-
-function Fieldset({
-  legend,
-  children,
-}: {
-  legend: string
-  children: React.ReactNode
-}) {
-  return (
-    <fieldset className="mt-2">
-      <legend className="mb-4 text-xs font-bold tracking-widest text-primary uppercase">
-        {legend}
-      </legend>
-      <div className="grid gap-4 sm:grid-cols-2">{children}</div>
-    </fieldset>
-  )
-}
-
-function ErrorText({ form, name }: { form: Form; name: Path<CreditValues> }) {
-  const error = form.formState.errors[name]
-  if (!error) return null
-  return <p className="text-xs text-destructive">{error.message as string}</p>
-}
-
-function Field({
-  form,
-  name,
-  label,
-  hint,
-  className,
-  ...props
-}: {
-  form: Form
-  name: Path<CreditValues>
-  label: string
-  hint?: string
-  className?: string
-} & Omit<React.ComponentProps<'input'>, 'form' | 'name'>) {
-  const error = form.formState.errors[name]
-  return (
-    <div className={cn('grid gap-1.5 content-start', className)}>
-      <Label htmlFor={`credit-${name}`}>{label}</Label>
-      <Input
-        id={`credit-${name}`}
-        aria-invalid={error ? true : undefined}
-        {...props}
-        {...form.register(name)}
-      />
-      {hint && !error && <p className="text-xs text-muted-foreground">{hint}</p>}
-      <ErrorText form={form} name={name} />
-    </div>
-  )
-}
-
-/**
- * Miles con punto mientras se escribe. Un monto de nueve cifras sin separar es
- * ilegible, y es justo el campo donde equivocarse en un cero cambia la consulta
- * entera.
- */
-function MoneyField({
-  form,
-  name,
-  label,
-  hint,
-  className,
-}: {
-  form: Form
-  name: Path<CreditValues>
-  label: string
-  hint?: string
-  className?: string
-}) {
-  const error = form.formState.errors[name]
-  const raw = digits(String(form.watch(name) ?? ''))
-
-  return (
-    <div className={cn('grid gap-1.5 content-start', className)}>
-      <Label htmlFor={`credit-${name}`}>{label}</Label>
-      <Input
-        id={`credit-${name}`}
-        inputMode="numeric"
-        placeholder="$"
-        aria-invalid={error ? true : undefined}
-        value={raw ? price(Number(raw)) : ''}
-        onChange={(event) =>
-          form.setValue(name, digits(event.target.value) as never, {
-            shouldValidate: form.formState.isSubmitted,
-          })
-        }
-      />
-      {hint && !error && <p className="text-xs text-muted-foreground">{hint}</p>}
-      <ErrorText form={form} name={name} />
-    </div>
-  )
-}
-
-function SelectField({
-  form,
-  name,
-  label,
-  options,
-  placeholder,
-  className,
-}: {
-  form: Form
-  name: Path<CreditValues>
-  label: string
-  options: readonly { value: string; label: string }[]
-  placeholder?: string
-  className?: string
-}) {
-  const error = form.formState.errors[name]
-  return (
-    <div className={cn('grid gap-1.5 content-start', className)}>
-      <Label htmlFor={`credit-${name}`}>{label}</Label>
-      {/*
-        Un `select` nativo y no el de Radix: dentro de un modal con scroll el
-        desplegable nativo es el que mejor se porta en movil, que es donde se
-        va a llenar esto.
-      */}
-      <select
-        id={`credit-${name}`}
-        aria-invalid={error ? true : undefined}
-        className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/15 aria-invalid:border-destructive"
-        {...form.register(name)}
-      >
-        {placeholder && <option value="">{placeholder}</option>}
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-      <ErrorText form={form} name={name} />
-    </div>
-  )
-}
-
-/** Botonera de una sola eleccion: mas rapida de tocar que un desplegable. */
-function Choice<T extends string | boolean>({
-  form,
-  name,
-  label,
-  options,
-}: {
-  form: Form
-  name: Path<CreditValues>
-  label: string
-  options: readonly { value: T; label: string; hint?: string }[]
-}) {
-  const value = form.watch(name)
-
-  return (
-    <div className="grid gap-1.5 content-start">
-      <span className="text-sm font-medium">{label}</span>
-      <div
-        role="radiogroup"
-        aria-label={label}
-        className="grid gap-2"
-        style={{
-          gridTemplateColumns: `repeat(${Math.min(options.length, 3)}, minmax(0, 1fr))`,
-        }}
-      >
-        {options.map((option) => {
-          const active = value === option.value
-          return (
-            <button
-              key={String(option.value)}
-              type="button"
-              role="radio"
-              aria-checked={active}
-              onClick={() =>
-                form.setValue(name, option.value as never, {
-                  shouldValidate: form.formState.isSubmitted,
-                })
-              }
-              className={cn(
-                'rounded-md border px-3 py-2 text-left text-sm transition-colors',
-                active
-                  ? 'border-primary bg-primary/10 font-semibold'
-                  : 'bg-background hover:bg-secondary',
-              )}
-            >
-              {option.label}
-              {option.hint && (
-                <span className="block text-[11px] font-normal text-muted-foreground">
-                  {option.hint}
-                </span>
-              )}
-            </button>
-          )
-        })}
-      </div>
-      <ErrorText form={form} name={name} />
-    </div>
-  )
-}
-
-function Toggle({
-  form,
-  name,
-  label,
-  hint,
-}: {
-  form: Form
-  name: Path<CreditValues>
-  label: string
-  hint?: string
-}) {
-  return (
-    <div className="grid gap-1.5">
-      <label className="flex items-start gap-2.5 text-sm">
-        <input
-          type="checkbox"
-          className="mt-0.5 size-4 accent-primary"
-          {...form.register(name)}
-        />
-        <span>
-          {label}
-          {hint && (
-            <span className="block text-xs text-muted-foreground">{hint}</span>
-          )}
-        </span>
-      </label>
-      <ErrorText form={form} name={name} />
-    </div>
   )
 }
