@@ -1,6 +1,7 @@
 import { Outlet, ScrollRestoration, useNavigation } from 'react-router-dom'
 
 import { usePortalSession } from '@/lib/use-portal'
+import { ChatFab } from '@/components/assistant/chat-fab'
 import { SiteFooter } from '@/components/layout/site-footer'
 import { SiteHeader } from '@/components/layout/site-header'
 import { TopBar } from '@/components/layout/top-bar'
@@ -39,6 +40,11 @@ export function Root() {
       </main>
 
       <SiteFooter />
+
+      {/* El asistente: flota en todas las pantallas, abajo a la derecha. Va
+          después del pie a propósito, para que quede por encima en el apilado. */}
+      <ChatFab />
+
       <ScrollRestoration />
       <Toaster />
     </div>
