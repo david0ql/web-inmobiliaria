@@ -65,6 +65,13 @@ export const router = createBrowserRouter([
           Component: (await import('@/routes/project')).ProjectPage,
         }),
       },
+      {
+        path: 'mi-cuenta',
+        errorElement,
+        lazy: async () => ({
+          Component: (await import('@/routes/account')).Account,
+        }),
+      },
       // Creditos no tiene ruta: es un modal que se abre desde el menu. Ver
       // `CreditButton`.
       {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState } from 'react'
 
 /**
  * Devuelve `true` cuando la pagina ya ha terminado de cargar y el hilo
@@ -14,35 +14,35 @@ import { useEffect, useState } from "react";
  * optimizacion.
  */
 export function useCuandoOcioso(esperaMs = 1500): boolean {
-  const [ocioso, setOcioso] = useState(false);
+  const [ocioso, setOcioso] = useState(false)
 
   useEffect(() => {
-    let cancelar: () => void;
+    let cancelar: () => void
 
     const arrancar = () => {
-      if (typeof window.requestIdleCallback === "function") {
+      if (typeof window.requestIdleCallback === 'function') {
         const id = window.requestIdleCallback(() => setOcioso(true), {
           timeout: esperaMs,
-        });
-        cancelar = () => window.cancelIdleCallback(id);
+        })
+        cancelar = () => window.cancelIdleCallback(id)
       } else {
         // Safari todavia no lo trae.
-        const id = window.setTimeout(() => setOcioso(true), 300);
-        cancelar = () => window.clearTimeout(id);
+        const id = window.setTimeout(() => setOcioso(true), 300)
+        cancelar = () => window.clearTimeout(id)
       }
-    };
-
-    if (document.readyState === "complete") {
-      arrancar();
-      return () => cancelar?.();
     }
 
-    window.addEventListener("load", arrancar, { once: true });
-    return () => {
-      window.removeEventListener("load", arrancar);
-      cancelar?.();
-    };
-  }, [esperaMs]);
+    if (document.readyState === 'complete') {
+      arrancar()
+      return () => cancelar?.()
+    }
 
-  return ocioso;
+    window.addEventListener('load', arrancar, { once: true })
+    return () => {
+      window.removeEventListener('load', arrancar)
+      cancelar?.()
+    }
+  }, [esperaMs])
+
+  return ocioso
 }

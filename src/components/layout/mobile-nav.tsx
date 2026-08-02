@@ -1,6 +1,7 @@
 import { LogIn, Mail, Phone } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
+import { AccountButton } from '@/components/layout/account-button'
 import { CreditButton } from '@/components/credit/credit-button'
 import { OfferButton } from '@/components/layout/offer-button'
 import { SocialLinks } from '@/components/layout/social-links'
@@ -98,6 +99,7 @@ export function MobileNav({
               telefono y el correo siguen ahi abajo, a un toque. */}
           <div className="flex flex-col gap-2 py-4">
             <OfferButton className="w-full tracking-wide uppercase" />
+            <AccountButton className="w-full tracking-wide uppercase" />
             <Button
               asChild
               variant="outline"

@@ -1,13 +1,13 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense } from 'react'
 
-import { useCuandoOcioso } from "@/lib/cuando-ocioso";
-import type { Property } from "@/lib/types";
+import { useCuandoOcioso } from '@/lib/cuando-ocioso'
+import type { Property } from '@/lib/types'
 
 const PropertyMapCanvas = lazy(() =>
-  import("@/components/property/property-map-canvas").then((m) => ({
+  import('@/components/property/property-map-canvas').then((m) => ({
     default: m.PropertyMapCanvas,
   })),
-);
+)
 
 /**
  * El bloque de ubicacion de la ficha.
@@ -19,11 +19,11 @@ const PropertyMapCanvas = lazy(() =>
  * hasta el.
  */
 export function PropertyMap({ property }: { property: Property }) {
-  const { latitude, longitude, mapPublication } = property;
-  const ocioso = useCuandoOcioso();
+  const { latitude, longitude, mapPublication } = property
+  const ocioso = useCuandoOcioso()
 
-  if (latitude === null || longitude === null || mapPublication === "HIDDEN") {
-    return null;
+  if (latitude === null || longitude === null || mapPublication === 'HIDDEN') {
+    return null
   }
 
   return (
@@ -41,14 +41,14 @@ export function PropertyMap({ property }: { property: Property }) {
           <MapPlaceholder />
         )}
       </div>
-      {mapPublication === "APPROXIMATE" && (
+      {mapPublication === 'APPROXIMATE' && (
         <p className="mt-2 text-xs text-muted-foreground">
           Ubicación aproximada. Tu asesor te da la dirección exacta al agendar
           la visita.
         </p>
       )}
     </section>
-  );
+  )
 }
 
 function MapPlaceholder() {
@@ -57,5 +57,5 @@ function MapPlaceholder() {
       aria-hidden="true"
       className="size-full rounded-lg border bg-secondary"
     />
-  );
+  )
 }

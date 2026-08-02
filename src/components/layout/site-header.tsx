@@ -1,7 +1,8 @@
-import { LogIn, Menu, Search } from 'lucide-react'
+import { Menu, Search } from 'lucide-react'
 import { lazy, Suspense, useState } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 
+import { AccountButton } from '@/components/layout/account-button'
 import { CreditButton } from '@/components/credit/credit-button'
 import { OfferButton } from '@/components/layout/offer-button'
 
@@ -17,7 +18,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/misc'
 import { menuTypes, typePath, useSiteData } from '@/lib/site-data'
-import { PANEL_URL, ROUTES, SITE } from '@/lib/site'
+import { ROUTES, SITE } from '@/lib/site'
 import { cn } from '@/lib/utils'
 
 /* El panel lateral solo existe por debajo de lg y solo si se pulsa. Radix Dialog
@@ -117,19 +118,9 @@ export function SiteHeader() {
               del sitio, son cosas que se hacen. */}
           <div className="ml-3 flex items-center gap-2">
             <OfferButton size="sm" className="tracking-wide uppercase" />
-            <Button
-              asChild
-              variant="outline"
-              size="sm"
-              className="tracking-wide uppercase"
-            >
-              {/* En otra pestaña: el panel es otra aplicacion y quien entra a
-                  trabajar no tiene por que perder el sitio publico. */}
-              <a href={PANEL_URL} target="_blank" rel="noreferrer noopener">
-                <LogIn />
-                Iniciar sesión
-              </a>
-            </Button>
+            {/* "Entrar" es de los propietarios, no del equipo: el acceso al
+                panel bajo al pie, que es donde lo busca quien trabaja aqui. */}
+            <AccountButton size="sm" className="tracking-wide uppercase" />
           </div>
         </nav>
 

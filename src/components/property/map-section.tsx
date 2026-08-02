@@ -1,14 +1,14 @@
-import { lazy, Suspense, useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from 'react'
 
-import { searchProperties } from "@/lib/api";
-import { useCuandoOcioso } from "@/lib/cuando-ocioso";
-import type { Property } from "@/lib/types";
+import { searchProperties } from '@/lib/api'
+import { useCuandoOcioso } from '@/lib/cuando-ocioso'
+import type { Property } from '@/lib/types'
 
 const PropertiesMap = lazy(() =>
-  import("@/components/property/properties-map").then((m) => ({
+  import('@/components/property/properties-map').then((m) => ({
     default: m.PropertiesMap,
   })),
-);
+)
 
 /*
   El mapa de la portada: siempre sale, pero no se pone por delante de nada.
@@ -28,12 +28,12 @@ const PropertiesMap = lazy(() =>
   mismo zoom.
 */
 export function MapSection() {
-  const ocioso = useCuandoOcioso();
-  const [properties, setProperties] = useState<Property[] | null>(null);
+  const ocioso = useCuandoOcioso()
+  const [properties, setProperties] = useState<Property[] | null>(null)
 
   useEffect(() => {
-    if (!ocioso) return;
-    const controller = new AbortController();
+    if (!ocioso) return
+    const controller = new AbortController()
 
     // Dos paginas: el mapa quiere el inventario entero y la API lo da de 48.
     Promise.all([
@@ -47,18 +47,18 @@ export function MapSection() {
           ),
         ),
       )
-      .catch(() => setProperties([]));
+      .catch(() => setProperties([]))
 
-    return () => controller.abort();
-  }, [ocioso]);
+    return () => controller.abort()
+  }, [ocioso])
 
-  if (!properties?.length) return <MapPoster />;
+  if (!properties?.length) return <MapPoster />
 
   return (
     <Suspense fallback={<MapPoster />}>
       <PropertiesMap properties={properties} />
     </Suspense>
-  );
+  )
 }
 
 /**
@@ -89,5 +89,5 @@ function MapPoster() {
         © OpenStreetMap
       </span>
     </div>
-  );
+  )
 }

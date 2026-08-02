@@ -27,6 +27,7 @@ import {
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { ApiError, getZones, submitConsignment } from '@/lib/api'
+import { portal } from '@/lib/portal'
 import { digits } from '@/lib/search-params'
 import { useSiteData } from '@/lib/site-data'
 import type { Zone } from '@/lib/types'
@@ -317,10 +318,17 @@ export function ConsignmentDialog({
   children,
   defaultOpen = false,
   onOpenChange,
+  /**
+   * Desde el portal. El paso "Tus datos" desaparece —la API los toma de la
+   * sesion y descarta lo que llegue en el cuerpo— y la solicitud queda ligada
+   * a la cuenta, asi que el propietario la ve luego en «Mis solicitudes».
+   */
+  authenticated = false,
 }: {
   children?: React.ReactNode
   defaultOpen?: boolean
   onOpenChange?: (open: boolean) => void
+  authenticated?: boolean
 }) {
   const [open, setOpen] = useState(defaultOpen)
   const [index, setIndex] = useState(0)
@@ -384,8 +392,36 @@ export function ConsignmentDialog({
     if (!next) setIndex(0)
   }
 
-  const step = STEPS[index]
-  const last = index === STEPS.length - 1
+  /*
+   * Con sesion, los datos del propietario se traen del perfil en vez de
+   * pedirlos. No es cosmetica: el esquema los exige para enviar, y la API los
+   * sobrescribe con los de la sesion de todas formas — asi lo que se valida
+   * aqui es lo mismo que se va a guardar.
+   */
+  useEffect(() => {
+    if (!authenticated || !open) return
+    let alive = true
+    void portal
+      .profile()
+      .then((profile) => {
+        if (!alive) return
+        form.setValue('ownerFirstName', profile.firstName)
+        form.setValue('ownerLastName', profile.lastName ?? '')
+        form.setValue('ownerEmail', profile.email ?? '')
+        form.setValue('ownerPhone', profile.cellPhone ?? '')
+      })
+      .catch(() => undefined)
+    return () => {
+      alive = false
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authenticated, open])
+
+  const steps = authenticated
+    ? STEPS.filter((entry) => entry.id !== 'owner')
+    : STEPS
+  const step = steps[index]
+  const last = index === steps.length - 1
 
 
 /**
@@ -431,10 +467,12 @@ export function ConsignmentDialog({
         )?.name ?? '',
     }
 
+    const body = toFormData(values, names, documents, photos)
+
     try {
-      const result = await submitConsignment(
-        toFormData(values, names, documents, photos),
-      )
+      const result = authenticated
+        ? await portal.createConsignment(body)
+        : await submitConsignment(body)
       toast.success(`Solicitud ${result.reference} recibida`, {
         description: result.message,
       })
@@ -466,7 +504,7 @@ export function ConsignmentDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <Progress steps={STEPS} current={index} />
+        <Progress steps={steps} current={index} />
 
         <form
           onSubmit={(event) => {
@@ -509,7 +547,7 @@ export function ConsignmentDialog({
 
             <div className="flex items-center gap-3">
               <span className="tabular text-xs text-muted-foreground">
-                Paso {index + 1} de {STEPS.length}
+                Paso {index + 1} de {steps.length}
               </span>
               {last ? (
                 <Button type="submit" disabled={form.formState.isSubmitting}>

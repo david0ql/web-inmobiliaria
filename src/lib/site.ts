@@ -61,6 +61,7 @@ export const ROUTES = {
   search: '/s',
   sales: '/s/ventas',
   projects: '/proyectos',
+  account: '/mi-cuenta',
   // Creditos no esta aqui: no es una pagina, es el modal de consulta de
   // viabilidad que abre `CreditButton` desde el menu.
   contact: '/main-contactenos.htm',

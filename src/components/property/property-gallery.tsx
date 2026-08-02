@@ -1,11 +1,11 @@
-import useEmblaCarousel from "embla-carousel-react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import useEmblaCarousel from 'embla-carousel-react'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
 
-import { Badge } from "@/components/ui/misc";
-import { AVAILABILITY_COLOR, AVAILABILITY_LABEL } from "@/lib/format";
-import type { Availability, PropertyImage } from "@/lib/types";
-import { cn } from "@/lib/utils";
+import { Badge } from '@/components/ui/misc'
+import { AVAILABILITY_COLOR, AVAILABILITY_LABEL } from '@/lib/format'
+import type { Availability, PropertyImage } from '@/lib/types'
+import { cn } from '@/lib/utils'
 
 /**
  * La galeria de la ficha. El tema usaba Fotorama (jQuery); esto es embla con la
@@ -20,16 +20,16 @@ export function PropertyGallery({
   title,
   availability,
 }: {
-  images: PropertyImage[];
-  title: string;
-  availability: Availability;
+  images: PropertyImage[]
+  title: string
+  availability: Availability
 }) {
-  const [viewport, embla] = useEmblaCarousel({ loop: images.length > 1 });
+  const [viewport, embla] = useEmblaCarousel({ loop: images.length > 1 })
   const [thumbsViewport, thumbs] = useEmblaCarousel({
-    containScroll: "keepSnaps",
+    containScroll: 'keepSnaps',
     dragFree: true,
-  });
-  const [selected, setSelected] = useState(0);
+  })
+  const [selected, setSelected] = useState(0)
   /*
     Que diapositivas llevan ya su `<img>`.
 
@@ -40,36 +40,36 @@ export function PropertyGallery({
     aunque las fotos esten desplazadas fuera— asi que se decide aqui: la actual,
     la anterior y la siguiente. Lo demas llega al deslizar.
   */
-  const [cargadas, setCargadas] = useState(() => new Set([0, 1]));
+  const [cargadas, setCargadas] = useState(() => new Set([0, 1]))
 
   const onSelect = useCallback(() => {
-    if (!embla) return;
-    const index = embla.selectedScrollSnap();
-    setSelected(index);
-    thumbs?.scrollTo(index);
+    if (!embla) return
+    const index = embla.selectedScrollSnap()
+    setSelected(index)
+    thumbs?.scrollTo(index)
     setCargadas((previas) => {
       const vecinas = [index - 1, index, index + 1].filter(
         (i) => i >= 0 && !previas.has(i),
-      );
-      if (!vecinas.length) return previas;
-      const siguientes = new Set(previas);
-      for (const i of vecinas) siguientes.add(i);
-      return siguientes;
-    });
-  }, [embla, thumbs]);
+      )
+      if (!vecinas.length) return previas
+      const siguientes = new Set(previas)
+      for (const i of vecinas) siguientes.add(i)
+      return siguientes
+    })
+  }, [embla, thumbs])
 
   useEffect(() => {
-    if (!embla) return;
-    onSelect();
-    embla.on("select", onSelect).on("reInit", onSelect);
-  }, [embla, onSelect]);
+    if (!embla) return
+    onSelect()
+    embla.on('select', onSelect).on('reInit', onSelect)
+  }, [embla, onSelect])
 
   if (!images.length) {
     return (
       <div className="flex h-[320px] items-center justify-center rounded-lg border bg-secondary text-sm text-muted-foreground sm:h-[480px]">
         Este inmueble todavía no tiene fotografías.
       </div>
-    );
+    )
   }
 
   return (
@@ -100,17 +100,17 @@ export function PropertyGallery({
                     src={image.urlLarge}
                     srcSet={[
                       `${image.url} 560w`,
-                      image.urlMedium ? `${image.urlMedium} 1024w` : "",
+                      image.urlMedium ? `${image.urlMedium} 1024w` : '',
                       `${image.urlLarge} 1600w`,
                       `${image.urlOriginal} 2560w`,
                     ]
                       .filter(Boolean)
-                      .join(", ")}
+                      .join(', ')}
                     sizes="(min-width: 1200px) 840px, (min-width: 992px) 60vw, 100vw"
                     alt={image.description ?? `${title} — foto ${index + 1}`}
                     /* La portada entra en el LCP: esa se carga ya, el resto no. */
-                    loading={index === 0 ? "eager" : "lazy"}
-                    fetchPriority={index === 0 ? "high" : undefined}
+                    loading={index === 0 ? 'eager' : 'lazy'}
+                    fetchPriority={index === 0 ? 'high' : undefined}
                     decoding="async"
                     className="h-[320px] w-full object-cover sm:h-[480px]"
                   />
@@ -124,7 +124,7 @@ export function PropertyGallery({
           <Badge
             variant="tag"
             style={{
-              backgroundColor: AVAILABILITY_COLOR[availability] ?? "#767676",
+              backgroundColor: AVAILABILITY_COLOR[availability] ?? '#767676',
             }}
           >
             {AVAILABILITY_LABEL[availability] ?? availability}
@@ -153,10 +153,10 @@ export function PropertyGallery({
                 aria-label={`Ver foto ${index + 1}`}
                 aria-current={index === selected}
                 className={cn(
-                  "h-16 w-[90px] shrink-0 overflow-hidden rounded-md border-2 transition-opacity",
+                  'h-16 w-[90px] shrink-0 overflow-hidden rounded-md border-2 transition-opacity',
                   index === selected
-                    ? "border-primary"
-                    : "border-transparent opacity-60 hover:opacity-100",
+                    ? 'border-primary'
+                    : 'border-transparent opacity-60 hover:opacity-100',
                 )}
               >
                 <img
@@ -172,28 +172,28 @@ export function PropertyGallery({
         </div>
       )}
     </div>
-  );
+  )
 }
 
 function GalleryArrow({
   side,
   onClick,
 }: {
-  side: "left" | "right";
-  onClick: () => void;
+  side: 'left' | 'right'
+  onClick: () => void
 }) {
-  const Icon = side === "left" ? ChevronLeft : ChevronRight;
+  const Icon = side === 'left' ? ChevronLeft : ChevronRight
   return (
     <button
       type="button"
       onClick={onClick}
-      aria-label={side === "left" ? "Foto anterior" : "Foto siguiente"}
+      aria-label={side === 'left' ? 'Foto anterior' : 'Foto siguiente'}
       className={cn(
-        "absolute top-1/2 flex size-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/85 text-foreground shadow-md transition-colors hover:bg-white",
-        side === "left" ? "left-3" : "right-3",
+        'absolute top-1/2 flex size-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/85 text-foreground shadow-md transition-colors hover:bg-white',
+        side === 'left' ? 'left-3' : 'right-3',
       )}
     >
       <Icon className="size-5" />
     </button>
-  );
+  )
 }
