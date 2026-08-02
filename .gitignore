@@ -31,3 +31,7 @@ dist-ssr
 .env
 .env.local
 .env.*.local
+
+# Un solo lockfile: yarn.lock. El de npm se genera fijado a la
+# plataforma donde se instala y rompe el build en el servidor.
+package-lock.json
