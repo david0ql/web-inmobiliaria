@@ -17,14 +17,25 @@ export interface FichaInyectada {
   alt: string
 }
 
-declare global {
-  interface Window {
-    __ficha?: FichaInyectada
-  }
-}
+/**
+ * La portada inyectada, si es la de este inmueble.
+ *
+ * Viene en un `meta` y no en un `<script>` porque la politica de seguridad de
+ * la API no permite scripts en linea. Se lee una sola vez: al navegar dentro
+ * del sitio el `meta` sigue ahi, pero ya es de otra ficha.
+ */
+let leido: FichaInyectada | null | undefined
 
-/** La portada inyectada, si es la de este inmueble. */
 export function portadaInyectada(code: string): FichaInyectada | null {
-  const ficha = typeof window === 'undefined' ? undefined : window.__ficha
-  return ficha && ficha.code === code ? ficha : null
+  if (leido === undefined) {
+    const meta = document.head.querySelector<HTMLMetaElement>(
+      'meta[name="ficha:portada"]',
+    )
+    try {
+      leido = meta ? (JSON.parse(meta.content) as FichaInyectada) : null
+    } catch {
+      leido = null
+    }
+  }
+  return leido && leido.code === code ? leido : null
 }
