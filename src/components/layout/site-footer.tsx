@@ -1,4 +1,4 @@
-import { Mail, MapPin, Phone } from 'lucide-react'
+import { ArrowRight, Mail, MapPin, Phone } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 import { SocialLinks } from '@/components/layout/social-links'
@@ -50,7 +50,8 @@ export function SiteFooter() {
             to={ROUTES.contact}
             className="mt-4 inline-block text-sm font-medium hover:underline"
           >
-            Ir a Contáctenos →
+            Ir a Contáctenos
+            <ArrowRight className="ml-1 inline size-3.5" aria-hidden="true" />
           </Link>
         </section>
       </div>
