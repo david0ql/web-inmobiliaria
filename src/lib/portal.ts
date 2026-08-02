@@ -247,6 +247,35 @@ export interface PortalRequest {
   createdAt: string
 }
 
+/**
+ * Descarga un documento suyo.
+ *
+ * Igual que en el panel: un `<a href>` no lleva `Authorization`, y estos
+ * ficheros ya no se sirven como estáticos. Se piden con el token, se tienen un
+ * instante en memoria y se sueltan.
+ */
+export async function downloadDocument(
+  requestId: string,
+  index: number,
+  filename: string,
+): Promise<void> {
+  const res = await fetch(
+    `${BASE}/portal/requests/${requestId}/documents/${index}`,
+    {
+      headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+      credentials: 'same-origin',
+    },
+  )
+  if (!res.ok) throw new ApiError(res.status, 'No se pudo descargar el documento')
+
+  const url = URL.createObjectURL(await res.blob())
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  link.click()
+  URL.revokeObjectURL(url)
+}
+
 export const portal = {
   profile: (signal?: AbortSignal) =>
     request<PortalProfile>('/portal/me', { signal }),
