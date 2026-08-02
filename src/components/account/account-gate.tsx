@@ -50,21 +50,28 @@ type RegisterValues = z.infer<typeof registerSchema>
  * correo ya escrito. Un paso más, a cambio de que nadie pueda averiguar quién
  * es cliente de la agencia una dirección cada vez.
  */
-export function AccountGate() {
+export function AccountGate({ compact = false }: { compact?: boolean } = {}) {
   const [mode, setMode] = useState<'login' | 'register'>('login')
   const [prefill, setPrefill] = useState('')
 
   return (
-    <div className="container-site max-w-lg py-12">
-      <SectionHeading
-        as="h1"
-        light={mode === 'login' ? 'Entra a' : 'Crea'}
-        strong={mode === 'login' ? 'tu cuenta' : 'tu cuenta'}
-      />
-      <p className="mb-6 text-sm text-muted-foreground">
-        Desde aquí publicas tus inmuebles y sigues sus visitas. Es la misma
-        cuenta que usa tu asesor para tenerte al día.
-      </p>
+    // `compact` es para cuando esto va dentro de un diálogo: el diálogo ya pone
+    // su propio título y su propio ancho, y un h1 ahí dentro le rompe la
+    // jerarquía de encabezados a la página que hay detrás.
+    <div className={compact ? '' : 'container-site max-w-lg py-12'}>
+      {!compact && (
+        <>
+          <SectionHeading
+            as="h1"
+            light={mode === 'login' ? 'Entra a' : 'Crea'}
+            strong="tu cuenta"
+          />
+          <p className="mb-6 text-sm text-muted-foreground">
+            Desde aquí publicas tus inmuebles y sigues sus visitas. Es la misma
+            cuenta que usa tu asesor para tenerte al día.
+          </p>
+        </>
+      )}
 
       <div className="mb-6 flex gap-1 rounded-md border p-1">
         {(['login', 'register'] as const).map((value) => (

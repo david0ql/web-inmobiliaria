@@ -1,11 +1,21 @@
 import { Outlet, ScrollRestoration, useNavigation } from 'react-router-dom'
 
+import { usePortalSession } from '@/lib/use-portal'
 import { SiteFooter } from '@/components/layout/site-footer'
 import { SiteHeader } from '@/components/layout/site-header'
 import { TopBar } from '@/components/layout/top-bar'
 import { Toaster } from '@/components/ui/sonner'
 
 export function Root() {
+  /*
+    Recupera la sesión del portal para todo el sitio.
+
+    Antes solo lo hacía la página de cuenta, así que quien había entrado veía
+    "Entrar" en la cabecera de cualquier otra página: la sesión existía —la
+    cookie estaba ahí— pero nadie la había preguntado.
+  */
+  usePortalSession()
+
   const navigation = useNavigation()
 
   return (

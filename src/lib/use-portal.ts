@@ -13,6 +13,16 @@ export function usePortalClient(): PortalClient | null {
 }
 
 /**
+ * La recuperación de sesión, una sola vez para toda la aplicación.
+ *
+ * La piden la cabecera, el botón de publicar y la página de cuenta, y sin esto
+ * cada uno lanzaría su propia petición al montar. Se comparte la promesa: el
+ * primero que llega la arranca y el resto espera a la misma.
+ */
+let arranque: Promise<unknown> | null = null
+const recuperarSesion = () => (arranque ??= refresh())
+
+/**
  * Recupera la sesión al cargar la página.
  *
  * El access token solo vive en memoria, así que una recarga lo pierde. La
@@ -32,7 +42,7 @@ export function usePortalSession(): {
 
   useEffect(() => {
     let alive = true
-    void refresh().finally(() => {
+    void recuperarSesion().finally(() => {
       if (alive) setReady(true)
     })
     return () => {
