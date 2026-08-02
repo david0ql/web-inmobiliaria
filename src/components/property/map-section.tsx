@@ -89,6 +89,8 @@ function MapPoster({
     >
       <img
         src="/mapa-santander.webp"
+        srcSet="/mapa-santander-sm.webp 760w, /mapa-santander.webp 1280w"
+        sizes="100vw"
         alt="Mapa de Bucaramanga y su área metropolitana"
         width={1280}
         height={760}

@@ -8,7 +8,14 @@
     <!-- La foto del mapa es el elemento mas grande de la portada. Precargarla
          aqui es lo que separa verla en 1,5 s de verla en 4,7: el navegador la
          descubre con el HTML, sin esperar a que React monte la seccion. -->
-    <link rel="preload" as="image" href="/mapa-santander.webp" fetchpriority="high" />
+    <link
+      rel="preload"
+      as="image"
+      href="/mapa-santander.webp"
+      imagesrcset="/mapa-santander-sm.webp 760w, /mapa-santander.webp 1280w"
+      imagesizes="100vw"
+      fetchpriority="high"
+    />
     <!-- Las teselas de OSM solo se piden si alguien activa el mapa; abrir el TLS
          antes le ahorra un par de vueltas cuando ocurra. -->
     <link rel="dns-prefetch" href="https://a.tile.openstreetmap.org" />
@@ -53,9 +60,14 @@
     <meta name="twitter:card" content="summary_large_image" />
   </head>
   <body>
-    <!-- Armazon servido con el HTML: pinta la barra y el logo en cuanto llega
-         el CSS, sin esperar a React. `createRoot` lo sustituye solo. Si se
-         borra, la portada queda en blanco ~1 s mas. -->
+    <!-- Armazon servido con el HTML: pinta la barra, el logo y la foto del mapa
+         en cuanto llega el CSS, sin esperar a React. `createRoot` lo sustituye
+         solo, por lo mismo que hay debajo y sin que nada se mueva.
+
+         La foto del mapa esta aqui porque es el elemento mas grande de la
+         pantalla: dentro de React no se pintaba hasta 350 ms despues de haberse
+         descargado. Tiene que coincidir con MapPoster y con TopBar/SiteHeader,
+         o habra un salto. Si se borra, la portada queda en blanco ~1 s mas. -->
     <div id="root">
       <div class="flex min-h-screen flex-col">
         <section class="border-t-4 border-[#333] bg-[#0d0d0d] text-white">
@@ -80,6 +92,21 @@
             />
           </div>
         </header>
+        <div
+          class="relative h-[300px] w-full overflow-hidden bg-secondary sm:h-[380px] lg:h-[450px]"
+        >
+          <img
+            src="/mapa-santander.webp"
+            srcset="/mapa-santander-sm.webp 760w, /mapa-santander.webp 1280w"
+            sizes="100vw"
+            alt="Mapa de Bucaramanga y su área metropolitana"
+            width="1280"
+            height="760"
+            fetchpriority="high"
+            decoding="sync"
+            class="size-full object-cover"
+          />
+        </div>
       </div>
     </div>
     <script type="module" src="/src/main.tsx"></script>
