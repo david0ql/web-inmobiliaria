@@ -35,9 +35,17 @@ export const ROUTES = {
   search: '/s',
   sales: '/s/ventas',
   projects: '/proyectos',
+  credits: '/creditos',
   contact: '/main-contactenos.htm',
   privacy: '/main-contenido-cat-6.htm',
 } as const
+
+/**
+ * El panel interno es otra aplicacion —la carpeta `web/`— y vive en su propio
+ * dominio, asi que "Iniciar sesion" sale del sitio publico. `/acceso` es la ruta
+ * de entrada que declara su router.
+ */
+export const PANEL_URL = 'https://web-inmobiliaria.nordikhat.com/acceso'
 
 /** El centro del mapa de la home: el area metropolitana de Bucaramanga. */
 export const MAP_CENTER: [number, number] = [7.1193, -73.1227]

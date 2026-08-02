@@ -171,17 +171,6 @@ function Detail({ data }: { data: PropertyData }) {
             <FeatureList features={property.features} />
           )}
 
-          {property.observations && (
-            <section>
-              <h2 className="mb-3 text-xs font-bold tracking-widest uppercase">
-                Descripción
-              </h2>
-              <p className="text-sm leading-relaxed whitespace-pre-line text-muted-foreground">
-                {property.observations}
-              </p>
-            </section>
-          )}
-
           <PropertyMap property={property} />
         </div>
 

@@ -23,20 +23,29 @@ const preload = () => {
   preloaded ??= import('@/components/layout/offer-dialog')
 }
 
-export function OfferButton({ className }: { className?: string }) {
+export function OfferButton({
+  className,
+  label = 'Publica tu inmueble',
+  variant,
+  size,
+}: {
+  className?: string
+  label?: string
+  variant?: React.ComponentProps<typeof Button>['variant']
+  size?: React.ComponentProps<typeof Button>['size']
+}) {
   const [open, setOpen] = useState(false)
+  const trigger = (
+    <Button className={className} variant={variant} size={size}>
+      {label}
+    </Button>
+  )
 
   if (open) {
     return (
-      <Suspense
-        fallback={
-          <Button className={className} disabled>
-            OFERTAR
-          </Button>
-        }
-      >
+      <Suspense fallback={trigger}>
         <OfferDialog defaultOpen onOpenChange={setOpen}>
-          <Button className={className}>OFERTAR</Button>
+          {trigger}
         </OfferDialog>
       </Suspense>
     )
@@ -45,6 +54,8 @@ export function OfferButton({ className }: { className?: string }) {
   return (
     <Button
       className={className}
+      variant={variant}
+      size={size}
       onMouseEnter={preload}
       onFocus={preload}
       onClick={() => {
@@ -52,7 +63,7 @@ export function OfferButton({ className }: { className?: string }) {
         setOpen(true)
       }}
     >
-      OFERTAR
+      {label}
     </Button>
   )
 }

@@ -1,6 +1,8 @@
-import { Menu, Search } from 'lucide-react'
+import { LogIn, Menu, Search } from 'lucide-react'
 import { lazy, Suspense, useState } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
+
+import { OfferButton } from '@/components/layout/offer-button'
 
 import {
   NavigationMenu,
@@ -14,7 +16,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/misc'
 import { menuTypes, typePath, useSiteData } from '@/lib/site-data'
-import { ROUTES, SITE } from '@/lib/site'
+import { PANEL_URL, ROUTES, SITE } from '@/lib/site'
 import { cn } from '@/lib/utils'
 
 /* El panel lateral solo existe por debajo de lg y solo si se pulsa. Radix Dialog
@@ -23,11 +25,22 @@ const MobileNav = lazy(() =>
   import('@/components/layout/mobile-nav').then((m) => ({ default: m.MobileNav })),
 )
 
-const linkClass = ({ isActive }: { isActive: boolean }) =>
-  cn(
-    navigationMenuTriggerStyle(),
-    isActive && 'underline underline-offset-8 decoration-2',
-  )
+/*
+  Cadena, NO funcion.
+
+  `NavigationMenuLink asChild` mete el enlace por un Slot de Radix, y el Slot
+  fusiona los className concatenando cadenas. Si aqui llega la funcion que admite
+  NavLink —la de `({ isActive }) => ...`— se convierte en texto al concatenarla y
+  no se aplica ni una sola clase: era el motivo de que el menu no saliera en
+  versalitas y de que nunca se viera el subrayado de la pagina activa.
+
+  Con una cadena, NavLink añade el por su cuenta la clase `active`, y de ahi
+  cuelga el subrayado.
+*/
+const linkClass = cn(
+  navigationMenuTriggerStyle(),
+  '[&.active]:underline [&.active]:underline-offset-8 [&.active]:decoration-2',
+)
 
 export function SiteHeader() {
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -50,13 +63,23 @@ export function SiteHeader() {
 
         {/* El menu completo solo cabe a partir de lg, igual que en el tema
             original (col-lg-10). Por debajo se va al panel lateral. */}
-        <nav className="ml-auto hidden lg:block">
+        <nav className="ml-auto hidden lg:flex lg:items-center">
           <NavigationMenu viewport={false}>
+            {/* No hay "Inicio": el logo ya lleva a la portada, y un enlace mas
+                para lo mismo solo alarga la barra. */}
             <NavigationMenuList>
               <NavigationMenuItem>
                 <NavigationMenuLink asChild>
-                  <NavLink to={ROUTES.home} end className={linkClass}>
-                    Inicio
+                  <NavLink to={ROUTES.projects} className={linkClass}>
+                    Proyectos
+                  </NavLink>
+                </NavigationMenuLink>
+              </NavigationMenuItem>
+
+              <NavigationMenuItem>
+                <NavigationMenuLink asChild>
+                  <NavLink to={ROUTES.credits} className={linkClass}>
+                    Créditos
                   </NavLink>
                 </NavigationMenuLink>
               </NavigationMenuItem>
@@ -81,23 +104,28 @@ export function SiteHeader() {
                 </NavigationMenuContent>
               </NavigationMenuItem>
 
-              <NavigationMenuItem>
-                <NavigationMenuLink asChild>
-                  <NavLink to={ROUTES.projects} className={linkClass}>
-                    Proyectos
-                  </NavLink>
-                </NavigationMenuLink>
-              </NavigationMenuItem>
-
-              <NavigationMenuItem>
-                <NavigationMenuLink asChild>
-                  <NavLink to={ROUTES.contact} className={linkClass}>
-                    Contáctenos
-                  </NavLink>
-                </NavigationMenuLink>
-              </NavigationMenuItem>
+              {/* Contactenos no esta aqui a proposito: vive en el pie. */}
             </NavigationMenuList>
           </NavigationMenu>
+
+          {/* Las dos acciones van fuera de la lista de navegacion: no son sitios
+              del sitio, son cosas que se hacen. */}
+          <div className="ml-3 flex items-center gap-2">
+            <OfferButton size="sm" className="tracking-wide uppercase" />
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+              className="tracking-wide uppercase"
+            >
+              {/* En otra pestaña: el panel es otra aplicacion y quien entra a
+                  trabajar no tiene por que perder el sitio publico. */}
+              <a href={PANEL_URL} target="_blank" rel="noreferrer noopener">
+                <LogIn />
+                Iniciar sesión
+              </a>
+            </Button>
+          </div>
         </nav>
 
         <div className="ml-auto flex items-center gap-1 lg:hidden">

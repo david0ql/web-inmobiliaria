@@ -1,7 +1,9 @@
-import { Mail, Phone } from 'lucide-react'
+import { LogIn, Mail, Phone } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
+import { OfferButton } from '@/components/layout/offer-button'
 import { SocialLinks } from '@/components/layout/social-links'
+import { Button } from '@/components/ui/button'
 import {
   Accordion,
   AccordionContent,
@@ -16,8 +18,12 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet'
-import { ROUTES, SITE } from '@/lib/site'
+import { PANEL_URL, ROUTES, SITE } from '@/lib/site'
 import { menuTypes, typePath, useSiteData } from '@/lib/site-data'
+
+/** Mismo trato tipografico que la barra de escritorio: versalitas. */
+const ITEM =
+  'block border-b py-4 text-[0.8125rem] font-medium tracking-wide uppercase'
 
 /**
  * Por debajo de `lg` el mega-menu no cabe: los doce tipos pasan a un panel
@@ -42,18 +48,22 @@ export function MobileNav({
           <SheetDescription>{SITE.tagline}</SheetDescription>
         </SheetHeader>
 
+        {/* Mismo orden que en la barra de escritorio. Sin "Inicio": el logo de
+            la cabecera ya lleva a la portada. */}
         <nav className="px-4">
-          <Link
-            to={ROUTES.home}
-            onClick={close}
-            className="block border-b py-4 text-sm font-medium"
-          >
-            Inicio
+          <Link to={ROUTES.projects} onClick={close} className={ITEM}>
+            Proyectos
+          </Link>
+
+          <Link to={ROUTES.credits} onClick={close} className={ITEM}>
+            Créditos
           </Link>
 
           <Accordion type="single" collapsible defaultValue="ventas">
             <AccordionItem value="ventas">
-              <AccordionTrigger>Ventas</AccordionTrigger>
+              <AccordionTrigger className="text-[0.8125rem] tracking-wide uppercase">
+                Ventas
+              </AccordionTrigger>
               <AccordionContent className="flex flex-col">
                 <Link
                   to={ROUTES.sales}
@@ -81,21 +91,21 @@ export function MobileNav({
             </AccordionItem>
           </Accordion>
 
-          <Link
-            to={ROUTES.projects}
-            onClick={close}
-            className="block border-b py-4 text-sm font-medium"
-          >
-            Proyectos
-          </Link>
-
-          <Link
-            to={ROUTES.contact}
-            onClick={close}
-            className="block border-b py-4 text-sm font-medium"
-          >
-            Contáctenos
-          </Link>
+          {/* Contactenos no esta aqui a proposito: vive en el pie. Aun asi, el
+              telefono y el correo siguen ahi abajo, a un toque. */}
+          <div className="flex flex-col gap-2 py-4">
+            <OfferButton className="w-full tracking-wide uppercase" />
+            <Button
+              asChild
+              variant="outline"
+              className="w-full tracking-wide uppercase"
+            >
+              <a href={PANEL_URL} target="_blank" rel="noreferrer noopener">
+                <LogIn />
+                Iniciar sesión
+              </a>
+            </Button>
+          </div>
         </nav>
 
         <Separator />

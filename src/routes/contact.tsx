@@ -10,7 +10,9 @@ export function Contact() {
 
   return (
     <div className="container-site py-12">
-      <SectionHeading as="h1" light="Contá" strong="ctenos" />
+      {/* En una sola pieza: partirlo en "Contá" + "ctenos" mete un espacio en
+          mitad de la palabra, porque el rotulo separa las dos con un blanco. */}
+      <SectionHeading as="h1" light="Contáctenos" />
 
       <div className="grid gap-8 lg:grid-cols-3">
         <section className="lg:col-span-2">

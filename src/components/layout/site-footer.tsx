@@ -1,31 +1,30 @@
-import { Home, Mail, MapPin, Phone } from 'lucide-react'
+import { Mail, MapPin, Phone } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
-import { OfferButton } from '@/components/layout/offer-button'
 import { SocialLinks } from '@/components/layout/social-links'
 import { ROUTES, SITE } from '@/lib/site'
 
-const LINKS = [
-  { to: ROUTES.home, label: 'Inicio' },
-  { to: ROUTES.sales, label: 'Ventas' },
-  { to: ROUTES.projects, label: 'Proyectos' },
-  { to: ROUTES.contact, label: 'Contáctenos' },
-  { to: ROUTES.privacy, label: 'Políticas de privacidad' },
-]
-
-/** Las cuatro columnas del pie, que en el tema original son `col-lg-3`. */
+/**
+ * Dos bloques y nada mas: quienes somos y como contactar.
+ *
+ * Antes habia cuatro columnas —incluida una lista de enlaces que repetia el menu
+ * y un bloque de OFERTAR—. La accion de ofertar subio a la cabecera como "Publica
+ * tu inmueble", que es donde la gente la busca, y repetir la navegacion abajo no
+ * aportaba nada en un sitio de cinco pantallas.
+ */
 export function SiteFooter() {
   return (
     <footer className="mt-16 border-t bg-secondary/40">
-      <div className="container-site grid gap-10 py-12 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="container-site grid gap-10 py-12 sm:grid-cols-2">
         <section>
-          <FooterHeading>Quiénes somos</FooterHeading>
-          <p className="text-sm text-muted-foreground">{SITE.tagline}</p>
+          <FooterHeading>Sobre nosotros</FooterHeading>
+          <p className="max-w-sm text-sm text-muted-foreground">{SITE.tagline}</p>
+          <SocialLinks className="mt-4 -ml-2" />
         </section>
 
         <section>
-          <FooterHeading>Ubicación y contacto</FooterHeading>
-          <address className="flex flex-col gap-3 text-sm not-italic">
+          <FooterHeading>Contáctenos</FooterHeading>
+          <address className="flex min-w-0 flex-col gap-3 text-sm not-italic">
             <span className="flex gap-2">
               <MapPin className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
               <span>
@@ -36,36 +35,23 @@ export function SiteFooter() {
             </span>
             <a href={SITE.phoneHref} className="flex gap-2 hover:underline">
               <Phone className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-              {SITE.phone}
+              <span className="tabular">{SITE.phone}</span>
             </a>
             <a
               href={`mailto:${SITE.email}`}
-              className="flex gap-2 break-all hover:underline"
+              title={SITE.email}
+              className="flex min-w-0 gap-2 hover:underline"
             >
               <Mail className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-              {SITE.email}
+              <span className="truncate">{SITE.email}</span>
             </a>
           </address>
-          <SocialLinks className="mt-4 -ml-2" />
-        </section>
-
-        <section>
-          <FooterHeading>Información</FooterHeading>
-          <ul className="flex flex-col gap-2 text-sm">
-            {LINKS.map((link) => (
-              <li key={link.to}>
-                <Link to={link.to} className="hover:underline">
-                  {link.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </section>
-
-        <section className="flex flex-col items-start gap-3 rounded-lg border bg-background p-5">
-          <Home className="size-7" />
-          <p className="font-medium">Oferte su inmueble con nosotros</p>
-          <OfferButton />
+          <Link
+            to={ROUTES.contact}
+            className="mt-4 inline-block text-sm font-medium hover:underline"
+          >
+            Ir a Contáctenos →
+          </Link>
         </section>
       </div>
 
@@ -75,6 +61,8 @@ export function SiteFooter() {
             © {new Date().getFullYear()} {SITE.name}. Todos los derechos
             reservados.
           </p>
+          {/* La politica de privacidad se queda: es un enlace exigible, no
+              navegacion, y esta indexado desde el sitio anterior. */}
           <Link to={ROUTES.privacy} className="hover:underline">
             Políticas de privacidad
           </Link>

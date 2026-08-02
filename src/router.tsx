@@ -66,6 +66,13 @@ export const router = createBrowserRouter([
         }),
       },
       {
+        path: 'creditos',
+        errorElement,
+        lazy: async () => ({
+          Component: (await import('@/routes/credits')).Credits,
+        }),
+      },
+      {
         path: 'main-contactenos.htm',
         errorElement,
         lazy: async () => ({
