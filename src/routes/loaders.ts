@@ -78,24 +78,28 @@ export interface SearchData {
   results: Promise<{ filters: Filters; results: Paginated<Property> }>
 }
 
-export function searchLoader({
-  request,
-  params,
-}: LoaderFunctionArgs): SearchData {
+/**
+ * `/buscar`, `/venta` y `/venta/:tipo` pintan la misma pantalla. La unica
+ * diferencia es que las dos ultimas dan por supuesta la venta, y eso lo dice la
+ * ruta al declararse —`salesLoader`— en lugar de deducirse mirando el path.
+ * Antes esto era un `pathname.endsWith('/ventas')`: bastaba renombrar la ruta
+ * para que el filtro dejase de aplicarse en silencio, sin romper nada visible.
+ */
+function search(
+  { request, params }: LoaderFunctionArgs,
+  forSale: boolean,
+): SearchData {
   const url = new URL(request.url)
   const filters = readFilters(url.searchParams)
 
-  // `/s/ventas` y `/s/:tipo/ventas` son las paginas de venta del sitio.
-  if (!filters.businessType && url.pathname.endsWith('/ventas')) {
-    filters.businessType = 'for_sale'
-  }
+  if (forSale && !filters.businessType) filters.businessType = 'for_sale'
 
   const results = (async () => {
     let resolved = filters
     /*
       Los enlaces del menu llevan el tipo tanto en el segmento legible como en
-      `id_property_type`. Si alguien entra a `/s/apartamento/ventas` a pelo
-      —desde un marcador viejo— el id se resuelve desde el catalogo.
+      `id_property_type`. Si alguien entra a `/venta/apartamento` a pelo —desde
+      un marcador viejo— el id se resuelve desde el catalogo.
     */
     if (!resolved.propertyTypeId && params.typeSlug) {
       const catalogs = await getCatalogs()
@@ -108,6 +112,16 @@ export function searchLoader({
   })()
 
   return { initialFilters: filters, results }
+}
+
+/** `/buscar`: sin filtros implicitos, solo lo que traiga la query. */
+export function searchLoader(args: LoaderFunctionArgs): SearchData {
+  return search(args, false)
+}
+
+/** `/venta` y `/venta/:tipo`. */
+export function salesLoader(args: LoaderFunctionArgs): SearchData {
+  return search(args, true)
 }
 
 /*

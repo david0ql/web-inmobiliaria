@@ -17,18 +17,37 @@ Necesita la API levantada (`cd ../api && yarn start:dev`), incluida la ruta
 
 ## Rutas
 
-Son las del sitio anterior, `.htm` incluidos, porque son las que estan indexadas
-y las que llevan los enlaces del menu, de las redes y de los portales.
+Salen todas de `ROUTES` en `src/lib/site.ts`; ningun componente escribe un path
+a mano.
 
 | Ruta | Pantalla |
 |---|---|
 | `/` | Mapa, busqueda avanzada, destacados y ultimos inmuebles |
-| `/s` | Busqueda libre (`?match=`) |
-| `/s/ventas` | Todo el inventario en venta |
-| `/s/:tipo/ventas` | Por tipo (`?id_property_type=2&business_type[0]=for_sale`) |
+| `/buscar` | Busqueda libre (`?match=`) |
+| `/venta` | Todo el inventario en venta |
+| `/venta/:tipo` | Por tipo (`?id_property_type=2&business_type[0]=for_sale`) |
 | `/:titulo/:code` | Ficha del inmueble |
-| `/main-contactenos.htm` | Contactenos |
-| `/main-contenido-cat-6.htm` | Politicas de privacidad |
+| `/contacto` | Contactenos |
+| `/privacidad` | Politicas de privacidad |
+
+### Las URLs viejas
+
+El tema de WASI publicaba `/s`, `/s/ventas`, `/s/:tipo/ventas`,
+`/main-contactenos.htm` y `/main-contenido-cat-6.htm`. Estan indexadas y las
+llevan enlaces del menu, de las redes y de los portales, asi que **siguen
+respondiendo**: entran como `301` hacia las nuevas en la configuracion de nginx
+del servidor, que no vive en este repositorio. Si al desplegar una URL vieja da
+404, es ahi donde hay que mirar — no en el router.
+
+No se declaran en el router ni en el sitemap a proposito. Una redireccion en el
+cliente obliga a bajarse la aplicacion entera para acabar navegando a otro sitio,
+y el buscador la trata como blanda: tarda mucho mas en traspasar el
+posicionamiento acumulado.
+
+Los **nombres de los parametros** de busqueda si siguen siendo los de WASI
+(`id_property_type`, `business_type[0]`, `min_price`, `orden`, `pagina`): van en
+la query, no en el path, y los llevan enlaces ya publicados. Ver
+`src/lib/search-params.ts`.
 
 El primer segmento de la ficha es decorativo: la API busca por `code`, no hay
 slug en la tabla de inmuebles. Se calcula en cliente con la misma normalizacion

@@ -52,20 +52,28 @@ export const SOCIAL = [
 ] as const
 
 /**
- * Las rutas del sitio anterior se conservan tal cual, incluidos los `.htm`: son
- * las que estan indexadas y las que llevan los enlaces de las redes y de los
- * portales. Cambiarlas por unas mas bonitas costaria posicionamiento.
+ * Las rutas, en un solo sitio. Todo enlace interno sale de aqui: cambiar un
+ * valor mueve el sitio entero, el sitemap incluido.
+ *
+ * Heredamos las del tema de WASI —`/s`, `/s/ventas`, `/main-contactenos.htm`,
+ * `/main-contenido-cat-6.htm`— y estaban indexadas, asi que no se pueden
+ * romper: siguen vivas como `301` hacia estas, configurados en el nginx del
+ * servidor. El posicionamiento se traspasa; la URL fea no se hereda.
+ *
+ * Los nombres de los parametros de busqueda SI son los de WASI todavia
+ * (`id_property_type`, `business_type[0]`...): van en la query, no en el path,
+ * y los llevan enlaces publicados en portales. Ver `search-params.ts`.
  */
 export const ROUTES = {
   home: '/',
-  search: '/s',
-  sales: '/s/ventas',
+  search: '/buscar',
+  sales: '/venta',
   projects: '/proyectos',
   account: '/mi-cuenta',
   // Creditos no esta aqui: no es una pagina, es el modal de consulta de
   // viabilidad que abre `CreditButton` desde el menu.
-  contact: '/main-contactenos.htm',
-  privacy: '/main-contenido-cat-6.htm',
+  contact: '/contacto',
+  privacy: '/privacidad',
 } as const
 
 /**

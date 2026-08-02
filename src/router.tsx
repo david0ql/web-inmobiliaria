@@ -1,6 +1,7 @@
-import { createBrowserRouter } from 'react-router-dom'
+import { createBrowserRouter, Navigate } from 'react-router-dom'
 
 import { ErrorState } from '@/components/common/error-state'
+import { ROUTES } from '@/lib/site'
 import { Root } from '@/routes/root'
 import {
   homeLoader,
@@ -8,14 +9,21 @@ import {
   projectsLoader,
   propertyLoader,
   rootLoader,
+  salesLoader,
   searchLoader,
 } from '@/routes/loaders'
 
 /**
- * Las rutas son las mismas que las del sitio que esto sustituye, `.htm`
- * incluidos. No es nostalgia: son las URLs indexadas y las que llevan los
- * enlaces publicados en el menu, en las redes y en los portales. Estrenar unas
- * mas limpias costaria el posicionamiento acumulado.
+ * Las rutas nuevas, en castellano y sin extension. Las del tema de WASI que
+ * esto sustituye —`/s`, `/s/ventas`, `/s/:tipo/ventas`, `/main-contactenos.htm`
+ * y `/main-contenido-cat-6.htm`— estaban indexadas y las llevan enlaces
+ * publicados en las redes y en los portales, asi que no desaparecen: entran
+ * como `301` en el nginx del servidor. No se declaran aqui a proposito. Una
+ * redireccion del lado del cliente obliga al navegador a bajarse la aplicacion
+ * entera para acabar diciendo "esto esta en otro sitio", y el buscador la lee
+ * como blanda: tarda mucho mas en traspasar el posicionamiento.
+ *
+ * Los paths no se escriben a mano en ningun otro fichero — salen de `ROUTES`.
  *
  * Fijate en el reparto: el `loader` va SIEMPRE importado de forma normal y solo
  * el componente entra por `lazy`. Puestos juntos dentro del modulo diferido, el
@@ -40,10 +48,15 @@ export const router = createBrowserRouter([
         lazy: async () => ({ Component: (await import('@/routes/home')).Home }),
       },
       // Busqueda libre y listados de venta. Los tres apuntan a la misma
-      // pantalla: lo que cambia es de donde salen los filtros iniciales.
-      ...['s', 's/ventas', 's/:typeSlug/ventas'].map((path) => ({
+      // pantalla: lo que cambia es de donde salen los filtros iniciales, y eso
+      // lo decide el loader, no el path.
+      ...[
+        { path: 'buscar', loader: searchLoader },
+        { path: 'venta', loader: salesLoader },
+        { path: 'venta/:typeSlug', loader: salesLoader },
+      ].map(({ path, loader }) => ({
         path,
-        loader: searchLoader,
+        loader,
         errorElement,
         lazy: async () => ({
           Component: (await import('@/routes/search')).SearchResults,
@@ -75,21 +88,25 @@ export const router = createBrowserRouter([
       // Creditos no tiene ruta: es un modal que se abre desde el menu. Ver
       // `CreditButton`.
       {
-        path: 'main-contactenos.htm',
+        path: 'contacto',
         errorElement,
         lazy: async () => ({
           Component: (await import('@/routes/contact')).Contact,
         }),
       },
       {
-        path: 'main-contenido-cat-6.htm',
+        path: 'privacidad',
         errorElement,
         lazy: async () => ({
           Component: (await import('@/routes/privacy')).Privacy,
         }),
       },
       // La ficha. El primer segmento es decorativo; el que manda es `code`.
-      // Va la ultima porque es la mas golosa: cualquier par de segmentos encaja.
+      // Va la ultima porque es la mas golosa: cualquier par de segmentos
+      // encaja, `/venta/apartamento` incluido. No se la come porque el router
+      // puntua por especificidad y no por orden —un segmento literal gana
+      // siempre a uno dinamico—, pero declararla al final deja escrita la
+      // precedencia que queremos por si alguna vez se lee al reves.
       {
         path: ':slug/:code',
         loader: propertyLoader,
@@ -98,11 +115,23 @@ export const router = createBrowserRouter([
           Component: (await import('@/routes/property')).PropertyDetail,
         }),
       },
+      /*
+        Cualquier cosa que no encaje arriba se va a la portada.
+
+        Aviso de lo que cuesta: para un buscador esto es un "soft 404" —pide
+        una URL que no existe y recibe un 200 con la portada— y lo trata peor
+        que un 404 honesto, porque no puede distinguir "esto ya no esta" de
+        "esto es la home". Por eso las URLs viejas de WASI NO caen aqui: van
+        con un 301 de nginx a su equivalente exacto, que si traspasa el
+        posicionamiento.
+
+        Lo que queda para este comodin son enlaces mal escritos y rastreadores
+        probando suerte, y ahi devolver al visitante a la portada es mejor que
+        dejarle en una pagina sin salida.
+      */
       {
         path: '*',
-        lazy: async () => ({
-          Component: (await import('@/routes/not-found')).NotFound,
-        }),
+        element: <Navigate to={ROUTES.home} replace />,
       },
     ],
   },

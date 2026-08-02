@@ -1,10 +1,7 @@
 import { SectionHeading } from '@/components/common/section-heading'
 import { SITE } from '@/lib/site'
 
-/**
- * `/main-contenido-cat-6.htm`. Es una pagina de texto: se mantiene la ruta
- * porque esta enlazada desde el pie de todas las paginas indexadas.
- */
+/** `/privacidad`. Pagina de texto, enlazada desde el pie de todo el sitio. */
 export function Privacy() {
   return (
     <div className="container-site py-12">

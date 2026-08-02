@@ -11,6 +11,7 @@
 import { use } from 'react'
 import { useRouteLoaderData } from 'react-router-dom'
 
+import { ROUTES } from './site'
 import { slugify } from './slug'
 import type { Catalogs, PropertyType } from './types'
 
@@ -57,7 +58,12 @@ export function menuTypes(data: SiteData): MenuType[] {
     .sort((a, b) => a.name.localeCompare(b.name, 'es'))
 }
 
-/** `/s/casa-campestre/ventas?id_property_type=11&business_type[0]=for_sale` */
+/**
+ * `/venta/casa-campestre?id_property_type=11&business_type[0]=for_sale`
+ *
+ * El slug es para quien lee la URL; el `id_property_type` es para el loader,
+ * que asi no tiene que resolverlo contra el catalogo antes de buscar.
+ */
 export function typePath(type: { id: number; slug: string }): string {
-  return `/s/${type.slug}/ventas?id_property_type=${type.id}&business_type%5B0%5D=for_sale`
+  return `${ROUTES.sales}/${type.slug}?id_property_type=${type.id}&business_type%5B0%5D=for_sale`
 }
