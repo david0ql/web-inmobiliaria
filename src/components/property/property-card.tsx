@@ -59,7 +59,7 @@ export function PropertyCard({
                 */
                 srcSet={[
                   `${cover.url} 560w`,
-                  cover.urlMedium ? `${cover.urlMedium} 1024w` : '',
+                  cover.urlMedium ? `${cover.urlMedium} 800w` : '',
                   `${cover.urlLarge} 1600w`,
                 ]
                   .filter(Boolean)

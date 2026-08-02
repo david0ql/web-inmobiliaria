@@ -2,7 +2,7 @@ import { ArrowRight, Mail, MapPin, Phone } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 import { SocialLinks } from '@/components/layout/social-links'
-import { ROUTES, SITE } from '@/lib/site'
+import { PANEL_URL, ROUTES, SITE } from '@/lib/site'
 
 /**
  * Dos bloques y nada mas: quienes somos y como contactar.
@@ -64,9 +64,23 @@ export function SiteFooter() {
           </p>
           {/* La politica de privacidad se queda: es un enlace exigible, no
               navegacion, y esta indexado desde el sitio anterior. */}
-          <Link to={ROUTES.privacy} className="hover:underline">
-            Políticas de privacidad
-          </Link>
+          <div className="flex flex-wrap items-center gap-4">
+            <Link to={ROUTES.privacy} className="hover:underline">
+              Políticas de privacidad
+            </Link>
+            {/* El acceso del equipo vive aqui y no en la cabecera: arriba,
+                "Entrar" es de los propietarios. En otra pestaña porque el panel
+                es otra aplicacion y quien entra a trabajar no tiene por que
+                perder el sitio publico. */}
+            <a
+              href={PANEL_URL}
+              target="_blank"
+              rel="noreferrer noopener"
+              className="hover:underline"
+            >
+              Acceso equipo
+            </a>
+          </div>
         </div>
       </div>
     </footer>

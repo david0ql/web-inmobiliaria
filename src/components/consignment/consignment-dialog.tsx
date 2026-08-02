@@ -467,7 +467,7 @@ export function ConsignmentDialog({
         )?.name ?? '',
     }
 
-    const body = toFormData(values, names, documents, photos)
+    const body = toFormData(values, names, documents, photos, !authenticated)
 
     try {
       const result = authenticated
@@ -582,6 +582,11 @@ function toFormData(
   names: { cityName: string; propertyTypeName: string },
   documents: Record<string, File>,
   photos: File[],
+  /**
+   * Con sesion los datos del propietario NO viajan: el endpoint del portal ni
+   * siquiera los admite —los toma de la sesion— y mandarlos seria un 400.
+   */
+  includeOwner: boolean,
 ): FormData {
   const body = new FormData()
   const set = (key: string, value: string | undefined) => {
@@ -625,10 +630,12 @@ function toFormData(
   set('rentAmount', digits(values.rentAmount ?? ''))
   set('leaseEndsOn', values.leaseEndsOn)
 
-  set('ownerFirstName', values.ownerFirstName)
-  set('ownerLastName', values.ownerLastName)
-  set('ownerEmail', values.ownerEmail)
-  set('ownerPhone', values.ownerPhone)
+  if (includeOwner) {
+    set('ownerFirstName', values.ownerFirstName)
+    set('ownerLastName', values.ownerLastName)
+    set('ownerEmail', values.ownerEmail)
+    set('ownerPhone', values.ownerPhone)
+  }
   set('notes', values.notes)
 
   if (values.visitDate && values.visitTime) {

@@ -100,7 +100,7 @@ export function PropertyGallery({
                     src={image.urlLarge}
                     srcSet={[
                       `${image.url} 560w`,
-                      image.urlMedium ? `${image.urlMedium} 1024w` : '',
+                      image.urlMedium ? `${image.urlMedium} 800w` : '',
                       `${image.urlLarge} 1600w`,
                       `${image.urlOriginal} 2560w`,
                     ]
