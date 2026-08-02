@@ -1,6 +1,6 @@
 import { ArrowRight, MapPin, Share2, Video } from 'lucide-react'
 import { Suspense, use } from 'react'
-import { Await, Link, useLoaderData } from 'react-router-dom'
+import { Await, Link, useLoaderData, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
 
 import { SectionHeading } from '@/components/common/section-heading'
@@ -14,6 +14,7 @@ import { VisitForm } from '@/components/property/visit-form'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/misc'
 import { businessType, money, price } from '@/lib/format'
+import { portadaInyectada } from '@/lib/ficha-inyectada'
 import { breadcrumbJsonLd, propertyJsonLd } from '@/lib/seo'
 import { ROUTES, SITE } from '@/lib/site'
 import { propertyPath } from '@/lib/slug'
@@ -23,21 +24,44 @@ import type { Property } from '@/lib/types'
 
 export function PropertyDetail() {
   const data = useLoaderData() as PropertyData
+  const { code } = useParams()
   return (
-    <Suspense fallback={<PropertySkeleton />}>
+    <Suspense fallback={<PropertySkeleton code={code} />}>
       <Detail data={data} />
     </Suspense>
   )
 }
 
-function PropertySkeleton() {
+function PropertySkeleton({ code }: { code?: string }) {
+  // La API escribe la portada en el HTML de la ficha. Si esta, se pinta ya:
+  // el navegador la tiene descargada desde el `preload` de la cabecera y
+  // esperar a que conteste la API era medio segundo de rectangulo gris con la
+  // foto lista en la cache.
+  const portada = code ? portadaInyectada(code) : null
+
   return (
     <div className="container-site py-8">
       <Skeleton className="mb-3 h-3 w-40" />
       <Skeleton className="mb-6 h-7 w-3/4" />
       <div className="grid gap-8 lg:grid-cols-12">
         <div className="flex min-w-0 flex-col gap-3 lg:col-span-8 xl:col-span-9">
-          <Skeleton className="h-[320px] w-full sm:h-[480px]" />
+          {portada ? (
+            <div className="w-full overflow-hidden rounded-lg border bg-secondary">
+              {/* Mismas medidas y mismo `srcset` que la galeria: cuando llega,
+                  sustituye esta por la misma imagen y nada se mueve. */}
+              <img
+                src={portada.url}
+                srcSet={portada.srcset}
+                sizes="(min-width: 1200px) 840px, (min-width: 992px) 60vw, 100vw"
+                alt={portada.alt}
+                fetchPriority="high"
+                decoding="sync"
+                className="h-[320px] w-full object-cover sm:h-[480px]"
+              />
+            </div>
+          ) : (
+            <Skeleton className="h-[320px] w-full sm:h-[480px]" />
+          )}
           <div className="flex gap-2">
             {Array.from({ length: 5 }, (_, i) => (
               <Skeleton key={i} className="h-16 w-[90px] shrink-0" />
