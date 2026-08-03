@@ -61,7 +61,13 @@ export type AssistantCard =
   | { type: 'property'; item: PropertyCardView }
   | { type: 'gallery'; code: string; title: string; images: GalleryImage[] }
   | { type: 'slots'; code: string; days: SlotDay[] }
-  | { type: 'booked'; code: string; startsAt: string; endsAt: string }
+  | {
+      type: 'booked'
+      code: string
+      startsAt: string
+      endsAt: string
+      appointmentId?: string
+    }
 
 export type AssistantAction = { type: 'go_to_search'; reason?: string }
 
@@ -79,6 +85,8 @@ export interface SendPayload {
   messages: ChatTurn[]
   /** Códigos de los inmuebles ya mostrados en el hilo. */
   shownCodes?: string[]
+  /** Ids de las visitas pedidas en el hilo: es lo que permite cambiarlas. */
+  bookedIds?: string[]
   signal?: AbortSignal
 }
 
@@ -91,7 +99,7 @@ export interface SendPayload {
 export async function* streamChat(
   payload: SendPayload,
 ): AsyncGenerator<AssistantEvent> {
-  const { scope, messages, shownCodes, signal } = payload
+  const { scope, messages, shownCodes, bookedIds, signal } = payload
 
   let res: Response
   try {
@@ -111,6 +119,7 @@ export async function* streamChat(
         // asistente son prosa: sin códigos no puede volver a consultar aquello
         // de lo que ya habló, y acababa contestando de memoria.
         shownCodes,
+        bookedIds,
       }),
       signal,
     })

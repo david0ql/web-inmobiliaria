@@ -140,6 +140,7 @@ export function useAssistant(): UseAssistant {
             scope: turnScope,
             messages: history,
             shownCodes: codigosMostrados(itemsRef.current),
+            bookedIds: citasPedidas(itemsRef.current),
             signal: ac.signal,
           })) {
             if (event.type === 'text') {
@@ -265,4 +266,21 @@ function codigosMostrados(items: ChatItem[]): string[] {
   // Los últimos: una charla larga acumula decenas y lo que importa es lo
   // reciente. Lo que caiga fuera el asistente lo vuelve a buscar si hace falta.
   return [...new Set(codes)].slice(-40)
+}
+
+/**
+ * Los ids de las visitas pedidas en este hilo.
+ *
+ * Es lo que le permite al asistente CAMBIAR una visita en vez de crear otra:
+ * tener el id es la prueba de que la cita es de quien está escribiendo. Antes,
+ * al pedirle "muévela", agendaba una segunda y decía que la había cambiado —
+ * el asesor se plantaba dos veces.
+ */
+function citasPedidas(items: ChatItem[]): string[] {
+  const ids: string[] = []
+  for (const item of items) {
+    if (item.kind !== 'card' || item.card.type !== 'booked') continue
+    if (item.card.appointmentId) ids.push(item.card.appointmentId)
+  }
+  return [...new Set(ids)].slice(-20)
 }
