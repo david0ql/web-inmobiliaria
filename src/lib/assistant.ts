@@ -77,6 +77,8 @@ export type AssistantEvent =
 export interface SendPayload {
   scope: ChatScope
   messages: ChatTurn[]
+  /** Códigos de los inmuebles ya mostrados en el hilo. */
+  shownCodes?: string[]
   signal?: AbortSignal
 }
 
@@ -89,7 +91,7 @@ export interface SendPayload {
 export async function* streamChat(
   payload: SendPayload,
 ): AsyncGenerator<AssistantEvent> {
-  const { scope, messages, signal } = payload
+  const { scope, messages, shownCodes, signal } = payload
 
   let res: Response
   try {
@@ -100,6 +102,15 @@ export async function* streamChat(
         scope: scope.kind,
         code: scope.kind === 'PROPERTY' ? scope.code : undefined,
         messages,
+        // Solo los códigos de lo que ya se enseñó. El servidor los relee de la
+        // base: los datos no viajan por aquí, así que manipular esta lista no
+        // sirve para colar un precio falso — como mucho, para que el asistente
+        // hable de otro inmueble que también está publicado.
+        //
+        // Hace falta porque el hilo es efímero y los mensajes anteriores del
+        // asistente son prosa: sin códigos no puede volver a consultar aquello
+        // de lo que ya habló, y acababa contestando de memoria.
+        shownCodes,
       }),
       signal,
     })

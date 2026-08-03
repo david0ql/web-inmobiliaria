@@ -139,6 +139,7 @@ export function useAssistant(): UseAssistant {
           for await (const event of streamChat({
             scope: turnScope,
             messages: history,
+            shownCodes: codigosMostrados(itemsRef.current),
             signal: ac.signal,
           })) {
             if (event.type === 'text') {
@@ -238,4 +239,28 @@ let counter = 0
 function newId(): string {
   counter += 1
   return `m${counter}`
+}
+
+/**
+ * Los códigos de los inmuebles que ya se enseñaron en el hilo.
+ *
+ * Van de vuelta al servidor, que los relee de la base antes de cada respuesta.
+ * Solo los códigos: los datos se quedan aquí y no se reenvían, porque el
+ * servidor no tiene por qué fiarse de lo que le mande el navegador.
+ *
+ * Sin esto, el asistente no podía volver a consultar aquello de lo que ya había
+ * hablado —sus mensajes anteriores son prosa, sin identificadores— y acababa
+ * contestando de memoria: llegó a decir dos precios distintos del mismo
+ * inmueble en la misma conversación.
+ */
+function codigosMostrados(items: ChatItem[]): string[] {
+  const codes: string[] = []
+  for (const item of items) {
+    if (item.kind !== 'card') continue
+    const card = item.card
+    if (card.type === 'properties') codes.push(...card.items.map((i) => i.code))
+    else if (card.type === 'property') codes.push(card.item.code)
+    else codes.push(card.code)
+  }
+  return [...new Set(codes)]
 }
