@@ -106,11 +106,16 @@ export const CONDITIONS = [
   { value: 'UNDER_CONSTRUCTION', label: 'En construcción' },
 ] as const
 
-export const BUSINESS_TYPES = [
-  { value: 'for_sale', label: 'Venta' },
-  { value: 'for_rent', label: 'Alquiler' },
-  { value: 'for_transfer', label: 'Permutar' },
-] as const
+/*
+  El buscador tenia un desplegable "Tipo de negocio" con Venta, Alquiler y
+  Permutar. Los 642 inmuebles publicados estan en venta y ninguno en alquiler
+  ni en permuta, asi que dos de las tres opciones devolvian siempre cero
+  resultados: un filtro que solo sirve para vaciar la pagina.
+
+  El filtro sale de la interfaz. `businessType` se queda en los parametros
+  porque los enlaces publicados en los portales lo llevan en la query
+  (`business_type[0]=for_sale`) y no se pueden romper.
+*/
 
 /** "1 o más" … "7 o más", igual que los selects del tema anterior. */
 export const ROOM_OPTIONS = [1, 2, 3, 4, 5, 6, 7].map((n) => ({

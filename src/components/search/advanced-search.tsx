@@ -14,7 +14,6 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import {
-  BUSINESS_TYPES,
   CONDITIONS,
   digits,
   EMPTY_FILTERS,
@@ -192,26 +191,6 @@ function AdvancedSearchForm({ initial }: { initial?: Filters }) {
         </Select>
       </FieldShell>
 
-      <FieldShell label="Tipo de negocio" className="col-span-1 lg:col-span-3">
-        <Select
-          value={filters.businessType || ANY}
-          onValueChange={(value) =>
-            set('businessType', value === ANY ? '' : value)
-          }
-        >
-          <SelectTrigger aria-label="Tipo de negocio">
-            <SelectValue placeholder="Todos" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ANY}>Todos</SelectItem>
-            {BUSINESS_TYPES.map((business) => (
-              <SelectItem key={business.value} value={business.value}>
-                {business.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </FieldShell>
 
       <FieldShell label="Alcobas" className="col-span-1 lg:col-span-2">
         <RoomSelect
