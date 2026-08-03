@@ -11,6 +11,8 @@
  * en memoria del navegador y se reenvía en cada turno.
  */
 
+import { ApiError } from './api'
+
 const BASE = '/api/v1'
 
 // --- lo que viaja en cada turno --------------------------------------------
@@ -87,6 +89,10 @@ export interface SendPayload {
   shownCodes?: string[]
   /** Ids de las visitas pedidas en el hilo: es lo que permite cambiarlas. */
   bookedIds?: string[]
+  /** Donde se guarda el hilo, para poder revisarlo despues. */
+  conversationId?: string
+  /** Para que le hable por su nombre. */
+  visitorName?: string
   signal?: AbortSignal
 }
 
@@ -99,7 +105,15 @@ export interface SendPayload {
 export async function* streamChat(
   payload: SendPayload,
 ): AsyncGenerator<AssistantEvent> {
-  const { scope, messages, shownCodes, bookedIds, signal } = payload
+  const {
+    scope,
+    messages,
+    shownCodes,
+    bookedIds,
+    conversationId,
+    visitorName,
+    signal,
+  } = payload
 
   let res: Response
   try {
@@ -120,6 +134,8 @@ export async function* streamChat(
         // de lo que ya habló, y acababa contestando de memoria.
         shownCodes,
         bookedIds,
+        conversationId,
+        visitorName,
       }),
       signal,
     })
@@ -185,4 +201,35 @@ function parseBlock(block: string): AssistantEvent | null {
 
 function isAbort(error: unknown): boolean {
   return error instanceof DOMException && error.name === 'AbortError'
+}
+
+/**
+ * Identifica al visitante antes de la primera pregunta.
+ *
+ * El servidor busca por telefono y correo: si ya es cliente reutiliza su ficha
+ * —nadie quiere el mismo cliente tres veces en la cartera por escribir su
+ * nombre de otra forma— y si no, la crea.
+ */
+export async function identify(datos: {
+  firstName: string
+  lastName: string
+  phone: string
+  email: string
+  propertyCode?: string
+}): Promise<{ conversationId: string; returning: boolean }> {
+  const res = await fetch(`${BASE}/public/assistant/identify`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(datos),
+  })
+  if (!res.ok) {
+    const body = (await res.json().catch(() => null)) as {
+      message?: string | string[]
+    } | null
+    const message = Array.isArray(body?.message)
+      ? body.message[0]
+      : (body?.message ?? 'No pudimos guardar tus datos.')
+    throw new ApiError(res.status, message)
+  }
+  return (await res.json()) as { conversationId: string; returning: boolean }
 }

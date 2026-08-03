@@ -2,6 +2,7 @@ import { Home, SendHorizonal, Sparkles, X } from 'lucide-react'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 
 import { ChatCard } from '@/components/assistant/chat-cards'
+import { ChatIdentify } from '@/components/assistant/chat-identify'
 import { Button } from '@/components/ui/button'
 import { SITE } from '@/lib/site'
 import type { ChatItem, UseAssistant } from '@/lib/use-assistant'
@@ -23,7 +24,16 @@ export function ChatPanel({
   assistant: UseAssistant
   onClose: () => void
 }) {
-  const { items, streaming, greeting, scope, scopeKey, send } = assistant
+  const {
+    items,
+    streaming,
+    greeting,
+    scope,
+    scopeKey,
+    send,
+    visitor,
+    setVisitor,
+  } = assistant
   const [draft, setDraft] = useState('')
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -78,62 +88,81 @@ export function ChatPanel({
         ref={scrollRef}
         className="flex-1 space-y-3 overflow-y-auto overscroll-contain px-4 py-4"
       >
-        <div key={scopeKey} className="animate-in fade-in-0 slide-in-from-bottom-1 space-y-3 duration-300">
-          <Bubble role="assistant">{greeting}</Bubble>
-          {items.map((item) => (
-            <Item key={item.id} item={item} onNavigate={onClose} />
-          ))}
-          {streaming && lastIsUser(items) && <Typing />}
-        </div>
+        {!visitor ? (
+          <ChatIdentify scope={scope} onReady={setVisitor} />
+        ) : (
+          <div
+            key={scopeKey}
+            className="animate-in fade-in-0 slide-in-from-bottom-1 space-y-3 duration-300"
+          >
+            <Bubble role="assistant">
+              {`Hola ${visitor.firstName} 👋 `}
+              {greeting}
+            </Bubble>
+            {items.map((item) => (
+              <Item key={item.id} item={item} onNavigate={onClose} />
+            ))}
+            {streaming && lastIsUser(items) && <Typing />}
+          </div>
+        )}
       </div>
 
-      {/* Caja de escribir */}
-      <div className="border-t bg-background px-3 py-3">
-        <form
-          onSubmit={(event) => {
-            event.preventDefault()
-            submit()
-          }}
-          className="flex items-end gap-2 rounded-lg border bg-card p-1.5 focus-within:ring-2 focus-within:ring-ring"
-        >
-          <textarea
-            ref={inputRef}
-            value={draft}
-            onChange={(event) => setDraft(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter' && !event.shiftKey) {
-                event.preventDefault()
-                submit()
-              }
+      {/* Caja de escribir. Sin identificarse no hay a quien contestar. */}
+      {visitor && (
+        <div className="border-t bg-background px-3 py-3">
+          <form
+            onSubmit={(event) => {
+              event.preventDefault()
+              submit()
             }}
-            rows={1}
-            maxLength={3900}
-            placeholder={
-              scope.kind === 'PROPERTY'
-                ? 'Pregunta por este inmueble…'
-                : 'Escribe qué buscas…'
-            }
-            className="max-h-32 min-h-9 flex-1 resize-none bg-transparent px-2 py-1.5 text-sm outline-none placeholder:text-muted-foreground"
-          />
-          <Button
-            type="submit"
-            size="icon"
-            disabled={!draft.trim() || streaming}
-            aria-label="Enviar"
-            className="shrink-0"
+            className="flex items-end gap-2 rounded-lg border bg-card p-1.5 focus-within:ring-2 focus-within:ring-ring"
           >
-            <SendHorizonal className="size-4" />
-          </Button>
-        </form>
-        <p className="mt-1.5 px-1 text-center text-[0.625rem] text-muted-foreground">
-          Respuestas con la información publicada. Un asesor confirma lo importante.
-        </p>
-      </div>
+            <textarea
+              ref={inputRef}
+              value={draft}
+              onChange={(event) => setDraft(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' && !event.shiftKey) {
+                  event.preventDefault()
+                  submit()
+                }
+              }}
+              rows={1}
+              maxLength={3900}
+              placeholder={
+                scope.kind === 'PROPERTY'
+                  ? 'Pregunta por este inmueble…'
+                  : 'Escribe qué buscas…'
+              }
+              className="max-h-32 min-h-9 flex-1 resize-none bg-transparent px-2 py-1.5 text-sm outline-none placeholder:text-muted-foreground"
+            />
+            <Button
+              type="submit"
+              size="icon"
+              disabled={!draft.trim() || streaming}
+              aria-label="Enviar"
+              className="shrink-0"
+            >
+              <SendHorizonal className="size-4" />
+            </Button>
+          </form>
+          <p className="mt-1.5 px-1 text-center text-[0.625rem] text-muted-foreground">
+            Respuestas con la información publicada. Un asesor confirma lo
+            importante.
+          </p>
+        </div>
+      )}
     </div>
   )
 }
 
-function Item({ item, onNavigate }: { item: ChatItem; onNavigate: () => void }) {
+function Item({
+  item,
+  onNavigate,
+}: {
+  item: ChatItem
+  onNavigate: () => void
+}) {
   if (item.kind === 'user') return <Bubble role="user">{item.text}</Bubble>
   if (item.kind === 'assistant')
     return (

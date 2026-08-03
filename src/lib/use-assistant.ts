@@ -1,4 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+
+import type { Visitor } from '@/components/assistant/chat-identify'
+
+/** Donde se recuerda a quien ya se identifico. */
+const VISITOR_KEY = 'serrano.chat.visitor'
 import { useMatches, useNavigate } from 'react-router-dom'
 
 import { ROUTES } from '@/lib/site'
@@ -55,6 +60,9 @@ export interface UseAssistant {
   greeting: string
   send: (text: string) => void
   stop: () => void
+  /** Quien escribe. `null` hasta que se identifica. */
+  visitor: Visitor | null
+  setVisitor: (visitor: Visitor) => void
 }
 
 export function useAssistant(): UseAssistant {
@@ -71,6 +79,35 @@ export function useAssistant(): UseAssistant {
   const itemsRef = useRef<ChatItem[]>(items)
   itemsRef.current = items
   const openIdRef = useRef<string | null>(null)
+
+  /*
+    Quien esta escribiendo. Se guarda en el navegador para pedirlo UNA vez: si
+    se preguntase en cada visita, el mismo cliente acabaria repitiendo sus datos
+    cada semana y dejaria de contestar.
+
+    Solo el nombre y el id de la conversacion — ni telefono ni correo. Lo que
+    identifica a alguien no tiene por que quedarse en el disco de un ordenador
+    compartido.
+  */
+  const [visitor, setVisitorState] = useState<Visitor | null>(() => {
+    try {
+      const guardado = localStorage.getItem(VISITOR_KEY)
+      return guardado ? (JSON.parse(guardado) as Visitor) : null
+    } catch {
+      return null
+    }
+  })
+  const visitorRef = useRef<Visitor | null>(visitor)
+  visitorRef.current = visitor
+
+  const setVisitor = useCallback((value: Visitor) => {
+    setVisitorState(value)
+    try {
+      localStorage.setItem(VISITOR_KEY, JSON.stringify(value))
+    } catch {
+      // Modo incognito o almacenamiento lleno: se sigue sin recordar.
+    }
+  }, [])
   const scopeRef = useRef<ChatScope>(scope)
   scopeRef.current = scope
   /** Lo que debe sembrar el hilo tras un reinicio provocado por el asistente. */
@@ -141,6 +178,8 @@ export function useAssistant(): UseAssistant {
             messages: history,
             shownCodes: codigosMostrados(itemsRef.current),
             bookedIds: citasPedidas(itemsRef.current),
+            conversationId: visitorRef.current?.conversationId,
+            visitorName: visitorRef.current?.firstName,
             signal: ac.signal,
           })) {
             if (event.type === 'text') {
@@ -185,7 +224,17 @@ export function useAssistant(): UseAssistant {
       ? 'Hola 👋 Puedo contarte todo de este inmueble: precio, área, qué incluye, más fotos o agendarte una visita. ¿Qué quieres saber?'
       : 'Hola 👋 Soy el asistente de Serrano Inmobiliaria. Dime qué buscas —zona, precio, alcobas— y te muestro opciones al instante.'
 
-  return { scope, scopeKey, items, streaming, greeting, send, stop }
+  return {
+    scope,
+    scopeKey,
+    items,
+    streaming,
+    greeting,
+    send,
+    stop,
+    visitor,
+    setVisitor,
+  }
 }
 
 /**
