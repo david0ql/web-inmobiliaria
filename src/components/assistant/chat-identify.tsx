@@ -30,6 +30,14 @@ const PAISES = [
 export interface Visitor {
   conversationId: string
   firstName: string
+  /*
+    El resto de datos viaja con el visitante durante la visita —solo en
+    memoria— para poder reabrir un hilo nuevo al cambiar de inmueble sin
+    volver a preguntarle nada.
+  */
+  lastName: string
+  phone: string
+  email: string
 }
 
 /**
@@ -39,8 +47,10 @@ export interface Visitor {
  * equipo con una conversación interesante y nadie a quien llamar, y este chat
  * existe para traer clientes.
  *
- * Se pide una vez: al identificarse queda guardado en el navegador y no se
- * vuelve a preguntar aunque cierre el chat o cambie de página.
+ * Se pregunta una vez por visita: los datos viven en memoria, así que al
+ * recargar la página se vuelve a preguntar y se abre un hilo nuevo. Es
+ * deliberado — recordarlo entre visitas convierte el histórico en una sola
+ * conversación inmensa que nadie puede revisar.
  */
 export function ChatIdentify({
   scope,
@@ -76,7 +86,13 @@ export function ChatIdentify({
         email: email.trim(),
         propertyCode: scope.kind === 'PROPERTY' ? scope.code : undefined,
       })
-      onReady({ conversationId: res.conversationId, firstName: firstName.trim() })
+      onReady({
+        conversationId: res.conversationId,
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        phone: `${dial}${phone.replace(/\D/g, '')}`,
+        email: email.trim(),
+      })
     } catch (err) {
       setError(
         err instanceof ApiError

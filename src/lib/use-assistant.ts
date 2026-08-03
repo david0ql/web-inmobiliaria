@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
+import { identify } from '@/lib/assistant'
 import type { Visitor } from '@/components/assistant/chat-identify'
 
-/** Donde se recuerda a quien ya se identifico. */
-const VISITOR_KEY = 'serrano.chat.visitor'
 import { useMatches, useNavigate } from 'react-router-dom'
 
 import { ROUTES } from '@/lib/site'
@@ -81,33 +80,21 @@ export function useAssistant(): UseAssistant {
   const openIdRef = useRef<string | null>(null)
 
   /*
-    Quien esta escribiendo. Se guarda en el navegador para pedirlo UNA vez: si
-    se preguntase en cada visita, el mismo cliente acabaria repitiendo sus datos
-    cada semana y dejaria de contestar.
+    Quien esta escribiendo. SOLO en memoria, a proposito.
 
-    Solo el nombre y el id de la conversacion — ni telefono ni correo. Lo que
-    identifica a alguien no tiene por que quedarse en el disco de un ordenador
-    compartido.
+    Al recargar la pagina se vuelve a preguntar y se abre un hilo nuevo. Se
+    podria recordar en el navegador —y se hizo asi al principio—, pero eso
+    convierte cada visita en una continuacion de la anterior: el equipo se
+    encuentra en el historico una sola conversacion inmensa que empezo hace tres
+    semanas, imposible de revisar. Un hilo por visita se lee.
+
+    Ademas es lo prudente en un ordenador compartido: nada de lo que identifica
+    a una persona se queda en el disco.
   */
-  const [visitor, setVisitorState] = useState<Visitor | null>(() => {
-    try {
-      const guardado = localStorage.getItem(VISITOR_KEY)
-      return guardado ? (JSON.parse(guardado) as Visitor) : null
-    } catch {
-      return null
-    }
-  })
+  const [visitor, setVisitorState] = useState<Visitor | null>(null)
   const visitorRef = useRef<Visitor | null>(visitor)
   visitorRef.current = visitor
-
-  const setVisitor = useCallback((value: Visitor) => {
-    setVisitorState(value)
-    try {
-      localStorage.setItem(VISITOR_KEY, JSON.stringify(value))
-    } catch {
-      // Modo incognito o almacenamiento lleno: se sigue sin recordar.
-    }
-  }, [])
+  const setVisitor = useCallback((value: Visitor) => setVisitorState(value), [])
   const scopeRef = useRef<ChatScope>(scope)
   scopeRef.current = scope
   /** Lo que debe sembrar el hilo tras un reinicio provocado por el asistente. */
@@ -125,6 +112,30 @@ export function useAssistant(): UseAssistant {
     setStreaming(false)
     setItems(seedRef.current ?? [])
     seedRef.current = null
+
+    /*
+      Y una conversacion nueva en el historico.
+
+      En pantalla el hilo ya se reiniciaba, pero por dentro se seguia escribiendo
+      en la misma: quien revisara despues veria una conversacion que empieza
+      preguntando por casas en Piedecuesta y de golpe habla de un apartamento
+      concreto, sin saber que en medio el visitante cambio de pagina.
+
+      Se reabre en silencio con los mismos datos —ya identificado, no se le
+      vuelve a preguntar nada.
+    */
+    const actual = visitorRef.current
+    if (!actual) return
+    void identify({
+      firstName: actual.firstName,
+      lastName: actual.lastName,
+      phone: actual.phone,
+      email: actual.email,
+      propertyCode: scope.kind === 'PROPERTY' ? scope.code : undefined,
+    })
+      .then((res) => setVisitorState({ ...actual, conversationId: res.conversationId }))
+      .catch(() => undefined)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scopeKey])
 
   // Al desmontar, corta cualquier stream vivo.
