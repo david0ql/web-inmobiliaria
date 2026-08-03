@@ -262,5 +262,7 @@ function codigosMostrados(items: ChatItem[]): string[] {
     else if (card.type === 'property') codes.push(card.item.code)
     else codes.push(card.code)
   }
-  return [...new Set(codes)]
+  // Los últimos: una charla larga acumula decenas y lo que importa es lo
+  // reciente. Lo que caiga fuera el asistente lo vuelve a buscar si hace falta.
+  return [...new Set(codes)].slice(-40)
 }
