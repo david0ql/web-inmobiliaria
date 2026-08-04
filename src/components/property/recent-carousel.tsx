@@ -1,9 +1,11 @@
+import Autoplay from 'embla-carousel-autoplay'
+import Fade from 'embla-carousel-fade'
 import useEmblaCarousel from 'embla-carousel-react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { use, useCallback, useEffect, useState } from 'react'
 
 import { PropertyCard } from '@/components/property/property-card'
-import type { Property } from '@/lib/types'
+import type { Showcase } from '@/lib/api'
 import { cn } from '@/lib/utils'
 
 /**
@@ -18,15 +20,38 @@ import { cn } from '@/lib/utils'
  * de página. Sin eso, el carrusel descargaría las nueve al entrar y la portada
  * pagaría por seis fotos que nadie ha visto.
  */
-export function RecentCarousel({ promise }: { promise: Promise<Property[]> }) {
-  const properties = use(promise)
-  const [viewport, embla] = useEmblaCarousel({
-    align: 'start',
-    // Sin bucle: llegar al final y volver al principio sin avisar desorienta,
-    // y aquí el final significa "ya los viste todos".
-    loop: false,
-    slidesToScroll: 'auto',
-  })
+export function RecentCarousel({ promise }: { promise: Promise<Showcase> }) {
+  const { properties, autoplay, delayMs, effect } = use(promise)
+  const fade = effect === 'FADE'
+
+  const [viewport, embla] = useEmblaCarousel(
+    {
+      align: 'start',
+      /*
+        Con paso automático el bucle sí: llegar al final y quedarse parado deja
+        el carrusel muerto sin que nadie sepa por qué. Sin paso automático no,
+        porque quien pulsa la flecha espera que el final sea el final.
+
+        En modo fundido las diapositivas se apilan, así que va de una en una.
+      */
+      loop: autoplay,
+      slidesToScroll: fade ? 1 : 'auto',
+    },
+    [
+      ...(fade ? [Fade()] : []),
+      ...(autoplay
+        ? [
+            Autoplay({
+              delay: delayMs,
+              // Si alguien está mirando una tarjeta, no se la quitamos de
+              // debajo del ratón.
+              stopOnMouseEnter: true,
+              stopOnInteraction: false,
+            }),
+          ]
+        : []),
+    ],
+  )
   const [selected, setSelected] = useState(0)
   const [snaps, setSnaps] = useState<number[]>([])
 
@@ -47,11 +72,14 @@ export function RecentCarousel({ promise }: { promise: Promise<Property[]> }) {
   return (
     <div className="relative">
       <div ref={viewport} className="overflow-hidden">
-        <div className="flex gap-5">
+        <div className={cn('flex', !fade && 'gap-5')}>
           {properties.map((property, index) => (
             <div
               key={property.id}
-              className="min-w-0 shrink-0 grow-0 basis-full sm:basis-1/2 lg:basis-1/3"
+              className={cn(
+                'min-w-0 shrink-0 grow-0',
+                fade ? 'basis-full' : 'basis-full sm:basis-1/2 lg:basis-1/3',
+              )}
             >
               <PropertyCard property={property} priority={index < 3} />
             </div>

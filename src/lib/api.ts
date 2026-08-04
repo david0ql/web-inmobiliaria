@@ -188,3 +188,22 @@ export function getZones(cityId: number, signal?: AbortSignal) {
 export function getCounts(signal?: AbortSignal) {
   return api.get<TypeCount[]>('/public/catalogs/counts', undefined, signal)
 }
+
+/** Cómo se mueve el carrusel de la portada. */
+export interface Showcase {
+  properties: Property[]
+  autoplay: boolean
+  delayMs: number
+  effect: 'SLIDE' | 'FADE'
+}
+
+/**
+ * El escaparate de la portada, ya resuelto por la API.
+ *
+ * Qué inmuebles salen —los últimos, los destacados o los que eligió la agencia
+ * a mano— lo decide el servidor. Aquí solo se pinta: si mañana se añade otro
+ * criterio, esta parte no se entera.
+ */
+export function getShowcase(signal?: AbortSignal): Promise<Showcase> {
+  return api.get<Showcase>('/public/home/showcase', undefined, signal)
+}

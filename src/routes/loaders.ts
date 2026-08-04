@@ -23,6 +23,8 @@ import {
   getProperty,
   getSiblings,
   searchProperties,
+  getShowcase,
+  type Showcase,
 } from '@/lib/api'
 import {
   getProject,
@@ -61,7 +63,7 @@ export function rootLoader(): RootData {
 
 export interface HomeData {
   projects: Promise<ProjectSummary[]>
-  recent: Promise<Property[]>
+  showcase: Promise<Showcase>
 }
 
 export function homeLoader(): HomeData {
@@ -75,7 +77,9 @@ export function homeLoader(): HomeData {
   */
   return {
     projects: listProjects({ limit: 6 }).then((page) => page.data),
-    recent: searchProperties({ sort: 'recent', limit: 9 }).then((p) => p.data),
+    // Que inmuebles salen, cuantos y como se mueven lo decide la agencia desde
+    // el panel; la API lo resuelve y aqui solo se pinta.
+    showcase: getShowcase(),
   }
 }
 

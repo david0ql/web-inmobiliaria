@@ -67,7 +67,7 @@ export function Home() {
       <section className="container-site mb-14">
         <SectionHeading size="sm" light="Últimos" strong="inmuebles" />
         <Suspense fallback={<PropertyGridSkeleton count={3} />}>
-          <RecentCarousel promise={data.recent} />
+          <RecentCarousel promise={data.showcase} />
         </Suspense>
         <div className="mt-6 flex justify-center">
           <Button asChild variant="outline">
