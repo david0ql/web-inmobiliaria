@@ -57,17 +57,12 @@ export function Home() {
         </div>
       </section>
 
-      <section className="container-site mb-14">
-        <SectionHeading size="sm" light="Nuestros" strong="proyectos" />
-        <Suspense fallback={<ProjectsSkeleton />}>
-          <Projects promise={data.projects} />
-        </Suspense>
-        <div className="mt-6 flex justify-center">
-          <Button asChild variant="outline">
-            <Link to={ROUTES.projects}>Ver todos los proyectos</Link>
-          </Button>
-        </div>
-      </section>
+      {/* La seccion entera desaparece si no hay proyectos publicados. Un
+          rotulo y un boton sobre un hueco vacio se leen como algo roto, y hoy
+          la agencia todavia no ha dado de alta ninguno. */}
+      <Suspense fallback={null}>
+        <ProjectsSection promise={data.projects} />
+      </Suspense>
 
       <section className="container-site mb-14">
         <SectionHeading size="sm" light="Últimos" strong="inmuebles" />
@@ -89,24 +84,23 @@ export function Home() {
 }
 
 
-function Projects({ promise }: { promise: Promise<ProjectSummary[]> }) {
+function ProjectsSection({ promise }: { promise: Promise<ProjectSummary[]> }) {
   const projects = use(promise)
   if (!projects.length) return null
-  return (
-    <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-      {projects.map((project) => (
-        <ProjectCard key={project.id} project={project} />
-      ))}
-    </div>
-  )
-}
 
-function ProjectsSkeleton() {
   return (
-    <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-      {Array.from({ length: 3 }, (_, i) => (
-        <div key={i} className="h-64 animate-pulse rounded-lg bg-secondary" />
-      ))}
-    </div>
+    <section className="container-site mb-14">
+      <SectionHeading size="sm" light="Nuestros" strong="proyectos" />
+      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        {projects.map((project) => (
+          <ProjectCard key={project.id} project={project} />
+        ))}
+      </div>
+      <div className="mt-6 flex justify-center">
+        <Button asChild variant="outline">
+          <Link to={ROUTES.projects}>Ver todos los proyectos</Link>
+        </Button>
+      </div>
+    </section>
   )
 }
