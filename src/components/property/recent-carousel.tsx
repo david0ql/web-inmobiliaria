@@ -72,13 +72,24 @@ export function RecentCarousel({ promise }: { promise: Promise<Showcase> }) {
   return (
     <div className="relative">
       <div ref={viewport} className="overflow-hidden">
-        <div className={cn('flex', !fade && 'gap-5')}>
+        {/*
+          El hueco entre tarjetas va por dentro, no con `gap`.
+
+          Con `gap-5`, tres tarjetas de `basis-1/3` suman el 100% del visor MAS
+          los dos huecos de 20 px: la tercera sobresalia 40 px y se veia cortada
+          por la derecha a cualquier ancho. Con margen negativo en el carril y
+          relleno en cada tarjeta, el tercio sigue siendo un tercio exacto y la
+          separacion se pinta por dentro.
+        */}
+        <div className={cn('flex', !fade && '-ml-5')}>
           {properties.map((property, index) => (
             <div
               key={property.id}
               className={cn(
                 'min-w-0 shrink-0 grow-0',
-                fade ? 'basis-full' : 'basis-full sm:basis-1/2 lg:basis-1/3',
+                fade
+                  ? 'basis-full'
+                  : 'basis-full pl-5 sm:basis-1/2 lg:basis-1/3',
               )}
             >
               <PropertyCard property={property} priority={index < 3} />
