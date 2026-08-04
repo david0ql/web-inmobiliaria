@@ -111,11 +111,11 @@ export function ProjectCard({ project }: { project: ProjectSummary }) {
           {FAMILY_KIND_LABEL[project.kind] ?? 'Proyecto'}
           {project.developer ? ` · ${project.developer}` : ''}
         </p>
-        <h3 className="line-clamp-2-title text-sm leading-snug font-semibold uppercase">
+        <h2 className="line-clamp-2-title text-sm leading-snug font-semibold uppercase">
           <Link to={to} className="hover:underline">
             {project.name}
           </Link>
-        </h3>
+        </h2>
         {place && (
           <p className="line-clamp-2-title text-xs text-muted-foreground">
             {place}
