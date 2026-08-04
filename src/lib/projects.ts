@@ -86,12 +86,23 @@ export const FAMILY_STATUS_LABEL: Record<FamilyStatus, string> = {
   SOLD_OUT: 'Vendido',
 }
 
-/** Mismo criterio de color que las etiquetas de disponibilidad de la ficha. */
+/**
+ * Los colores del tema anterior, oscurecidos hasta que se leen.
+ *
+ * Los de WASI son los de un panel de administracion, sobre fondo claro y texto
+ * oscuro; aqui van con texto blanco encima y ahi no llegaban: el amarillo daba
+ * 1,68 de contraste sobre 4,5 que pide la norma —practicamente ilegible— y el
+ * verde 2,87.
+ *
+ * Se conserva el tono para que la etiqueta siga significando lo mismo de un
+ * vistazo; solo baja la luminosidad. Son los mismos que las etiquetas de
+ * disponibilidad de la ficha, que ya se corrigieron por lo mismo.
+ */
 export const FAMILY_STATUS_COLOR: Record<FamilyStatus, string> = {
-  PLANNED: '#3d85c6',
-  UNDER_CONSTRUCTION: '#f1c232',
-  DELIVERED: '#6aa84f',
-  SOLD_OUT: '#cc0000',
+  PLANNED: '#1f5c94',
+  UNDER_CONSTRUCTION: '#8a6209',
+  DELIVERED: '#2f7d4f',
+  SOLD_OUT: '#a81c1c',
 }
 
 // --- rutas -----------------------------------------------------------------

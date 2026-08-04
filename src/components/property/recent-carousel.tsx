@@ -100,7 +100,13 @@ export function RecentCarousel({ promise }: { promise: Promise<Showcase> }) {
             onClick={() => embla?.scrollNext()}
           />
 
-          <div className="mt-5 flex justify-center gap-1.5">
+          {/*
+            El punto se ve de 8 px pero el boton mide 24: lo que se pulsa con
+            el pulgar no es lo que se ve, y un punto de 8 px en un movil no se
+            acierta. El area va por dentro, con `p-2`, para no separar los
+            puntos entre si.
+          */}
+          <div className="mt-3 flex justify-center">
             {snaps.map((_, i) => (
               <button
                 key={i}
@@ -108,13 +114,17 @@ export function RecentCarousel({ promise }: { promise: Promise<Showcase> }) {
                 onClick={() => embla?.scrollTo(i)}
                 aria-label={`Ir al grupo ${i + 1}`}
                 aria-current={i === selected}
-                className={cn(
-                  'h-2 rounded-full transition-all',
-                  i === selected
-                    ? 'w-5 bg-foreground'
-                    : 'w-2 bg-muted-foreground/35 hover:bg-muted-foreground/60',
-                )}
-              />
+                className="group flex size-6 items-center justify-center"
+              >
+                <span
+                  className={cn(
+                    'block h-2 rounded-full transition-all',
+                    i === selected
+                      ? 'w-5 bg-foreground'
+                      : 'w-2 bg-muted-foreground/35 group-hover:bg-muted-foreground/60',
+                  )}
+                />
+              </button>
             ))}
           </div>
         </>
