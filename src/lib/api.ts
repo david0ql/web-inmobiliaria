@@ -209,3 +209,20 @@ export interface Showcase {
 export function getShowcase(signal?: AbortSignal): Promise<Showcase> {
   return api.get<Showcase>('/public/home/showcase', undefined, signal)
 }
+
+/**
+ * Avisa de que alguien abrió una ficha.
+ *
+ * Va aparte de leerla para que la lectura se pueda cachear: la ficha es la
+ * página más visitada del sitio y antes cada visitante costaba una consulta con
+ * imágenes, ciudad, zona, tipo y moneda solo para sumar uno al contador.
+ *
+ * Si falla, se ignora: perder una visita del contador no puede estropearle la
+ * página a nadie.
+ */
+export function registerVisit(code: string): void {
+  void fetch(`${BASE}/public/properties/${encodeURIComponent(code)}/visit`, {
+    method: 'POST',
+    keepalive: true,
+  }).catch(() => undefined)
+}

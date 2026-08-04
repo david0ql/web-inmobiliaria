@@ -142,13 +142,26 @@ export function register(payload: {
 }
 
 /** Devuelve `true` si había una sesión que renovar. */
+/**
+ * ¿Sigue habiendo sesión?
+ *
+ * Sin cookie el servidor contesta 200 con `client: null` —"no", que es una
+ * respuesta y no un error—, así que aquí eso no es una excepción: simplemente
+ * no hay sesión. El `catch` queda para lo que sí falla de verdad.
+ */
 export async function refresh(): Promise<boolean> {
   try {
     const session = await request<{
       accessToken: string
-      client: PortalClient
+      client: PortalClient | null
     }>('/portal/auth/refresh', { method: 'POST', retry: false })
-    setSession(session)
+
+    if (!session.client) {
+      clearSession()
+      return false
+    }
+
+    setSession(session as { accessToken: string; client: PortalClient })
     return true
   } catch {
     clearSession()

@@ -1,5 +1,5 @@
 import { ArrowRight, MapPin, Share2, Video } from 'lucide-react'
-import { Suspense, use } from 'react'
+import { Suspense, use, useEffect } from 'react'
 import { Await, Link, useLoaderData, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
 
@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/misc'
 import { businessType, money, price } from '@/lib/format'
 import { portadaInyectada } from '@/lib/ficha-inyectada'
+import { registerVisit } from '@/lib/api'
 import { breadcrumbJsonLd, propertyJsonLd } from '@/lib/seo'
 import { ROUTES, SITE } from '@/lib/site'
 import { propertyPath } from '@/lib/slug'
@@ -82,6 +83,14 @@ function Detail({ data }: { data: PropertyData }) {
   const property = use(data.property)
   const siblings = data.siblings
   const amount = property.salePrice ?? property.rentPrice
+
+  // El contador de visitas. Va aqui y no en la lectura para que la ficha se
+  // pueda cachear; ademas cuenta mejor, porque mide fichas abiertas y no
+  // llamadas a la API —el asistente consulta la misma ficha varias veces en una
+  // conversacion y eso no son visitas.
+  useEffect(() => {
+    registerVisit(property.code)
+  }, [property.code])
 
   const canonical = SITE.url + propertyPath(property)
   const place = [property.zone?.name, property.city?.name]
