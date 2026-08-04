@@ -21,7 +21,7 @@ import { cn } from '@/lib/utils'
  * pagaría por seis fotos que nadie ha visto.
  */
 export function RecentCarousel({ promise }: { promise: Promise<Showcase> }) {
-  const { properties, autoplay, delayMs, effect } = use(promise)
+  const { enabled, properties, autoplay, delayMs, effect } = use(promise)
   const fade = effect === 'FADE'
 
   const [viewport, embla] = useEmblaCarousel(
@@ -67,7 +67,7 @@ export function RecentCarousel({ promise }: { promise: Promise<Showcase> }) {
     embla.on('select', onSelect).on('reInit', onSelect)
   }, [embla, onSelect])
 
-  if (!properties.length) return null
+  if (!enabled || !properties.length) return null
 
   return (
     <div className="relative">

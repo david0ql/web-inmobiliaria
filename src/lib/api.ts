@@ -191,6 +191,8 @@ export function getCounts(signal?: AbortSignal) {
 
 /** Cómo se mueve el carrusel de la portada. */
 export interface Showcase {
+  /** Si la agencia lo tiene encendido. Apagado, la sección no se pinta. */
+  enabled: boolean
   properties: Property[]
   autoplay: boolean
   delayMs: number

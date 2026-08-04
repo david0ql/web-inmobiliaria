@@ -16,6 +16,7 @@ import { useSeo } from '@/lib/use-seo'
 import { ProjectCard } from '@/components/project/project-card'
 import { PropertyTypesNav } from '@/components/property/property-types-nav'
 import { RecentCarousel } from '@/components/property/recent-carousel'
+import type { Showcase } from '@/lib/api'
 import type { ProjectSummary } from '@/lib/projects'
 import type { HomeData } from '@/routes/loaders'
 
@@ -64,17 +65,11 @@ export function Home() {
         <ProjectsSection promise={data.projects} />
       </Suspense>
 
-      <section className="container-site mb-14">
-        <SectionHeading size="sm" light="Últimos" strong="inmuebles" />
-        <Suspense fallback={<PropertyGridSkeleton count={3} />}>
-          <RecentCarousel promise={data.showcase} />
-        </Suspense>
-        <div className="mt-6 flex justify-center">
-          <Button asChild variant="outline">
-            <Link to={ROUTES.sales}>Ver todo el inventario</Link>
-          </Button>
-        </div>
-      </section>
+      {/* El rotulo y el boton viven dentro: apagado el carrusel desde el
+          panel, no debe quedarse un titulo sobre un hueco. */}
+      <Suspense fallback={<ShowcaseSkeleton />}>
+        <ShowcaseSection promise={data.showcase} />
+      </Suspense>
 
       {/* Los tipos, al final: es navegacion de rescate para quien llego abajo
           sin encontrar lo suyo, no lo primero que hay que enseñar. */}
@@ -101,6 +96,31 @@ function ProjectsSection({ promise }: { promise: Promise<ProjectSummary[]> }) {
           <Link to={ROUTES.projects}>Ver todos los proyectos</Link>
         </Button>
       </div>
+    </section>
+  )
+}
+
+function ShowcaseSection({ promise }: { promise: Promise<Showcase> }) {
+  const showcase = use(promise)
+  if (!showcase.enabled || !showcase.properties.length) return null
+
+  return (
+    <section className="container-site mb-14">
+      <SectionHeading size="sm" light="Últimos" strong="inmuebles" />
+      <RecentCarousel promise={promise} />
+      <div className="mt-6 flex justify-center">
+        <Button asChild variant="outline">
+          <Link to={ROUTES.sales}>Ver todo el inventario</Link>
+        </Button>
+      </div>
+    </section>
+  )
+}
+
+function ShowcaseSkeleton() {
+  return (
+    <section className="container-site mb-14">
+      <PropertyGridSkeleton count={3} />
     </section>
   )
 }
