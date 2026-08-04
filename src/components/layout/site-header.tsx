@@ -47,6 +47,7 @@ const linkClass = cn(
 export function SiteHeader() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
+  const navigate = useNavigate()
 
   return (
     <header
@@ -98,8 +99,15 @@ export function SiteHeader() {
                   justo lo que ya hace el titulo — dos caminos al mismo sitio, y
                   uno de ellos escondido detras de un menu.
                 */}
-                <NavigationMenuTrigger asChild>
-                  <Link to={ROUTES.sales}>Ventas</Link>
+                {/*
+                  `asChild` aqui no vale: el disparador de Radix ya mete su
+                  propio chevron, asi que el Slot recibe dos hijos y revienta el
+                  render entero de la cabecera.
+                */}
+                <NavigationMenuTrigger
+                  onClick={() => navigate(ROUTES.sales)}
+                >
+                  Ventas
                 </NavigationMenuTrigger>
                 <NavigationMenuContent>
                   <ul className="w-64 p-1">
