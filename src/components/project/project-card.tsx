@@ -31,8 +31,23 @@ export function ProjectCard({ project }: { project: ProjectSummary }) {
         <Link to={to} className="block">
           <div className="relative h-[280px] overflow-hidden bg-secondary">
             {project.coverUrl ? (
+              /*
+                Las tres variantes, no solo la que venga guardada.
+
+                La portada se guarda apuntando a una foto concreta del proyecto,
+                y si esa es la de 1600 px el navegador se la baja entera para
+                una tarjeta de 400: cinco proyectos eran 1,2 MB de portada. Con
+                el `srcset` derivado del propio nombre, el navegador coge la que
+                le sirve — la de 560 en escritorio.
+              */
               <img
-                src={project.coverUrl}
+                src={coverVariant(project.coverUrl, 'm')}
+                srcSet={[
+                  `${coverVariant(project.coverUrl, 't')} 560w`,
+                  `${coverVariant(project.coverUrl, 'm')} 800w`,
+                  `${coverVariant(project.coverUrl, 'l')} 1600w`,
+                ].join(', ')}
+                sizes="(min-width: 1024px) 400px, (min-width: 640px) 50vw, 100vw"
                 alt={project.name}
                 loading="lazy"
                 decoding="async"
@@ -147,4 +162,15 @@ function Spec({
       <span className="tabular truncate text-foreground">{value}</span>
     </div>
   )
+}
+
+/**
+ * La misma foto en otro tamaño.
+ *
+ * Las variantes solo se distinguen por el sufijo del fichero —`-t`, `-m`, `-l`,
+ * `-o`— así que se derivan del nombre en lugar de guardar cuatro columnas. Si
+ * la portada no sigue ese patrón se devuelve tal cual y no pasa nada.
+ */
+function coverVariant(url: string, size: 't' | 'm' | 'l'): string {
+  return url.replace(/-[tmlo]\.webp$/, `-${size}.webp`)
 }
