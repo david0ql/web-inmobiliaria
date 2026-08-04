@@ -9,16 +9,24 @@ export function SectionHeading({
   light,
   strong,
   as: Tag = 'h2',
+  size = 'md',
   className,
 }: {
   light: string
   strong?: string
   as?: 'h1' | 'h2' | 'h3'
+  /** `sm` para los rotulos de la portada, que competian con el contenido. */
+  size?: 'sm' | 'md'
   className?: string
 }) {
   return (
-    <div className={cn('mb-6', className)}>
-      <Tag className="tt-square text-xl font-light tracking-wide uppercase sm:text-2xl">
+    <div className={cn(size === 'sm' ? 'mb-4' : 'mb-6', className)}>
+      <Tag
+        className={cn(
+          'tt-square font-light tracking-wide uppercase',
+          size === 'sm' ? 'text-base sm:text-lg' : 'text-xl sm:text-2xl',
+        )}
+      >
         {light} {strong && <strong className="font-bold">{strong}</strong>}
       </Tag>
     </div>

@@ -2,7 +2,9 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/logo.png" />
+    <!-- El logotipo completo no se lee a 16 px: la miniatura es solo la S. -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="color-scheme" content="light" />
     <!-- La foto del mapa es el elemento mas grande de la portada. Precargarla
@@ -70,10 +72,10 @@
          o habra un salto. Si se borra, la portada queda en blanco ~1 s mas. -->
     <div id="root">
       <div class="flex min-h-screen flex-col">
-        <section class="border-t-4 border-[#333] bg-[#0d0d0d] text-white">
+        <section class="border-b bg-white text-neutral-800">
           <div class="container-site flex items-center justify-between gap-4 py-2">
             <div class="hidden md:block">
-              <div class="h-8 w-[280px] rounded-md bg-white/10"></div>
+              <div class="h-8 w-[280px] rounded-md border bg-secondary"></div>
             </div>
             <div class="flex flex-1 items-center justify-center gap-3 md:justify-end">
               <span class="text-xs font-medium tracking-wide">+573222023280</span>

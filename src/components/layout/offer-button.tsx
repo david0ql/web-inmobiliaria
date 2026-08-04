@@ -31,7 +31,7 @@ const preload = () => {
 }
 
 /**
- * "Publica tu inmueble".
+ * "Publicar inmueble".
  *
  * Pide sesion antes de abrir el formulario. No es un tramite: un inmueble
  * publicado tiene dueño, y ese dueño necesita una cuenta desde la que despues
@@ -44,7 +44,7 @@ const preload = () => {
  */
 export function OfferButton({
   className,
-  label = 'Publica tu inmueble',
+  label = 'Publicar inmueble',
   variant,
   size,
 }: {

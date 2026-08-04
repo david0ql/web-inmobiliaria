@@ -8,6 +8,7 @@ import {
   AVAILABILITY_LABEL,
   area as fmtArea,
   price,
+  stratumLabel,
 } from '@/lib/format'
 import { propertyPath } from '@/lib/slug'
 import type { Property } from '@/lib/types'
@@ -138,25 +139,29 @@ export function PropertyCard({
           Código: {property.code}
           {property.zone ? ` · ${property.zone.name}` : ''}
           {property.city ? ` · ${property.city.name}` : ''}
-          {property.stratum ? ` · Estrato ${property.stratum}` : ''}
+          {stratumLabel(property.stratum)}
         </p>
       </div>
 
-      <div className="border-t px-4 py-3">
-        <p className="tabular text-xl leading-none font-normal tracking-tight">
+      {/*
+        Precio y "Detalle" en la misma franja. Estaban en dos, una debajo de la
+        otra: la tarjeta era mas alta y en una rejilla de tres eso son casi cien
+        pixeles de portada para no decir nada nuevo.
+      */}
+      <div className="flex items-stretch border-t">
+        <p className="tabular flex-1 px-4 py-3 text-xl leading-none font-normal tracking-tight">
           {price(property.salePrice ?? property.rentPrice)}{' '}
           <small className="text-[0.625rem] tracking-widest text-muted-foreground uppercase">
             {property.currency?.iso ?? 'COP'}
           </small>
         </p>
+        <Link
+          to={to}
+          className="flex shrink-0 items-center border-l bg-primary px-5 text-xs font-bold tracking-widest text-primary-foreground uppercase transition-opacity hover:opacity-90"
+        >
+          Detalle
+        </Link>
       </div>
-
-      <Link
-        to={to}
-        className="border-t bg-primary py-3 text-center text-xs font-bold tracking-widest text-primary-foreground uppercase transition-opacity hover:opacity-90"
-      >
-        Detalle
-      </Link>
     </article>
   )
 }

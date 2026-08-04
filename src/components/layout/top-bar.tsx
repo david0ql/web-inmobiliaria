@@ -13,7 +13,7 @@ export function TopBar() {
   const navigate = useNavigate()
 
   return (
-    <section className="border-t-4 border-[#333] bg-[#0d0d0d] text-white">
+    <section className="border-b bg-white text-neutral-800">
       <div className="container-site flex items-center justify-between gap-4 py-2">
         <form
           className="hidden md:block"
@@ -24,17 +24,17 @@ export function TopBar() {
             navigate(match ? `${ROUTES.search}?match=${encodeURIComponent(match)}` : ROUTES.search)
           }}
         >
-          <div className="flex w-[280px] items-center gap-1 rounded-md bg-white/10 px-2 transition-colors focus-within:bg-white/15">
+          <div className="flex w-[280px] items-center gap-1 rounded-md border bg-secondary px-2 transition-colors focus-within:bg-background">
             <input
               type="text"
               name="match"
               aria-label="Realizar búsqueda"
               placeholder="Realizar búsqueda"
-              className="h-8 w-full bg-transparent text-xs text-white outline-none placeholder:text-white/50"
+              className="h-8 w-full bg-transparent text-xs outline-none placeholder:text-muted-foreground"
             />
             <button
               type="submit"
-              className="flex size-6 shrink-0 items-center justify-center rounded transition-colors hover:bg-white/15"
+              className="flex size-6 shrink-0 items-center justify-center rounded transition-colors hover:bg-black/5"
             >
               <Search className="size-3.5" />
               <span className="sr-only">Buscar</span>

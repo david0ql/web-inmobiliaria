@@ -228,7 +228,13 @@ function AdvancedSearchForm({ initial }: { initial?: Filters }) {
         />
       </FieldShell>
 
-      <div className="col-span-2 flex items-end lg:col-span-3">
+      {/*
+        El boton va pegado a "Precio hasta" y no en su propia fila. Antes se
+        llevaba una franja entera para el solo y empujaba los destacados por
+        debajo del pliegue; ahora cierra la ultima fila y el buscador ocupa una
+        linea menos.
+      */}
+      <div className="col-span-2 flex items-end lg:col-span-4">
         <Button type="submit" className="h-10 w-full font-bold tracking-widest">
           <Search />
           BUSCAR

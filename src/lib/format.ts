@@ -123,3 +123,21 @@ export function businessType(p: {
   if (p.forTransfer) parts.push('Permuta')
   return parts.join(' / ') || '—'
 }
+
+/**
+ * El estrato, como se dice en Colombia.
+ *
+ * La escala oficial va del 1 al 6. WASI usaba los dos siguientes para lo que no
+ * encaja en ella, y al importarlo se colaron tal cual: la web enseñaba "Estrato
+ * 8" en una bodega, que no significa nada para nadie. Los 23 inmuebles con un 8
+ * son bodegas, locales, oficinas y consultorios — comercial.
+ *
+ * Devuelve la cadena completa con su separador, o vacío si no hay dato: quien
+ * lo usa lo concatena sin tener que comprobar nada.
+ */
+export function stratumLabel(stratum?: number | null): string {
+  if (!stratum) return ''
+  if (stratum === 7) return ' · Rural'
+  if (stratum >= 8) return ' · Comercial'
+  return ` · Estrato ${stratum}`
+}

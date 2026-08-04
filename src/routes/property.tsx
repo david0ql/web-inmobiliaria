@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 
 import { SectionHeading } from '@/components/common/section-heading'
 import { AgentPanel } from '@/components/property/agent-panel'
+import { autoDescription } from '@/lib/auto-description'
 import { FeatureList } from '@/components/property/feature-list'
 import { PropertyGallery } from '@/components/property/property-gallery'
 import { PropertyGrid } from '@/components/property/property-grid'
@@ -223,6 +224,28 @@ function Detail({ data }: { data: PropertyData }) {
               </span>
             </Link>
           )}
+
+          {/*
+            La descripcion. Primero la automatica —armada con los propios datos
+            del inmueble, asi que el area, las alcobas y el barrio salen
+            siempre— y debajo la del asesor, que es donde caben las cosas que no
+            estan en ningun campo. Los portales y las redes exigen una
+            descripcion, y la de WASI es texto libre: unas fichas traen tres
+            lineas y otras un parrafo copiado del anuncio de otra agencia.
+          */}
+          <section>
+            <h2 className="mb-3 text-xs font-bold tracking-widest uppercase">
+              Descripción
+            </h2>
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              {autoDescription(property)}
+            </p>
+            {property.observations?.trim() && (
+              <p className="mt-3 text-sm leading-relaxed whitespace-pre-line">
+                {property.observations.trim()}
+              </p>
+            )}
+          </section>
 
           <section>
             <h2 className="mb-3 text-xs font-bold tracking-widest uppercase">

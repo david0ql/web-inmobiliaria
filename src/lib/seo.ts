@@ -1,3 +1,4 @@
+import { autoDescription } from '@/lib/auto-description'
 import { SITE } from '@/lib/site'
 import type { Property } from '@/lib/types'
 
@@ -176,7 +177,9 @@ export function propertyJsonLd(property: Property, url: string) {
     '@id': url,
     url,
     name: property.title,
-    description: (property.observations ?? property.title).slice(0, 400),
+    // La automatica y no `observations`: los datos estructurados los leen los
+    // portales, y ahi hace falta que el area y las alcobas aparezcan siempre.
+    description: autoDescription(property).slice(0, 400),
     datePosted: property.createdAt,
     image: images.length ? images : undefined,
     provider: { '@id': `${SITE.url}/#organization` },

@@ -91,16 +91,18 @@ export function SiteHeader() {
               </NavigationMenuItem>
 
               <NavigationMenuItem>
-                <NavigationMenuTrigger>Ventas</NavigationMenuTrigger>
+                {/*
+                  "Ventas" es a la vez enlace y desplegable: al pulsarlo lleva a
+                  todo el inventario, y el menu solo sirve para afinar por tipo.
+                  Antes habia dentro una entrada "Todos los inmuebles" que hacia
+                  justo lo que ya hace el titulo — dos caminos al mismo sitio, y
+                  uno de ellos escondido detras de un menu.
+                */}
+                <NavigationMenuTrigger asChild>
+                  <Link to={ROUTES.sales}>Ventas</Link>
+                </NavigationMenuTrigger>
                 <NavigationMenuContent>
                   <ul className="w-64 p-1">
-                    <li>
-                      <NavigationMenuLink asChild>
-                        <Link to={ROUTES.sales} className="font-medium">
-                          Todos los inmuebles
-                        </Link>
-                      </NavigationMenuLink>
-                    </li>
                     {/* Los tipos dependen del catalogo. Se suspenden solos para no
                         retrasar el resto de la cabecera, que no necesita datos. */}
                     <Suspense fallback={<TypesFallback />}>

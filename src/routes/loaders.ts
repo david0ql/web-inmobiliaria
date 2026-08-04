@@ -27,6 +27,7 @@ import {
 import {
   getProject,
   listProjects,
+  type ProjectSummary,
   readProjectFilters,
   toProjectsQuery,
 } from '@/lib/projects'
@@ -59,15 +60,21 @@ export function rootLoader(): RootData {
 }
 
 export interface HomeData {
-  featured: Promise<Property[]>
+  projects: Promise<ProjectSummary[]>
   recent: Promise<Property[]>
 }
 
 export function homeLoader(): HomeData {
-  // El orden por defecto de la API ya pone los OUTSTANDING primero, que es
-  // exactamente el "destacado" del sitio: no hay un booleano `featured`.
+  /*
+    La portada enseña PROYECTOS y ultimos inmuebles.
+
+    Antes el primer bloque eran "inmuebles destacados", que en realidad no eran
+    destacados: era el inventario en su orden por defecto. Ensenar dos veces lo
+    mismo —una arriba y otra abajo— ocupaba media portada para decir lo mismo.
+    Los proyectos si son otra cosa: conjuntos con varias unidades.
+  */
   return {
-    featured: searchProperties({ limit: 9 }).then((page) => page.data),
+    projects: listProjects({ limit: 6 }).then((page) => page.data),
     recent: searchProperties({ sort: 'recent', limit: 9 }).then((p) => p.data),
   }
 }

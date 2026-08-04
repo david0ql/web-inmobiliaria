@@ -4,6 +4,7 @@ import {
   CONDITION_LABEL,
   money,
   number,
+  stratumLabel,
 } from '@/lib/format'
 import type { Property } from '@/lib/types'
 
@@ -29,7 +30,14 @@ export function SpecTable({ property }: { property: Property }) {
     ['Alcobas', property.bedrooms ? number(property.bedrooms) : null],
     ['Baños', property.bathrooms ? number(property.bathrooms) : null],
     ['Garaje', property.garages ? number(property.garages) : null],
-    ['Estrato', property.stratum ? number(property.stratum) : null],
+    // 7 y 8 no son estratos: son las categorias que WASI metia en el mismo
+    // campo. Se dicen por su nombre.
+    [
+      'Estrato',
+      property.stratum
+        ? stratumLabel(property.stratum).replace(' · ', '').replace('Estrato ', '')
+        : null,
+    ],
     ['Pisos', property.floor ? number(property.floor) : null],
     ['Año construcción', property.buildingYear ? String(property.buildingYear) : null],
     ['Tipo de inmueble', property.propertyType?.name ?? null],
