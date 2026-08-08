@@ -36,6 +36,7 @@ const ANY = '__any__'
 
     movil       1 campo por fila
     tableta     2 por fila, y el boton ocupa la ultima entera
+    mediana     3 por fila; la ultima sale 1 campo + el boton, que vale por dos
     portatil    4 por fila; la ultima sale 2 campos + el boton, que vale por dos
     escritorio  5 huecos por fila, y cuadra exacto en dos filas
 
@@ -54,7 +55,7 @@ const CELDA = 'min-w-0 xl:col-span-2'
 const ESTRECHA = 'min-w-0 xl:col-span-1'
 const CONTROL = 'h-9'
 const REJILLA =
-  'grid grid-cols-1 gap-x-3 gap-y-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-10'
+  'grid grid-cols-1 gap-x-3 gap-y-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-10'
 
 /**
  * "BÚSQUEDA AVANZADA", con los mismos campos y en el mismo orden que el sitio
