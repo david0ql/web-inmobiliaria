@@ -54,7 +54,15 @@ export function SiteHeader() {
       // Lo lee `scrollToListTop` para descontar el alto de la cabecera al
       // traer una lista a la vista: si no, tapa las primeras tarjetas.
       data-site-header
-      className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/85"
+      /*
+        Blanco entero, sin transparencia.
+
+        Llevaba `bg-background/95` y `backdrop-blur`: al bajar, el contenido se
+        veia por detras de la cabecera y el logotipo quedaba sobre lo que
+        hubiera pasando —una foto, el mapa—. Se lee peor y ensucia la marca. Una
+        cabecera fija es una superficie, no un cristal.
+      */
+      className="sticky top-0 z-40 border-b bg-background"
     >
       <div className="container-site flex items-center gap-4 py-3">
         <Link to={ROUTES.home} className="shrink-0">
