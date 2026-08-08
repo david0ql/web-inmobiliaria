@@ -23,10 +23,22 @@ export interface Named {
 export interface City extends Named {
   regionId: number
   region?: Region | null
+  /*
+    `countryId` y `count` los pone el catalogo publico, que arma la geografia
+    desde el inventario: solo salen los sitios donde hay algo publicado, con
+    cuantos hay. Ver `geography()` en la API.
+  */
+  countryId?: number
+  count?: number
 }
 
 export interface Region extends Named {
   countryId: number
+  count?: number
+}
+
+export interface Country extends Named {
+  count?: number
 }
 
 export interface Zone extends Named {
@@ -151,7 +163,22 @@ export interface Property {
   createdAt: string
 }
 
+/**
+ * Donde hay algo publicado, y cuanto.
+ *
+ * Va aparte de `cities` a proposito: esto alimenta el buscador —de nada sirve
+ * ofrecer una ciudad sin inmuebles— mientras que `cities` sigue siendo el
+ * catalogo entero, que necesita quien va a consignar en una ciudad donde
+ * todavia no tenemos nada.
+ */
+export interface Geography {
+  countries: Country[]
+  regions: Region[]
+  cities: City[]
+}
+
 export interface Catalogs {
+  geo: Geography
   cities: City[]
   propertyTypes: PropertyType[]
   features: Feature[]

@@ -1,5 +1,5 @@
 import { Search } from 'lucide-react'
-import { Suspense, useEffect, useState } from 'react'
+import { Suspense, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import { Button } from '@/components/ui/button'
@@ -29,6 +29,19 @@ import type { Zone } from '@/lib/types'
 /** Radix no admite `value=""`; el "Todos" necesita un centinela propio. */
 const ANY = '__any__'
 
+/*
+  Diez campos, y el boton ocupa lo que sobra de la ultima fila.
+
+  Todas las casillas miden lo mismo y lo unico que cambia con la pantalla es
+  cuantas caben: una, dos o tres. Diez reparte exacto en una y en dos columnas y
+  deja una sola fila corta en tres, que el boton cierra, asi que nunca queda un
+  hueco suelto al final. Antes los tramos iban de 3, 3, 3, 3, 2, 2, 2, 2 y 4, y
+  en pantallas medianas unos campos ocupaban la fila entera y otros la mitad:
+  eso era lo que se veia torcido.
+*/
+const CELDA = 'min-w-0'
+const REJILLA = 'grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3'
+
 /**
  * "BÚSQUEDA AVANZADA", con los mismos campos y en el mismo orden que el sitio
  * actual. Al enviar navega a `/s` con los filtros en la URL: no guarda estado
@@ -49,20 +62,9 @@ export function AdvancedSearch({ initial }: { initial?: Filters }) {
 
 function SearchFormSkeleton() {
   return (
-    <div className="grid grid-cols-2 gap-4 lg:grid-cols-12" aria-hidden="true">
-      {[
-        'col-span-2 lg:col-span-3',
-        'col-span-2 lg:col-span-3',
-        'col-span-2 lg:col-span-3',
-        'col-span-1 lg:col-span-3',
-        'col-span-1 lg:col-span-3',
-        'col-span-1 lg:col-span-2',
-        'col-span-1 lg:col-span-2',
-        'col-span-1 lg:col-span-2',
-        'col-span-1 lg:col-span-2',
-        'col-span-2 lg:col-span-3',
-      ].map((span, index) => (
-        <div key={index} className={span}>
+    <div className={REJILLA} aria-hidden="true">
+      {Array.from({ length: 11 }, (_, index) => (
+        <div key={index} className={CELDA}>
           <Skeleton className="mb-1.5 h-3 w-20" />
           <Skeleton className="h-10 w-full" />
         </div>
@@ -79,6 +81,35 @@ function AdvancedSearchForm({ initial }: { initial?: Filters }) {
 
   const set = <K extends keyof Filters>(key: K, value: Filters[K]) =>
     setFilters((current) => ({ ...current, [key]: value }))
+
+  /*
+    Pais, departamento y ciudad van en cascada: elegir Colombia deja solo sus
+    departamentos, y elegir Santander solo sus ciudades. Sin eso "Pais" seria un
+    adorno que no cambia nada de lo que hay debajo.
+
+    Las tres listas salen del inventario, no del catalogo: en las tablas hay 38
+    paises y 943 departamentos porque el volcado traia el mundo entero, y un
+    desplegable con 37 paises que no devuelven nada es peor que no tenerlo.
+  */
+  const departamentos = useMemo(
+    () =>
+      catalogs.geo.regions.filter(
+        (region) =>
+          !filters.countryId || String(region.countryId) === filters.countryId,
+      ),
+    [catalogs.geo.regions, filters.countryId],
+  )
+
+  const ciudades = useMemo(
+    () =>
+      catalogs.geo.cities.filter(
+        (city) =>
+          (!filters.countryId ||
+            String(city.countryId) === filters.countryId) &&
+          (!filters.regionId || String(city.regionId) === filters.regionId),
+      ),
+    [catalogs.geo.cities, filters.countryId, filters.regionId],
+  )
 
   // Los barrios se piden por ciudad: en toda Colombia son varios miles y no
   // caben en un desplegable ni en una respuesta razonable.
@@ -100,12 +131,62 @@ function AdvancedSearchForm({ initial }: { initial?: Filters }) {
   }
 
   return (
-    <form
-      onSubmit={submit}
-      className="grid grid-cols-2 gap-4 lg:grid-cols-12"
-      aria-label="Búsqueda avanzada"
-    >
-      <FieldShell label="Ciudad" className="col-span-2 lg:col-span-3">
+    <form onSubmit={submit} className={REJILLA} aria-label="Búsqueda avanzada">
+      <FieldShell label="País" className={CELDA}>
+        <Select
+          value={filters.countryId || ANY}
+          onValueChange={(value) => {
+            // Cambiar de pais invalida todo lo de debajo: son listas distintas.
+            setFilters((current) => ({
+              ...current,
+              countryId: value === ANY ? '' : value,
+              regionId: '',
+              cityId: '',
+              zoneId: '',
+            }))
+          }}
+        >
+          <SelectTrigger aria-label="País">
+            <SelectValue placeholder="Todos" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ANY}>Todos</SelectItem>
+            {catalogs.geo.countries.map((country) => (
+              <SelectItem key={country.id} value={String(country.id)}>
+                {country.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </FieldShell>
+
+      <FieldShell label="Departamento" className={CELDA}>
+        <Select
+          value={filters.regionId || ANY}
+          onValueChange={(value) => {
+            setFilters((current) => ({
+              ...current,
+              regionId: value === ANY ? '' : value,
+              cityId: '',
+              zoneId: '',
+            }))
+          }}
+        >
+          <SelectTrigger aria-label="Departamento">
+            <SelectValue placeholder="Todos" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ANY}>Todos</SelectItem>
+            {departamentos.map((region) => (
+              <SelectItem key={region.id} value={String(region.id)}>
+                {region.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </FieldShell>
+
+      <FieldShell label="Ciudad" className={CELDA}>
         <Select
           value={filters.cityId || ANY}
           onValueChange={(value) => {
@@ -122,23 +203,27 @@ function AdvancedSearchForm({ initial }: { initial?: Filters }) {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value={ANY}>Todas</SelectItem>
-            {catalogs.cities.map((city) => (
+            {ciudades.map((city) => (
               <SelectItem key={city.id} value={String(city.id)}>
-                {city.name}
+                {/* Con el numero al lado: quien elige "Girón" agradece saber
+                    que hay 74 antes de pulsar buscar. */}
+                {city.name} ({city.count})
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
       </FieldShell>
 
-      <FieldShell label="Zona / barrio" className="col-span-2 lg:col-span-3">
+      <FieldShell label="Zona / barrio" className={CELDA}>
         <Select
           value={filters.zoneId || ANY}
           onValueChange={(value) => set('zoneId', value === ANY ? '' : value)}
           disabled={!filters.cityId || zones.length === 0}
         >
           <SelectTrigger aria-label="Zona / barrio">
-            <SelectValue placeholder={filters.cityId ? 'Todos' : 'Elige ciudad'} />
+            <SelectValue
+              placeholder={filters.cityId ? 'Todos' : 'Elige ciudad'}
+            />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value={ANY}>Todos</SelectItem>
@@ -151,7 +236,7 @@ function AdvancedSearchForm({ initial }: { initial?: Filters }) {
         </Select>
       </FieldShell>
 
-      <FieldShell label="Tipo de inmueble" className="col-span-2 lg:col-span-3">
+      <FieldShell label="Tipo de inmueble" className={CELDA}>
         <Select
           value={filters.propertyTypeId || ANY}
           onValueChange={(value) =>
@@ -172,7 +257,7 @@ function AdvancedSearchForm({ initial }: { initial?: Filters }) {
         </Select>
       </FieldShell>
 
-      <FieldShell label="Estado" className="col-span-1 lg:col-span-3">
+      <FieldShell label="Estado" className={CELDA}>
         <Select
           value={filters.condition || ANY}
           onValueChange={(value) => set('condition', value === ANY ? '' : value)}
@@ -191,8 +276,7 @@ function AdvancedSearchForm({ initial }: { initial?: Filters }) {
         </Select>
       </FieldShell>
 
-
-      <FieldShell label="Alcobas" className="col-span-1 lg:col-span-2">
+      <FieldShell label="Alcobas" className={CELDA}>
         <RoomSelect
           label="Alcobas"
           value={filters.bedrooms}
@@ -200,7 +284,7 @@ function AdvancedSearchForm({ initial }: { initial?: Filters }) {
         />
       </FieldShell>
 
-      <FieldShell label="Baños" className="col-span-1 lg:col-span-2">
+      <FieldShell label="Baños" className={CELDA}>
         <RoomSelect
           label="Baños"
           value={filters.bathrooms}
@@ -208,7 +292,7 @@ function AdvancedSearchForm({ initial }: { initial?: Filters }) {
         />
       </FieldShell>
 
-      <FieldShell label="Precio desde" className="col-span-1 lg:col-span-2">
+      <FieldShell label="Precio desde" className={CELDA}>
         <Input
           aria-label="Precio desde"
           inputMode="numeric"
@@ -218,7 +302,7 @@ function AdvancedSearchForm({ initial }: { initial?: Filters }) {
         />
       </FieldShell>
 
-      <FieldShell label="Precio hasta" className="col-span-1 lg:col-span-2">
+      <FieldShell label="Precio hasta" className={CELDA}>
         <Input
           aria-label="Precio hasta"
           inputMode="numeric"
@@ -229,12 +313,13 @@ function AdvancedSearchForm({ initial }: { initial?: Filters }) {
       </FieldShell>
 
       {/*
-        El boton va pegado a "Precio hasta" y no en su propia fila. Antes se
-        llevaba una franja entera para el solo y empujaba los destacados por
-        debajo del pliegue; ahora cierra la ultima fila y el buscador ocupa una
-        linea menos.
+        El boton cierra la rejilla ocupando lo que sobra de la ultima fila, en
+        vez de llevarse una franja entera para el solo —eso empujaba los
+        destacados por debajo del pliegue—. `items-end` porque esta celda no
+        tiene etiqueta encima: sin eso subiria y quedaria a distinta altura que
+        sus vecinas.
       */}
-      <div className="col-span-2 flex items-end lg:col-span-4">
+      <div className="flex items-end sm:col-span-2 lg:col-span-1">
         <Button type="submit" className="h-10 w-full font-bold tracking-widest">
           <Search />
           BUSCAR

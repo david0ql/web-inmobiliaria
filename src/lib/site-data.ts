@@ -22,7 +22,12 @@ export interface SiteData {
 }
 
 export const EMPTY_SITE_DATA: SiteData = {
-  catalogs: { cities: [], propertyTypes: [], features: [] },
+  catalogs: {
+    geo: { countries: [], regions: [], cities: [] },
+    cities: [],
+    propertyTypes: [],
+    features: [],
+  },
   counts: {},
 }
 

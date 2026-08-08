@@ -12,6 +12,8 @@ import type { Query } from './api'
 
 export interface Filters {
   match: string
+  countryId: string
+  regionId: string
   cityId: string
   zoneId: string
   propertyTypeId: string
@@ -28,6 +30,8 @@ export interface Filters {
 /** Nombre en la URL <-> campo del formulario. */
 const PARAM = {
   match: 'match',
+  countryId: 'id_country',
+  regionId: 'id_region',
   cityId: 'id_city',
   zoneId: 'id_zone',
   propertyTypeId: 'id_property_type',
@@ -43,6 +47,8 @@ const PARAM = {
 
 export const EMPTY_FILTERS: Filters = {
   match: '',
+  countryId: '',
+  regionId: '',
   cityId: '',
   zoneId: '',
   propertyTypeId: '',
@@ -60,6 +66,8 @@ export function readFilters(params: URLSearchParams): Filters {
   const page = Number(params.get(PARAM.page))
   return {
     match: params.get(PARAM.match) ?? '',
+    countryId: params.get(PARAM.countryId) ?? '',
+    regionId: params.get(PARAM.regionId) ?? '',
     cityId: params.get(PARAM.cityId) ?? '',
     zoneId: params.get(PARAM.zoneId) ?? '',
     propertyTypeId: params.get(PARAM.propertyTypeId) ?? '',
@@ -135,6 +143,8 @@ export const PAGE_SIZE = 24
 export function toApiQuery(filters: Filters, limit = PAGE_SIZE): Query {
   return {
     q: filters.match.trim() || undefined,
+    countryId: filters.countryId || undefined,
+    regionId: filters.regionId || undefined,
     cityId: filters.cityId || undefined,
     zoneId: filters.zoneId || undefined,
     propertyTypeId: filters.propertyTypeId || undefined,
