@@ -1,4 +1,4 @@
-import { Outlet, ScrollRestoration, useNavigation } from 'react-router-dom'
+import { Outlet, useNavigation } from 'react-router-dom'
 
 import { useSmoothScrollTop } from '@/lib/scroll'
 import { usePortalSession } from '@/lib/use-portal'
@@ -47,7 +47,6 @@ export function Root() {
           después del pie a propósito, para que quede por encima en el apilado. */}
       <ChatFab />
 
-      <ScrollRestoration />
       <Toaster />
     </div>
   )

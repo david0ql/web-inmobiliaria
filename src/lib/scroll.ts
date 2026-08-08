@@ -64,28 +64,52 @@ export function useListAnchor<T extends HTMLElement = HTMLDivElement>() {
 }
 
 /**
- * Al cambiar de página, sube arriba con suavidad.
+ * Qué hace la vista al cambiar de página.
  *
- * `ScrollRestoration` de React Router ya sube, pero de golpe: la página nueva
- * aparece ya arriba y no se percibe el movimiento. Con el desplazamiento se ve
- * que ha cambiado de sitio, que es justo lo que una aplicación de una sola
- * página no le comunica al visitante.
+ * Sustituye a `ScrollRestoration` de React Router, que no se puede matizar: sube
+ * al top de golpe SIEMPRE y en el mismo efecto, así que cualquier intento de
+ * suavizarlo desde fuera llega tarde —el efecto del padre corre después del
+ * hijo y ya estás arriba—.
  *
- * Solo al navegar hacia delante (`PUSH`). Con "atrás" manda `ScrollRestoration`,
- * que devuelve a donde estabas — subir arriba ahí sería perder el sitio.
+ * Hacia delante sube con suavidad: en una aplicación de una sola página nada le
+ * dice al visitante que ha cambiado de sitio, y ver el desplazamiento lo dice.
+ * Hacia atrás devuelve a donde estabas, que es lo que espera quien vuelve a una
+ * lista de resultados a mitad.
  *
- * Y se respeta `prefers-reduced-motion`: para quien lo tenga activado el
+ * `prefers-reduced-motion` se respeta: para quien lo tenga activado el
  * desplazamiento no es un detalle bonito, es un mareo.
  */
 export function useSmoothScrollTop(): void {
-  const { pathname } = useLocation()
+  const { key } = useLocation()
   const navigationType = useNavigationType()
 
+  // Guarda dónde se queda cada entrada del historial. La limpieza corre justo
+  // antes de que cambie la clave, o sea al salir de esa página.
   useEffect(() => {
-    if (navigationType !== 'PUSH') return
-    if (window.scrollY === 0) return
+    return () => {
+      try {
+        sessionStorage.setItem(`scroll:${key}`, String(window.scrollY))
+      } catch {
+        // Sin almacenamiento simplemente no se recuerda.
+      }
+    }
+  }, [key])
 
+  useEffect(() => {
+    if (navigationType === 'POP') {
+      const guardado = Number(sessionStorage.getItem(`scroll:${key}`) ?? 0)
+      // Dos cuadros: el contenido diferido todavía no ha pintado y sin altura
+      // no hay a dónde volver.
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() =>
+          window.scrollTo({ top: guardado, behavior: 'auto' }),
+        ),
+      )
+      return
+    }
+
+    if (window.scrollY === 0) return
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     window.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' })
-  }, [pathname, navigationType])
+  }, [key, navigationType])
 }
