@@ -33,14 +33,22 @@ const ANY = '__any__'
   Diez campos, y el boton ocupa lo que sobra de la ultima fila.
 
   Todas las casillas miden lo mismo y lo unico que cambia con la pantalla es
-  cuantas caben: una, dos o tres. Diez reparte exacto en una y en dos columnas y
-  deja una sola fila corta en tres, que el boton cierra, asi que nunca queda un
-  hueco suelto al final. Antes los tramos iban de 3, 3, 3, 3, 2, 2, 2, 2 y 4, y
-  en pantallas medianas unos campos ocupaban la fila entera y otros la mitad:
-  eso era lo que se veia torcido.
+  cuantas caben: una, dos, tres o cuatro. Diez cuadra en todas ellas —el boton
+  ocupa dos celdas y cierra la ultima fila—, asi que nunca queda un hueco suelto
+  al final. Antes los tramos iban de 3, 3, 3, 3, 2, 2, 2, 2 y 4, y en pantallas
+  medianas unos campos ocupaban la fila entera y otros la mitad: eso era lo que
+  se veia torcido.
+
+  Cuatro columnas y no tres porque un desplegable que solo dice "Todos" no
+  necesita 340 px: con 250 se lee igual y el buscador pasa de cuatro filas a
+  tres. Lo mismo por dentro —casillas de 36 px en vez de 40, etiqueta pequena y
+  pegada— para que el formulario no se coma la pantalla antes de que aparezca
+  un solo inmueble, que es a lo que viene la gente.
 */
 const CELDA = 'min-w-0'
-const REJILLA = 'grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3'
+const CONTROL = 'h-9'
+const REJILLA =
+  'grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4'
 
 /**
  * "BÚSQUEDA AVANZADA", con los mismos campos y en el mismo orden que el sitio
@@ -65,8 +73,8 @@ function SearchFormSkeleton() {
     <div className={REJILLA} aria-hidden="true">
       {Array.from({ length: 11 }, (_, index) => (
         <div key={index} className={CELDA}>
-          <Skeleton className="mb-1.5 h-3 w-20" />
-          <Skeleton className="h-10 w-full" />
+          <Skeleton className="mb-1 h-2.5 w-16" />
+          <Skeleton className="h-9 w-full" />
         </div>
       ))}
     </div>
@@ -146,7 +154,7 @@ function AdvancedSearchForm({ initial }: { initial?: Filters }) {
             }))
           }}
         >
-          <SelectTrigger aria-label="País">
+          <SelectTrigger className={CONTROL} aria-label="País">
             <SelectValue placeholder="Todos" />
           </SelectTrigger>
           <SelectContent>
@@ -172,7 +180,7 @@ function AdvancedSearchForm({ initial }: { initial?: Filters }) {
             }))
           }}
         >
-          <SelectTrigger aria-label="Departamento">
+          <SelectTrigger className={CONTROL} aria-label="Departamento">
             <SelectValue placeholder="Todos" />
           </SelectTrigger>
           <SelectContent>
@@ -198,7 +206,7 @@ function AdvancedSearchForm({ initial }: { initial?: Filters }) {
             }))
           }}
         >
-          <SelectTrigger aria-label="Ciudad">
+          <SelectTrigger className={CONTROL} aria-label="Ciudad">
             <SelectValue placeholder="Todas" />
           </SelectTrigger>
           <SelectContent>
@@ -220,7 +228,7 @@ function AdvancedSearchForm({ initial }: { initial?: Filters }) {
           onValueChange={(value) => set('zoneId', value === ANY ? '' : value)}
           disabled={!filters.cityId || zones.length === 0}
         >
-          <SelectTrigger aria-label="Zona / barrio">
+          <SelectTrigger className={CONTROL} aria-label="Zona / barrio">
             <SelectValue
               placeholder={filters.cityId ? 'Todos' : 'Elige ciudad'}
             />
@@ -243,7 +251,7 @@ function AdvancedSearchForm({ initial }: { initial?: Filters }) {
             set('propertyTypeId', value === ANY ? '' : value)
           }
         >
-          <SelectTrigger aria-label="Tipo de inmueble">
+          <SelectTrigger className={CONTROL} aria-label="Tipo de inmueble">
             <SelectValue placeholder="Todos" />
           </SelectTrigger>
           <SelectContent>
@@ -262,7 +270,7 @@ function AdvancedSearchForm({ initial }: { initial?: Filters }) {
           value={filters.condition || ANY}
           onValueChange={(value) => set('condition', value === ANY ? '' : value)}
         >
-          <SelectTrigger aria-label="Estado">
+          <SelectTrigger className={CONTROL} aria-label="Estado">
             <SelectValue placeholder="Todos" />
           </SelectTrigger>
           <SelectContent>
@@ -294,6 +302,7 @@ function AdvancedSearchForm({ initial }: { initial?: Filters }) {
 
       <FieldShell label="Precio desde" className={CELDA}>
         <Input
+          className={CONTROL}
           aria-label="Precio desde"
           inputMode="numeric"
           placeholder="Desde"
@@ -304,6 +313,7 @@ function AdvancedSearchForm({ initial }: { initial?: Filters }) {
 
       <FieldShell label="Precio hasta" className={CELDA}>
         <Input
+          className={CONTROL}
           aria-label="Precio hasta"
           inputMode="numeric"
           placeholder="Hasta"
@@ -322,7 +332,7 @@ function AdvancedSearchForm({ initial }: { initial?: Filters }) {
         sus vecinas.
       */}
       <div className="flex items-end sm:col-span-2">
-        <Button type="submit" className="h-10 w-full font-bold tracking-widest">
+        <Button type="submit" className="h-9 w-full font-bold tracking-widest">
           <Search />
           BUSCAR
         </Button>
@@ -346,7 +356,7 @@ function RoomSelect({
       value={value || ANY}
       onValueChange={(next) => onChange(next === ANY ? '' : next)}
     >
-      <SelectTrigger aria-label={label}>
+      <SelectTrigger className={CONTROL} aria-label={label}>
         <SelectValue placeholder="Todos" />
       </SelectTrigger>
       <SelectContent>
@@ -372,7 +382,9 @@ function FieldShell({
 }) {
   return (
     <div className={className}>
-      <Label className="mb-1.5 text-xs text-muted-foreground">{label}</Label>
+      <Label className="mb-1 text-[11px] tracking-wide text-muted-foreground uppercase">
+        {label}
+      </Label>
       {children}
     </div>
   )
