@@ -1,5 +1,6 @@
 import { Outlet, ScrollRestoration, useNavigation } from 'react-router-dom'
 
+import { useSmoothScrollTop } from '@/lib/scroll'
 import { usePortalSession } from '@/lib/use-portal'
 import { ChatFab } from '@/components/assistant/chat-fab'
 import { SiteFooter } from '@/components/layout/site-footer'
@@ -16,6 +17,7 @@ export function Root() {
     cookie estaba ahí— pero nadie la había preguntado.
   */
   usePortalSession()
+  useSmoothScrollTop()
 
   const navigation = useNavigation()
 

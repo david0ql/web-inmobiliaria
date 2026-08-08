@@ -1,4 +1,5 @@
-import { useCallback, useRef } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
+import { useLocation, useNavigationType } from 'react-router-dom'
 
 /**
  * Llevar la vista al arranque de una lista al cambiar de pagina.
@@ -60,4 +61,31 @@ export function useListAnchor<T extends HTMLElement = HTMLDivElement>() {
   }, [])
 
   return [ref, scroll] as const
+}
+
+/**
+ * Al cambiar de página, sube arriba con suavidad.
+ *
+ * `ScrollRestoration` de React Router ya sube, pero de golpe: la página nueva
+ * aparece ya arriba y no se percibe el movimiento. Con el desplazamiento se ve
+ * que ha cambiado de sitio, que es justo lo que una aplicación de una sola
+ * página no le comunica al visitante.
+ *
+ * Solo al navegar hacia delante (`PUSH`). Con "atrás" manda `ScrollRestoration`,
+ * que devuelve a donde estabas — subir arriba ahí sería perder el sitio.
+ *
+ * Y se respeta `prefers-reduced-motion`: para quien lo tenga activado el
+ * desplazamiento no es un detalle bonito, es un mareo.
+ */
+export function useSmoothScrollTop(): void {
+  const { pathname } = useLocation()
+  const navigationType = useNavigationType()
+
+  useEffect(() => {
+    if (navigationType !== 'PUSH') return
+    if (window.scrollY === 0) return
+
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    window.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' })
+  }, [pathname, navigationType])
 }
