@@ -313,13 +313,15 @@ function AdvancedSearchForm({ initial }: { initial?: Filters }) {
       </FieldShell>
 
       {/*
-        El boton cierra la rejilla ocupando lo que sobra de la ultima fila, en
+        El boton ocupa exactamente lo que sobra de la ultima fila —dos celdas
+        de tres, o las dos de dos— para que no quede un hueco al final. Cierra
+        la rejilla en
         vez de llevarse una franja entera para el solo —eso empujaba los
         destacados por debajo del pliegue—. `items-end` porque esta celda no
         tiene etiqueta encima: sin eso subiria y quedaria a distinta altura que
         sus vecinas.
       */}
-      <div className="flex items-end sm:col-span-2 lg:col-span-1">
+      <div className="flex items-end sm:col-span-2">
         <Button type="submit" className="h-10 w-full font-bold tracking-widest">
           <Search />
           BUSCAR
