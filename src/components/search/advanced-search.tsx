@@ -30,32 +30,31 @@ import type { Zone } from '@/lib/types'
 const ANY = '__any__'
 
 /*
-  Once campos y el boton: doce casillas iguales.
+  Diez campos y el boton, en una rejilla que no deja huecos a ninguna anchura.
 
-  Doce esta elegido, no es casualidad. Es lo unico que reparte exacto en dos,
-  tres y cuatro columnas —seis filas, cuatro filas, tres filas—, asi que a
-  ninguna anchura sobra una casilla al final. Con once quedaba un hueco: la
-  rejilla se veia empezada y sin terminar.
+  El reparto no es el mismo en todas: es el que cuadra en cada una.
 
-  La casilla doce no es relleno. Es "Palabra o codigo", que faltaba: la busqueda
-  por texto ya la aceptaba la API y viajaba en la URL, pero no habia donde
-  escribirla, y es lo primero que necesita quien llama con un codigo de un
-  portal en la mano.
+    movil       1 campo por fila
+    tableta     2 por fila, y el boton ocupa la ultima entera
+    portatil    4 por fila; la ultima sale 2 campos + el boton, que vale por dos
+    escritorio  5 huecos por fila, y cuadra exacto en dos filas
+
+  En escritorio la rejilla es de diez unidades y cada campo vale dos, salvo
+  Alcobas y Banos, que valen una. Esos dos no guardan mas que "Todos" o un
+  digito: darles el ancho de "Precio desde" es regalar espacio, y juntos ocupan
+  el hueco de un campo normal, asi que la fila se sigue leyendo en cinco.
 
   Antes los tramos iban de 3, 3, 3, 3, 2, 2, 2, 2 y 4, y en pantallas medianas
   unos campos ocupaban la fila entera y otros la mitad: eso era lo que se veia
-  torcido.
-
-  Cuatro columnas y no tres porque un desplegable que solo dice "Todos" no
-  necesita 340 px: con 250 se lee igual y el buscador pasa de cuatro filas a
-  tres. Lo mismo por dentro —casillas de 36 px en vez de 40, etiqueta pequena y
-  pegada— para que el formulario no se coma la pantalla antes de que aparezca
-  un solo inmueble, que es a lo que viene la gente.
+  torcido. Y las casillas son de 36 px y no de 40, con la etiqueta pequena y
+  pegada, para que el formulario no se coma la pantalla antes de que aparezca un
+  solo inmueble, que es a lo que viene la gente.
 */
-const CELDA = 'min-w-0'
+const CELDA = 'min-w-0 xl:col-span-2'
+const ESTRECHA = 'min-w-0 xl:col-span-1'
 const CONTROL = 'h-9'
 const REJILLA =
-  'grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4'
+  'grid grid-cols-1 gap-x-3 gap-y-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-10'
 
 /**
  * "BÚSQUEDA AVANZADA", con los mismos campos y en el mismo orden que el sitio
@@ -78,7 +77,7 @@ export function AdvancedSearch({ initial }: { initial?: Filters }) {
 function SearchFormSkeleton() {
   return (
     <div className={REJILLA} aria-hidden="true">
-      {Array.from({ length: 12 }, (_, index) => (
+      {Array.from({ length: 11 }, (_, index) => (
         <div key={index} className={CELDA}>
           <Skeleton className="mb-1 h-2.5 w-16" />
           <Skeleton className="h-9 w-full" />
@@ -291,7 +290,7 @@ function AdvancedSearchForm({ initial }: { initial?: Filters }) {
         </Select>
       </FieldShell>
 
-      <FieldShell label="Alcobas" className={CELDA}>
+      <FieldShell label="Alcobas" className={ESTRECHA}>
         <RoomSelect
           label="Alcobas"
           value={filters.bedrooms}
@@ -299,7 +298,7 @@ function AdvancedSearchForm({ initial }: { initial?: Filters }) {
         />
       </FieldShell>
 
-      <FieldShell label="Baños" className={CELDA}>
+      <FieldShell label="Baños" className={ESTRECHA}>
         <RoomSelect
           label="Baños"
           value={filters.bathrooms}
@@ -329,16 +328,6 @@ function AdvancedSearchForm({ initial }: { initial?: Filters }) {
         />
       </FieldShell>
 
-      <FieldShell label="Palabra o código" className={CELDA}>
-        <Input
-          className={CONTROL}
-          aria-label="Palabra o código"
-          placeholder="Ej. 9650807, campestre…"
-          value={filters.match}
-          onChange={(event) => set('match', event.target.value)}
-        />
-      </FieldShell>
-
       {/*
         El boton mide lo que un campo, ni mas. Buscar no es una decision que
         haya que empujar con una barra negra de lado a lado: quien llega aqui ya
@@ -348,7 +337,7 @@ function AdvancedSearchForm({ initial }: { initial?: Filters }) {
         `items-end` porque esta celda no tiene etiqueta encima: sin eso el boton
         subiria y quedaria a distinta altura que sus vecinas.
       */}
-      <div className="flex min-w-0 items-end">
+      <div className="flex min-w-0 items-end sm:col-span-2 xl:col-span-2">
         <Button type="submit" className="h-9 w-full font-bold tracking-widest">
           <Search />
           BUSCAR
