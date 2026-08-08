@@ -323,15 +323,15 @@ function AdvancedSearchForm({ initial }: { initial?: Filters }) {
       </FieldShell>
 
       {/*
-        El boton ocupa exactamente lo que sobra de la ultima fila —dos celdas
-        de tres, o las dos de dos— para que no quede un hueco al final. Cierra
-        la rejilla en
-        vez de llevarse una franja entera para el solo —eso empujaba los
-        destacados por debajo del pliegue—. `items-end` porque esta celda no
-        tiene etiqueta encima: sin eso subiria y quedaria a distinta altura que
-        sus vecinas.
+        El boton mide lo que un campo, ni mas. Buscar no es una decision que
+        haya que empujar con una barra negra de lado a lado: quien llega aqui ya
+        venia a buscar. Tampoco se lleva una franja entera para el solo, que era
+        lo que empujaba los destacados por debajo del pliegue.
+
+        `items-end` porque esta celda no tiene etiqueta encima: sin eso el boton
+        subiria y quedaria a distinta altura que sus vecinas.
       */}
-      <div className="flex items-end sm:col-span-2">
+      <div className="flex min-w-0 items-end">
         <Button type="submit" className="h-9 w-full font-bold tracking-widest">
           <Search />
           BUSCAR
