@@ -30,14 +30,21 @@ import type { Zone } from '@/lib/types'
 const ANY = '__any__'
 
 /*
-  Diez campos, y el boton ocupa lo que sobra de la ultima fila.
+  Once campos y el boton: doce casillas iguales.
 
-  Todas las casillas miden lo mismo y lo unico que cambia con la pantalla es
-  cuantas caben: una, dos, tres o cuatro. Diez cuadra en todas ellas —el boton
-  ocupa dos celdas y cierra la ultima fila—, asi que nunca queda un hueco suelto
-  al final. Antes los tramos iban de 3, 3, 3, 3, 2, 2, 2, 2 y 4, y en pantallas
-  medianas unos campos ocupaban la fila entera y otros la mitad: eso era lo que
-  se veia torcido.
+  Doce esta elegido, no es casualidad. Es lo unico que reparte exacto en dos,
+  tres y cuatro columnas —seis filas, cuatro filas, tres filas—, asi que a
+  ninguna anchura sobra una casilla al final. Con once quedaba un hueco: la
+  rejilla se veia empezada y sin terminar.
+
+  La casilla doce no es relleno. Es "Palabra o codigo", que faltaba: la busqueda
+  por texto ya la aceptaba la API y viajaba en la URL, pero no habia donde
+  escribirla, y es lo primero que necesita quien llama con un codigo de un
+  portal en la mano.
+
+  Antes los tramos iban de 3, 3, 3, 3, 2, 2, 2, 2 y 4, y en pantallas medianas
+  unos campos ocupaban la fila entera y otros la mitad: eso era lo que se veia
+  torcido.
 
   Cuatro columnas y no tres porque un desplegable que solo dice "Todos" no
   necesita 340 px: con 250 se lee igual y el buscador pasa de cuatro filas a
@@ -71,7 +78,7 @@ export function AdvancedSearch({ initial }: { initial?: Filters }) {
 function SearchFormSkeleton() {
   return (
     <div className={REJILLA} aria-hidden="true">
-      {Array.from({ length: 11 }, (_, index) => (
+      {Array.from({ length: 12 }, (_, index) => (
         <div key={index} className={CELDA}>
           <Skeleton className="mb-1 h-2.5 w-16" />
           <Skeleton className="h-9 w-full" />
@@ -319,6 +326,16 @@ function AdvancedSearchForm({ initial }: { initial?: Filters }) {
           placeholder="Hasta"
           value={filters.maxPrice}
           onChange={(event) => set('maxPrice', digits(event.target.value))}
+        />
+      </FieldShell>
+
+      <FieldShell label="Palabra o código" className={CELDA}>
+        <Input
+          className={CONTROL}
+          aria-label="Palabra o código"
+          placeholder="Ej. 9650807, campestre…"
+          value={filters.match}
+          onChange={(event) => set('match', event.target.value)}
         />
       </FieldShell>
 
