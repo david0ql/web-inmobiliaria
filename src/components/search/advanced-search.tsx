@@ -1,4 +1,4 @@
-import { Search } from 'lucide-react'
+import { Eraser, Search } from 'lucide-react'
 import { Suspense, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
@@ -15,16 +15,17 @@ import {
 } from '@/components/ui/select'
 import {
   CONDITIONS,
+  countActive,
   digits,
   EMPTY_FILTERS,
   ROOM_OPTIONS,
+  toApiQuery,
   writeFilters,
   type Filters,
 } from '@/lib/search-params'
-import { getZones } from '@/lib/api'
+import { getFacets, type FacetOption, type Facets } from '@/lib/api'
 import { ROUTES } from '@/lib/site'
 import { useSiteData } from '@/lib/site-data'
-import type { Zone } from '@/lib/types'
 
 /** Radix no admite `value=""`; el "Todos" necesita un centinela propio. */
 const ANY = '__any__'
@@ -92,53 +93,58 @@ function AdvancedSearchForm({ initial }: { initial?: Filters }) {
   const navigate = useNavigate()
   const { catalogs } = useSiteData()
   const [filters, setFilters] = useState<Filters>(initial ?? EMPTY_FILTERS)
-  const [zones, setZones] = useState<Zone[]>([])
+  const [facets, setFacets] = useState<Facets | null>(null)
 
   const set = <K extends keyof Filters>(key: K, value: Filters[K]) =>
     setFilters((current) => ({ ...current, [key]: value }))
 
   /*
-    Pais, departamento y ciudad van en cascada: elegir Colombia deja solo sus
-    departamentos, y elegir Santander solo sus ciudades. Sin eso "Pais" seria un
-    adorno que no cambia nada de lo que hay debajo.
+    Las cinco listas llegan contadas y ya filtradas por lo que haya elegido: al
+    marcar Floridablanca, los barrios pasan de 139 a 24 y los tipos de 12 a 9,
+    cada uno con cuantos hay DENTRO de Floridablanca. Un desplegable que ofrece
+    un camino que acaba en cero es peor que no ofrecerlo.
 
-    Las tres listas salen del inventario, no del catalogo: en las tablas hay 38
-    paises y 943 departamentos porque el volcado traia el mundo entero, y un
-    desplegable con 37 paises que no devuelven nada es peor que no tenerlo.
+    Se piden a la API en vez de calcularse aqui porque el navegador no tiene los
+    inmuebles: tendria que descargarse los 642 para contarlos, y aun asi se
+    quedaria desfasado en cuanto la agencia publique uno.
+
+    Con retraso corto: los precios se escriben digito a digito y no hace falta
+    una consulta por tecla.
   */
-  const departamentos = useMemo(
-    () =>
-      catalogs.geo.regions.filter(
-        (region) =>
-          !filters.countryId || String(region.countryId) === filters.countryId,
-      ),
-    [catalogs.geo.regions, filters.countryId],
-  )
-
-  const ciudades = useMemo(
-    () =>
-      catalogs.geo.cities.filter(
-        (city) =>
-          (!filters.countryId ||
-            String(city.countryId) === filters.countryId) &&
-          (!filters.regionId || String(city.regionId) === filters.regionId),
-      ),
-    [catalogs.geo.cities, filters.countryId, filters.regionId],
-  )
-
-  // Los barrios se piden por ciudad: en toda Colombia son varios miles y no
-  // caben en un desplegable ni en una respuesta razonable.
   useEffect(() => {
-    if (!filters.cityId) {
-      setZones([])
-      return
-    }
     const controller = new AbortController()
-    getZones(Number(filters.cityId), controller.signal)
-      .then(setZones)
-      .catch(() => setZones([]))
-    return () => controller.abort()
-  }, [filters.cityId])
+    const t = setTimeout(() => {
+      getFacets(toApiQuery({ ...filters, page: 1 }, 1), controller.signal)
+        .then(setFacets)
+        .catch(() => {
+          /* Si fallan, los desplegables se quedan como estaban. */
+        })
+    }, 250)
+    return () => {
+      clearTimeout(t)
+      controller.abort()
+    }
+  }, [filters])
+
+  /*
+    Mientras llega la primera respuesta se usa la geografia del catalogo, que ya
+    viene con la pagina: asi los desplegables no aparecen vacios ni dan un salto
+    al rellenarse.
+  */
+  const opciones = useMemo(
+    () => ({
+      countries: facets?.countries ?? catalogs.geo.countries.map(conCuenta),
+      regions: facets?.regions ?? catalogs.geo.regions.map(conCuenta),
+      cities: facets?.cities ?? catalogs.geo.cities.map(conCuenta),
+      zones: facets?.zones ?? [],
+      propertyTypes:
+        facets?.propertyTypes ?? catalogs.propertyTypes.map(conCuenta),
+    }),
+    [facets, catalogs],
+  )
+
+  // Cuantos filtros ha tocado el visitante, sin contar el orden ni la pagina.
+  const activos = countActive(filters)
 
   const submit = (event: React.FormEvent) => {
     event.preventDefault()
@@ -166,11 +172,7 @@ function AdvancedSearchForm({ initial }: { initial?: Filters }) {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value={ANY}>Todos</SelectItem>
-            {catalogs.geo.countries.map((country) => (
-              <SelectItem key={country.id} value={String(country.id)}>
-                {country.name}
-              </SelectItem>
-            ))}
+            <Opciones lista={opciones.countries} />
           </SelectContent>
         </Select>
       </FieldShell>
@@ -192,11 +194,7 @@ function AdvancedSearchForm({ initial }: { initial?: Filters }) {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value={ANY}>Todos</SelectItem>
-            {departamentos.map((region) => (
-              <SelectItem key={region.id} value={String(region.id)}>
-                {region.name}
-              </SelectItem>
-            ))}
+            <Opciones lista={opciones.regions} />
           </SelectContent>
         </Select>
       </FieldShell>
@@ -218,13 +216,7 @@ function AdvancedSearchForm({ initial }: { initial?: Filters }) {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value={ANY}>Todas</SelectItem>
-            {ciudades.map((city) => (
-              <SelectItem key={city.id} value={String(city.id)}>
-                {/* Con el numero al lado: quien elige "Girón" agradece saber
-                    que hay 74 antes de pulsar buscar. */}
-                {city.name} ({city.count})
-              </SelectItem>
-            ))}
+            <Opciones lista={opciones.cities} />
           </SelectContent>
         </Select>
       </FieldShell>
@@ -233,7 +225,7 @@ function AdvancedSearchForm({ initial }: { initial?: Filters }) {
         <Select
           value={filters.zoneId || ANY}
           onValueChange={(value) => set('zoneId', value === ANY ? '' : value)}
-          disabled={!filters.cityId || zones.length === 0}
+          disabled={opciones.zones.length === 0}
         >
           <SelectTrigger className={CONTROL} aria-label="Zona / barrio">
             <SelectValue
@@ -242,11 +234,7 @@ function AdvancedSearchForm({ initial }: { initial?: Filters }) {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value={ANY}>Todos</SelectItem>
-            {zones.map((zone) => (
-              <SelectItem key={zone.id} value={String(zone.id)}>
-                {zone.name}
-              </SelectItem>
-            ))}
+            <Opciones lista={opciones.zones} />
           </SelectContent>
         </Select>
       </FieldShell>
@@ -263,11 +251,7 @@ function AdvancedSearchForm({ initial }: { initial?: Filters }) {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value={ANY}>Todos</SelectItem>
-            {catalogs.propertyTypes.map((type) => (
-              <SelectItem key={type.id} value={String(type.id)}>
-                {type.name}
-              </SelectItem>
-            ))}
+            <Opciones lista={opciones.propertyTypes} />
           </SelectContent>
         </Select>
       </FieldShell>
@@ -338,14 +322,61 @@ function AdvancedSearchForm({ initial }: { initial?: Filters }) {
         `items-end` porque esta celda no tiene etiqueta encima: sin eso el boton
         subiria y quedaria a distinta altura que sus vecinas.
       */}
-      <div className="flex min-w-0 items-end sm:col-span-2 xl:col-span-2">
-        <Button type="submit" className="h-9 w-full font-bold tracking-widest">
+      <div className="flex min-w-0 items-end gap-2 sm:col-span-2 xl:col-span-2">
+        <Button type="submit" className="h-9 flex-1 font-bold tracking-widest">
           <Search />
           BUSCAR
         </Button>
+        {/*
+          Limpiar comparte celda con Buscar en vez de tener la suya: una casilla
+          entera para deshacer, al lado de la de hacer, le da el mismo peso a
+          las dos cosas, y no lo tienen. Y solo aparece cuando hay algo que
+          limpiar, que es cuando significa algo.
+        */}
+        {activos > 0 && (
+          <Button
+            type="button"
+            variant="outline"
+            aria-label={`Limpiar ${activos} filtro${activos > 1 ? 's' : ''}`}
+            title="Limpiar todos los filtros"
+            className="size-9 shrink-0 p-0"
+            onClick={() => {
+              setFilters(EMPTY_FILTERS)
+              navigate(ROUTES.search)
+            }}
+          >
+            <Eraser className="size-4" />
+          </Button>
+        )}
       </div>
     </form>
   )
+}
+
+/**
+ * Las opciones de un desplegable, con cuantos inmuebles hay detras.
+ *
+ * El numero al lado no es adorno: es lo que evita elegir "Cabaña" y encontrarse
+ * con una pagina vacia. Y las que se quedan en cero no llegan siquiera —la API
+ * solo devuelve lo que existe—, asi que la lista se acorta sola conforme se
+ * afina la busqueda.
+ */
+function Opciones({ lista }: { lista: FacetOption[] }) {
+  return (
+    <>
+      {lista.map((opcion) => (
+        <SelectItem key={opcion.id} value={String(opcion.id)}>
+          {opcion.name}{' '}
+          <span className="text-muted-foreground">({opcion.count})</span>
+        </SelectItem>
+      ))}
+    </>
+  )
+}
+
+/** El catalogo no trae cuentas; hasta que llegan las de verdad, ninguna. */
+function conCuenta(item: { id: number; name: string; count?: number }) {
+  return { id: item.id, name: item.name, count: item.count ?? 0 }
 }
 
 /** Se usa para alcobas y para banos: el nombre accesible viene de fuera. */

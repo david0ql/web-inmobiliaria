@@ -51,7 +51,7 @@ export function SearchResults() {
   return (
     <div className="container-site py-10">
       <div className="mb-10 rounded-lg border bg-card p-5 shadow-sm lg:p-6">
-        <SectionHeading as="h2" light="Búsqueda" strong="avanzada" />
+        <SectionHeading as="h2" size="sm" light="Búsqueda" strong="avanzada" />
         <AdvancedSearch initial={data.initialFilters} />
       </div>
 

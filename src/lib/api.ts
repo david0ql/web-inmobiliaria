@@ -184,6 +184,32 @@ export function getZones(cityId: number, signal?: AbortSignal) {
   return api.get<Zone[]>('/public/catalogs/zones', { cityId }, signal)
 }
 
+/**
+ * Cuantos inmuebles hay detras de cada opcion del buscador.
+ *
+ * Se pide con los filtros puestos: al elegir una ciudad, los barrios y los
+ * tipos pasan a contar solo lo de esa ciudad. Cada desplegable se cuenta contra
+ * los demas filtros y no contra si mismo, asi que la opcion elegida nunca
+ * desaparece de su propia lista y siempre se puede cambiar de idea.
+ */
+export interface FacetOption {
+  id: number
+  name: string
+  count: number
+}
+
+export interface Facets {
+  countries: FacetOption[]
+  regions: FacetOption[]
+  cities: FacetOption[]
+  zones: FacetOption[]
+  propertyTypes: FacetOption[]
+}
+
+export function getFacets(query: Query, signal?: AbortSignal) {
+  return api.get<Facets>('/public/catalogs/facets', query, signal)
+}
+
 /** Lo que el menu enseña entre parentesis: Apartamento (423). */
 export function getCounts(signal?: AbortSignal) {
   return api.get<TypeCount[]>('/public/catalogs/counts', undefined, signal)

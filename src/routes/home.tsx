@@ -53,7 +53,7 @@ export function Home() {
 
       <section className="container-site relative z-10 -mt-8 mb-14 lg:-mt-10">
         <div className="rounded-lg border bg-card p-5 shadow-lg lg:p-6">
-          <SectionHeading as="h2" light="Búsqueda" strong="avanzada" />
+          <SectionHeading as="h2" size="sm" light="Búsqueda" strong="avanzada" />
           <AdvancedSearch />
         </div>
       </section>
