@@ -274,15 +274,18 @@ function Detail({ data }: { data: PropertyData }) {
             contenido se apila debajo; aqui hace lo mismo con el orden natural. */}
         <aside className="flex min-w-0 flex-col gap-6 lg:col-span-4 xl:col-span-3">
           {/*
-            Pegajoso, pero sin tragarse su propio final.
+            Pegajoso mientras acompaña; suelto cuando estorba.
 
-            Un elemento `sticky` mas alto que la pantalla se queda clavado
-            arriba y su parte de abajo no hay forma de alcanzarla: por eso, al
-            desplegarse el formulario de visita, los ultimos campos quedaban
-            fuera. Con un alto maximo y desplazamiento propio, la columna se
-            recorre entera sin despegarse.
+            Un `sticky` mas alto que la pantalla se queda clavado arriba y su
+            parte de abajo no hay forma de alcanzarla: al desplegarse el
+            formulario de visita, los ultimos campos y el boton quedaban fuera.
+
+            Asi que en cuanto aparece el formulario —`:has()` lo detecta sin
+            tener que subir estado desde el hijo— la columna se suelta y la
+            pagina se desplaza como siempre. Rellenar un formulario es una tarea
+            larga: ahi ya no aporta nada que el panel siga clavado.
           */}
-          <div className="lg:sticky lg:top-24 lg:flex lg:max-h-[calc(100dvh-7rem)] lg:flex-col lg:gap-6 lg:overflow-y-auto">
+          <div className="lg:sticky lg:top-24 lg:flex lg:flex-col lg:gap-6 lg:has-[#visit-firstName]:static">
             <AgentPanel property={property} />
             <div className="rounded-lg border bg-card p-5 shadow-sm">
               <VisitForm property={property} />
