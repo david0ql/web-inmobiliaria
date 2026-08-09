@@ -1,6 +1,7 @@
 import { Bath, BedDouble, Car, Ruler } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
+import { SpecRow } from '@/components/common/spec-row'
 import { prefetchProperty } from '@/lib/api'
 import { Badge } from '@/components/ui/misc'
 import {
@@ -102,29 +103,26 @@ export function PropertyCard({
         </div>
       </figure>
 
-      {/*
-        Dos columnas siempre. En una tarjeta de rejilla de tres, cuatro columnas
-        dejan 80px por celda y "10 Garajes" acaba en "10 Gara…"; el icono ya dice
-        de que se habla, asi que la cifra va sola y cabe entera.
-      */}
-      <div className="grid grid-cols-2 gap-x-4 gap-y-2 border-b bg-secondary/50 px-4 py-3 text-xs">
-        <Spec icon={Ruler} value={built ? fmtArea(built) : null} />
-        <Spec
-          icon={BedDouble}
-          value={property.bedrooms}
-          unit={property.bedrooms === 1 ? 'alcoba' : 'alcobas'}
-        />
-        <Spec
-          icon={Bath}
-          value={property.bathrooms}
-          unit={property.bathrooms === 1 ? 'baño' : 'baños'}
-        />
-        <Spec
-          icon={Car}
-          value={property.garages}
-          unit={property.garages === 1 ? 'garaje' : 'garajes'}
-        />
-      </div>
+      <SpecRow
+        specs={[
+          { icon: Ruler, value: built ? fmtArea(built) : null },
+          {
+            icon: BedDouble,
+            value: property.bedrooms,
+            unit: property.bedrooms === 1 ? 'alcoba' : 'alcobas',
+          },
+          {
+            icon: Bath,
+            value: property.bathrooms,
+            unit: property.bathrooms === 1 ? 'baño' : 'baños',
+          },
+          {
+            icon: Car,
+            value: property.garages,
+            unit: property.garages === 1 ? 'garaje' : 'garajes',
+          },
+        ]}
+      />
 
       <div className="flex flex-1 flex-col gap-2 p-4">
         <p className="text-xs tracking-wide text-muted-foreground uppercase">
@@ -166,24 +164,3 @@ export function PropertyCard({
   )
 }
 
-function Spec({
-  icon: Icon,
-  value,
-  unit,
-}: {
-  icon: typeof Ruler
-  value: string | number | null
-  unit?: string
-}) {
-  if (!value) return null
-  const text = unit ? `${value} ${unit}` : String(value)
-  return (
-    <div
-      className="flex min-w-0 items-center gap-1.5 text-muted-foreground"
-      title={text}
-    >
-      <Icon className="size-3.5 shrink-0" aria-hidden="true" />
-      <span className="tabular truncate text-foreground">{text}</span>
-    </div>
-  )
-}
