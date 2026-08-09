@@ -171,9 +171,7 @@ export function ProjectPage() {
                   htmlFor="unidad"
                   className="mb-1.5 block text-xs tracking-widest text-muted-foreground uppercase"
                 >
-                  {properties.length === 1
-                    ? 'Unidad disponible'
-                    : `Elige entre las ${properties.length} unidades libres`}
+                  Tipologías
                 </label>
                 <Select
                   value={selected.id}
