@@ -1,5 +1,11 @@
-import { CalendarCheck, Loader2 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import {
+  CalendarCheck,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  Pencil,
+} from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
@@ -8,16 +14,10 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { ApiError, api, bookVisit } from '@/lib/api'
 import type { Property } from '@/lib/types'
+import { cn } from '@/lib/utils'
 
 interface Slot {
   startsAt: string
@@ -44,16 +44,25 @@ const schema = z.object({
 type VisitValues = z.infer<typeof schema>
 
 /**
- * El formulario de la ficha. En el sitio anterior era un "escríbenos" que caia
- * en un correo; aqui agenda de verdad contra la agenda del equipo, leyendo los
- * huecos libres de `/public/properties/:code/availability`.
+ * Agendar una visita, en dos pasos: primero cuándo, después quién.
  *
- * La API exige el UUID del inmueble aunque las URLs vayan por `code`; viene en
- * el mismo payload, asi que no hay que pedirlo aparte.
+ * Antes empezaba pidiendo nombre, apellidos, teléfono y correo, y el día
+ * quedaba al final en dos desplegables. Eso es pedirle los datos a alguien
+ * antes de saber si hay un hueco que le sirva: si al llegar abajo resulta que
+ * el único horario libre es el martes a las 8, ha rellenado cuatro campos para
+ * nada. Al revés se decide primero lo que puede hacer fracasar la gestión.
+ *
+ * El calendario enseña el mes entero con los días que tienen hueco: un
+ * desplegable de fechas obliga a abrirlo y recorrerlo para descubrir que el
+ * jueves no hay nada, y un mes se lee de un vistazo.
+ *
+ * Todo en hora de Colombia y no en la del navegador: la agenda es de la oficina
+ * de Bucaramanga, y una visita a las 10 tiene que decir 10 aquí y en Madrid.
  */
 export function VisitForm({ property }: { property: Property }) {
   const [days, setDays] = useState<DayAvailability[]>([])
   const [date, setDate] = useState('')
+  const [mes, setMes] = useState<string>(() => mesDe(hoy()))
 
   const form = useForm<VisitValues>({
     resolver: zodResolver(schema),
@@ -79,7 +88,9 @@ export function VisitForm({ property }: { property: Property }) {
         { from: isoDate(from), to: isoDate(to) },
         controller.signal,
       )
-      .then((result) => setDays(result.filter((day) => day.available && day.slots.length)))
+      .then((result) =>
+        setDays(result.filter((day) => day.available && day.slots.length)),
+      )
       .catch(() => {
         /* Sin agenda disponible el formulario sigue sirviendo: se avisa abajo. */
       })
@@ -87,7 +98,31 @@ export function VisitForm({ property }: { property: Property }) {
     return () => controller.abort()
   }, [property.code])
 
-  const slots = days.find((day) => day.date === date)?.slots ?? []
+  const libres = useMemo(
+    () => new Map(days.map((day) => [day.date, day])),
+    [days],
+  )
+  const slots = libres.get(date)?.slots ?? []
+  const startsAt = form.watch('startsAt')
+
+  /*
+    Entre qué meses se puede navegar. La ventana son tres semanas, así que son
+    uno o dos: dejar pasar a diciembre para encontrarlo vacío no ayuda a nadie.
+  */
+  const meses = useMemo(() => {
+    const unicos = [...new Set(days.map((day) => mesDe(day.date)))].sort()
+    return unicos.length ? unicos : [mesDe(hoy())]
+  }, [days])
+
+  useEffect(() => {
+    // Si el mes que se está mirando no tiene nada, se salta al primero que sí.
+    if (meses.length && !meses.includes(mes)) setMes(meses[0])
+  }, [meses, mes])
+
+  const elegirDia = (value: string) => {
+    setDate(value)
+    form.setValue('startsAt', '', { shouldValidate: false })
+  }
 
   const onSubmit = form.handleSubmit(async (values) => {
     try {
@@ -113,93 +148,241 @@ export function VisitForm({ property }: { property: Property }) {
   })
 
   return (
-    <form onSubmit={onSubmit} className="flex flex-col gap-3">
+    <form onSubmit={onSubmit} className="flex flex-col gap-4">
       <p className="flex items-center gap-2 text-sm font-medium">
         <CalendarCheck className="size-4" />
         Agenda una visita
       </p>
 
-      <Field form={form} name="firstName" label="Nombres" />
-      <Field form={form} name="lastName" label="Apellidos (opcional)" />
-      <Field form={form} name="phone" label="Teléfono" type="tel" inputMode="tel" />
-      <Field form={form} name="email" label="Correo (opcional)" type="email" />
-
-      {days.length > 0 ? (
-        <div className="grid grid-cols-2 gap-3">
-          <div className="grid gap-1.5">
-            <Label htmlFor="visit-date">Día</Label>
-            <Select
-              value={date}
-              onValueChange={(value) => {
-                setDate(value)
-                form.setValue('startsAt', '')
-              }}
-            >
-              <SelectTrigger id="visit-date">
-                <SelectValue placeholder="Elige" />
-              </SelectTrigger>
-              <SelectContent>
-                {days.map((day) => (
-                  <SelectItem key={day.date} value={day.date}>
-                    {longDate(day.date)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="grid gap-1.5">
-            <Label htmlFor="visit-slot">Hora</Label>
-            <Select
-              value={form.watch('startsAt')}
-              onValueChange={(value) =>
-                form.setValue('startsAt', value, { shouldValidate: true })
-              }
-              disabled={!date}
-            >
-              <SelectTrigger id="visit-slot">
-                <SelectValue placeholder={date ? 'Elige' : '—'} />
-              </SelectTrigger>
-              <SelectContent>
-                {slots.map((slot) => (
-                  <SelectItem key={slot.startsAt} value={slot.startsAt}>
-                    {shortTime(slot.startsAt)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {form.formState.errors.startsAt && (
-            <p className="col-span-2 text-xs text-destructive">
-              {form.formState.errors.startsAt.message}
-            </p>
-          )}
-        </div>
-      ) : (
+      {days.length === 0 ? (
         <p className="rounded-md bg-secondary px-3 py-2 text-xs text-muted-foreground">
           No hay horarios publicados ahora mismo. Llámanos y lo cuadramos.
         </p>
+      ) : startsAt ? (
+        /*
+          Elegido el hueco, el calendario se recoge en una línea: ya cumplió, y
+          dejarlo abierto encima del formulario obliga a bajar la vista otra vez
+          por algo que ya está decidido.
+        */
+        <button
+          type="button"
+          onClick={() => form.setValue('startsAt', '')}
+          className="flex w-full items-center justify-between gap-3 rounded-lg border bg-secondary/50 px-3 py-2.5 text-left transition-colors hover:bg-secondary"
+        >
+          <span className="min-w-0">
+            <span className="block text-[0.625rem] tracking-widest text-muted-foreground uppercase">
+              Tu visita
+            </span>
+            <span className="block truncate text-sm font-medium">
+              {cuando(startsAt)}
+            </span>
+          </span>
+          <span className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
+            <Pencil className="size-3.5" aria-hidden="true" />
+            Cambiar
+          </span>
+        </button>
+      ) : (
+        <>
+          <Calendario
+            mes={mes}
+            meses={meses}
+            libres={libres}
+            elegido={date}
+            onMes={setMes}
+            onDia={elegirDia}
+          />
+
+          {date && (
+            <div>
+              <p className="mb-2 text-xs text-muted-foreground">
+                Horas libres el {largo(date)}
+              </p>
+              <div className="grid grid-cols-3 gap-2">
+                {slots.map((slot) => (
+                  <button
+                    key={slot.startsAt}
+                    type="button"
+                    onClick={() =>
+                      form.setValue('startsAt', slot.startsAt, {
+                        shouldValidate: true,
+                      })
+                    }
+                    className="rounded-md border px-2 py-2 text-sm transition-colors hover:border-foreground hover:bg-secondary"
+                  >
+                    {hora(slot.startsAt)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {!date && (
+            <p className="text-xs text-muted-foreground">
+              Elige un día con hueco para ver las horas.
+            </p>
+          )}
+        </>
       )}
 
-      <div className="grid gap-1.5">
-        <Label htmlFor="visit-message">Mensaje (opcional)</Label>
-        <Textarea
-          id="visit-message"
-          rows={3}
-          placeholder={`Me interesa el inmueble ${property.code}.`}
-          {...form.register('message')}
+      {/*
+        Los datos solo cuando ya hay día y hora. Pedirlos antes es pedirlos sin
+        saber todavía si la visita se puede hacer.
+      */}
+      {startsAt && (
+        <>
+          <Field form={form} name="firstName" label="Nombres" />
+          <Field form={form} name="lastName" label="Apellidos (opcional)" />
+          <Field
+            form={form}
+            name="phone"
+            label="Teléfono"
+            type="tel"
+            inputMode="tel"
+          />
+          <Field form={form} name="email" label="Correo (opcional)" type="email" />
+
+          <div className="grid gap-1.5">
+            <Label htmlFor="visit-message">Mensaje (opcional)</Label>
+            <Textarea
+              id="visit-message"
+              rows={3}
+              placeholder={`Me interesa el inmueble ${property.code}.`}
+              {...form.register('message')}
+            />
+          </div>
+
+          <Button type="submit" disabled={form.formState.isSubmitting}>
+            {form.formState.isSubmitting && <Loader2 className="animate-spin" />}
+            Solicitar visita
+          </Button>
+        </>
+      )}
+    </form>
+  )
+}
+
+const DIAS = ['D', 'L', 'M', 'M', 'J', 'V', 'S']
+
+/**
+ * El mes, con los días que tienen hueco encendidos.
+ *
+ * Los que no lo tienen no se ocultan: se dejan apagados y sin pulsar. Un
+ * calendario al que le faltan días se lee como un calendario roto, y ver el mes
+ * completo es lo que permite entender de un vistazo que solo se atiende de
+ * lunes a sábado.
+ */
+function Calendario({
+  mes,
+  meses,
+  libres,
+  elegido,
+  onMes,
+  onDia,
+}: {
+  mes: string
+  meses: string[]
+  libres: Map<string, DayAvailability>
+  elegido: string
+  onMes: (mes: string) => void
+  onDia: (date: string) => void
+}) {
+  const [year, month] = mes.split('-').map(Number)
+  const primero = new Date(year, month - 1, 1)
+  const dias = new Date(year, month, 0).getDate()
+  const hueco = primero.getDay()
+
+  const indice = meses.indexOf(mes)
+  const anterior = indice > 0 ? meses[indice - 1] : null
+  const siguiente = indice < meses.length - 1 ? meses[indice + 1] : null
+
+  return (
+    <div className="rounded-lg border p-3">
+      <div className="mb-2 flex items-center justify-between">
+        <Paso
+          lado="left"
+          hacia={anterior}
+          onMes={onMes}
+          etiqueta="Mes anterior"
+        />
+        <p className="text-sm font-medium capitalize">{MES.format(primero)}</p>
+        <Paso
+          lado="right"
+          hacia={siguiente}
+          onMes={onMes}
+          etiqueta="Mes siguiente"
         />
       </div>
 
-      <Button
-        type="submit"
-        disabled={form.formState.isSubmitting || days.length === 0}
-      >
-        {form.formState.isSubmitting && <Loader2 className="animate-spin" />}
-        Solicitar visita
-      </Button>
-    </form>
+      <div className="grid grid-cols-7 gap-1 text-center">
+        {DIAS.map((dia, i) => (
+          <span
+            key={i}
+            aria-hidden="true"
+            className="py-1 text-[0.625rem] font-medium tracking-wide text-muted-foreground uppercase"
+          >
+            {dia}
+          </span>
+        ))}
+
+        {Array.from({ length: hueco }, (_, i) => (
+          <span key={`hueco-${i}`} />
+        ))}
+
+        {Array.from({ length: dias }, (_, i) => {
+          const dia = i + 1
+          const value = `${year}-${String(month).padStart(2, '0')}-${String(dia).padStart(2, '0')}`
+          const libre = libres.has(value)
+          const activo = value === elegido
+
+          return (
+            <button
+              key={value}
+              type="button"
+              disabled={!libre}
+              onClick={() => onDia(value)}
+              aria-label={largo(value)}
+              aria-current={activo ? 'date' : undefined}
+              className={cn(
+                'flex aspect-square items-center justify-center rounded-md text-sm transition-colors',
+                activo && 'bg-primary font-semibold text-primary-foreground',
+                !activo &&
+                  libre &&
+                  'font-medium hover:bg-secondary hover:ring-1 hover:ring-border',
+                !libre && 'text-muted-foreground/40',
+              )}
+            >
+              {dia}
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+function Paso({
+  lado,
+  hacia,
+  onMes,
+  etiqueta,
+}: {
+  lado: 'left' | 'right'
+  hacia: string | null
+  onMes: (mes: string) => void
+  etiqueta: string
+}) {
+  const Icon = lado === 'left' ? ChevronLeft : ChevronRight
+  return (
+    <button
+      type="button"
+      disabled={!hacia}
+      onClick={() => hacia && onMes(hacia)}
+      aria-label={etiqueta}
+      className="flex size-7 items-center justify-center rounded-md transition-colors hover:bg-secondary disabled:opacity-30"
+    >
+      <Icon className="size-4" />
+    </button>
   )
 }
 
@@ -224,7 +407,9 @@ function Field({
         {...props}
         {...form.register(name)}
       />
-      {error && <p className="text-xs text-destructive">{error.message as string}</p>}
+      {error && (
+        <p className="text-xs text-destructive">{error.message as string}</p>
+      )}
     </div>
   )
 }
@@ -235,23 +420,57 @@ function isoDate(d: Date): string {
   ).padStart(2, '0')}`
 }
 
-const LONG_DATE = new Intl.DateTimeFormat('es-CO', {
-  weekday: 'short',
-  day: '2-digit',
-  month: 'short',
+function hoy(): string {
+  return isoDate(new Date())
+}
+
+/** `2026-08-14` -> `2026-08`. */
+function mesDe(date: string): string {
+  return date.slice(0, 7)
+}
+
+/*
+  La agenda es la de la oficina de Bucaramanga: las horas se pintan en GMT-5
+  pase lo que pase con el reloj de quien mira.
+*/
+const COLOMBIA = 'America/Bogota'
+
+const MES = new Intl.DateTimeFormat('es-CO', {
+  month: 'long',
+  year: 'numeric',
 })
 
-const SHORT_TIME = new Intl.DateTimeFormat('es-CO', {
+const LARGO = new Intl.DateTimeFormat('es-CO', {
+  weekday: 'long',
+  day: 'numeric',
+  month: 'long',
+})
+
+const HORA = new Intl.DateTimeFormat('es-CO', {
+  timeZone: COLOMBIA,
+  hour: '2-digit',
+  minute: '2-digit',
+})
+
+const CUANDO = new Intl.DateTimeFormat('es-CO', {
+  timeZone: COLOMBIA,
+  weekday: 'long',
+  day: 'numeric',
+  month: 'long',
   hour: '2-digit',
   minute: '2-digit',
 })
 
 /** La fecha viene como `YYYY-MM-DD`; sin la hora, `new Date` la lee como UTC. */
-function longDate(value: string): string {
+function largo(value: string): string {
   const [year, month, day] = value.split('-').map(Number)
-  return LONG_DATE.format(new Date(year, month - 1, day))
+  return LARGO.format(new Date(year, month - 1, day))
 }
 
-function shortTime(iso: string): string {
-  return SHORT_TIME.format(new Date(iso))
+function hora(iso: string): string {
+  return HORA.format(new Date(iso))
+}
+
+function cuando(iso: string): string {
+  return CUANDO.format(new Date(iso))
 }
