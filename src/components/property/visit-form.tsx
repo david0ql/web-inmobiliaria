@@ -208,7 +208,7 @@ export function VisitForm({ property }: { property: Property }) {
                         shouldValidate: true,
                       })
                     }
-                    className="rounded-md border px-2 py-2 text-sm transition-colors hover:border-foreground hover:bg-secondary"
+                    className="rounded-md border px-1 py-2 text-sm whitespace-nowrap transition-colors hover:border-foreground hover:bg-secondary"
                   >
                     {hora(slot.startsAt)}
                   </button>
@@ -305,7 +305,10 @@ function Calendario({
           onMes={onMes}
           etiqueta="Mes anterior"
         />
-        <p className="text-sm font-medium capitalize">{MES.format(primero)}</p>
+        {/* `capitalize` pondria "Agosto De 2026": solo la primera letra. */}
+        <p className="text-sm font-medium first-letter:uppercase">
+          {MES.format(primero)}
+        </p>
         <Paso
           lado="right"
           hacia={siguiente}
@@ -467,10 +470,20 @@ function largo(value: string): string {
   return LARGO.format(new Date(year, month - 1, day))
 }
 
+/*
+  "08:00 a. m." con espacios finos partia el boton en dos lineas dentro de una
+  columna de 70 px. Se compacta a "8:00 a.m.", que es como se escribe una hora
+  en un cartel de horarios.
+*/
 function hora(iso: string): string {
   return HORA.format(new Date(iso))
+    .replace(/\s?a\.\s?m\./i, 'a.m.')
+    .replace(/\s?p\.\s?m\./i, 'p.m.')
+    .replace(/^0/, '')
 }
 
 function cuando(iso: string): string {
   return CUANDO.format(new Date(iso))
+    .replace(/\s?a\.\s?m\./i, 'a.m.')
+    .replace(/\s?p\.\s?m\./i, 'p.m.')
 }
