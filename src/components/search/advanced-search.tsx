@@ -228,9 +228,10 @@ function AdvancedSearchForm({ initial }: { initial?: Filters }) {
           disabled={opciones.zones.length === 0}
         >
           <SelectTrigger className={CONTROL} aria-label="Zona / barrio">
-            <SelectValue
-              placeholder={filters.cityId ? 'Todos' : 'Elige ciudad'}
-            />
+            {/* Ya no dice "Elige ciudad": con las cuentas por delante, los
+                barrios se pueden elegir sueltos y la lista se acorta sola en
+                cuanto se marca una ciudad. */}
+            <SelectValue placeholder="Todos" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value={ANY}>Todos</SelectItem>
