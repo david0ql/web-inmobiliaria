@@ -286,15 +286,12 @@ export function ProjectPage() {
         {selected && (
           <aside className="flex min-w-0 flex-col gap-6 lg:col-span-4 xl:col-span-3">
             {/*
-            Pegajoso, pero sin tragarse su propio final.
-
-            Un elemento `sticky` mas alto que la pantalla se queda clavado
-            arriba y su parte de abajo no hay forma de alcanzarla: por eso, al
-            desplegarse el formulario de visita, los ultimos campos quedaban
-            fuera. Con un alto maximo y desplazamiento propio, la columna se
-            recorre entera sin despegarse.
+            Pegajoso mientras acompaña; suelto cuando estorba. Un `sticky` mas
+            alto que la pantalla se clava arriba y su final no se alcanza, que
+            es lo que pasaba al desplegarse el formulario de visita: en cuanto
+            aparece, la columna se suelta y la pagina se desplaza como siempre.
           */}
-          <div className="lg:sticky lg:top-24 lg:flex lg:max-h-[calc(100dvh-7rem)] lg:flex-col lg:gap-6 lg:overflow-y-auto">
+          <div className="lg:sticky lg:top-24 lg:flex lg:flex-col lg:gap-6 lg:has-[#visit-firstName]:static">
               <AgentPanel property={selected} />
               <div className="rounded-lg border bg-card p-5 shadow-sm">
                 {/*
