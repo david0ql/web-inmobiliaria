@@ -28,7 +28,44 @@ export function UnitPhotos({
   if (!images.length) return null
 
   const total = images.length
-  const mosaico = images.slice(0, 5)
+
+  /*
+    La rejilla depende de cuantas fotos haya.
+
+    Con una plantilla fija de cinco casillas, un inmueble con una sola foto la
+    metia en una casilla de un cuarto de ancho y el resto quedaba en blanco: la
+    unica foto que hay, diminuta. Y con dos, dos recortes perdidos.
+
+    Asi que la forma se elige segun el numero:
+
+      1  una foto a todo lo ancho
+      2  dos, mitad y mitad
+      3  una grande a la izquierda y dos apiladas a la derecha
+      4  cuatro iguales, dos por dos
+      5+ una grande a la izquierda y cuatro pequeñas a la derecha
+
+    En movil siempre manda la primera a todo el ancho y debajo caben dos: cuatro
+    recortes de 80 px en un telefono no enseñan una cocina.
+  */
+  const mosaico = images.slice(0, total === 4 ? 4 : 5)
+  const forma = Math.min(total, 5)
+
+  const rejilla = {
+    1: 'grid-cols-1 h-[240px] sm:h-[380px]',
+    2: 'grid-cols-2 h-[200px] sm:h-[300px]',
+    3: 'grid-cols-2 grid-rows-2 h-[260px] sm:grid-cols-4 sm:h-[340px]',
+    4: 'grid-cols-2 grid-rows-2 h-[260px] sm:h-[380px]',
+    5: 'grid-cols-2 grid-rows-2 h-[260px] sm:grid-cols-4 sm:h-[340px]',
+  }[forma]
+
+  /** Cuanto ocupa cada casilla, segun la forma que toque. */
+  const tramo = (index: number) => {
+    if (forma <= 2) return null
+    if (forma === 4) return null
+    if (index === 0) return 'col-span-2 sm:row-span-2'
+    // Con tres fotos, las dos pequeñas ocupan media rejilla cada una.
+    return forma === 3 ? 'sm:col-span-2' : null
+  }
 
   return (
     <section>
@@ -39,22 +76,9 @@ export function UnitPhotos({
       */}
       <h2 className="sr-only">Fotos de la unidad</h2>
 
-      {/*
-        Mosaico: una foto manda y las demas acompañan, que es como se mira un
-        inmueble. Con todas del mismo tamaño no hay nada que mirar primero.
-
-        En escritorio la grande ocupa la mitad izquierda —dos columnas por dos
-        filas— y cuatro pequeñas llenan la derecha. En movil la grande cruza el
-        ancho y debajo caben dos: las otras dos se ocultan porque cuatro
-        recortes de 80 px en un telefono no enseñan una cocina.
-
-        Y el total va en una pastilla sobre la grande, no en la ultima casilla:
-        la ultima casilla cambia con el ancho de la pantalla, y el numero de
-        fotos no.
-      */}
-      <div className="grid h-[260px] grid-cols-2 grid-rows-2 gap-2 sm:h-[340px] sm:grid-cols-4">
+      <div className={cn('grid gap-2', rejilla)}>
         {mosaico.map((image, index) => {
-          const grande = index === 0 && mosaico.length > 1
+          const grande = index === 0 && forma > 2
 
           return (
             <button
@@ -63,14 +87,14 @@ export function UnitPhotos({
               onClick={() => setAbierta(index)}
               aria-label={`Ampliar foto ${index + 1} de ${total}`}
               className={cn(
-                'group relative min-h-0 overflow-hidden rounded-md border',
-                grande && 'col-span-2 sm:row-span-2',
-                // Las dos ultimas solo donde hay sitio para que se vean.
-                index > 2 && 'hidden sm:block',
+                'group relative min-h-0 cursor-zoom-in overflow-hidden rounded-md border',
+                tramo(index),
+                // Las que no caben en un telefono.
+                forma === 5 && index > 2 && 'hidden sm:block',
               )}
             >
               <img
-                src={grande ? (image.urlLarge ?? image.url) : image.url}
+                src={grande || forma === 1 ? image.urlLarge : image.url}
                 alt=""
                 loading={index === 0 ? 'eager' : 'lazy'}
                 className="size-full object-cover transition-transform duration-300 group-hover:scale-105"
@@ -80,7 +104,9 @@ export function UnitPhotos({
                 <Expand className="size-5 text-white" aria-hidden="true" />
               </span>
 
-              {grande && total > 1 && (
+              {index === 0 && total > 1 && (
+                /* El total va sobre la primera y no en la ultima casilla: la
+                   ultima cambia con el ancho de la pantalla, el numero no. */
                 <span className="tabular absolute bottom-3 left-3 rounded-full bg-black/70 px-3 py-1 text-xs text-white">
                   {total} fotos
                 </span>
