@@ -58,15 +58,16 @@ export function ProjectPage() {
   )
 
   /*
-    Las fotos son las de la unidad que mas tenga, no las de la elegida.
+    Las fotos son las de la unidad elegida: cambiar de unidad cambia lo que se
+    ve, que es lo que se espera al elegir.
 
-    En estos proyectos las fotos son del edificio, la piscina y la porteria
-    —cosas del conjunto— y estan cargadas en una unidad cualquiera: en Bulevar
-    del Puente hay unidades con veintidos fotos y otras con una. Cambiar de
-    unidad y quedarse sin fotos se leeria como un fallo, cuando lo que hay
-    detras es solo que nadie las subio en esa ficha.
+    Con una excepcion, y solo esa: si la unidad no tiene ninguna foto se
+    enseñan las de la que mas tenga. Hay unidades cargadas sin fotos —en
+    Bulevar del Puente las hay con veintidos y con una— y una galeria en blanco
+    se lee como una pagina rota, no como "esta ficha no tiene fotos". Las del
+    proyecto valen porque son del edificio, la piscina y la porteria.
   */
-  const galeria = useMemo(
+  const respaldo = useMemo(
     () =>
       properties.reduce(
         (mejor, property) =>
@@ -77,6 +78,10 @@ export function ProjectPage() {
       ),
     [properties],
   )
+
+  const fotos = selected?.images?.length
+    ? selected.images
+    : (respaldo?.images ?? [])
 
   const place = [family.zone?.name, family.city?.name, family.city?.region?.name]
     .filter(Boolean)
@@ -121,7 +126,8 @@ export function ProjectPage() {
       <div className="grid gap-8 lg:grid-cols-12">
         <div className="flex min-w-0 flex-col gap-8 lg:col-span-8 xl:col-span-9">
           <PropertyGallery
-            images={galeria?.images ?? []}
+            key={selected?.id}
+            images={fotos}
             title={family.name}
             availability={selected?.availability ?? 'AVAILABLE'}
           />
@@ -133,7 +139,7 @@ export function ProjectPage() {
                 pegado a las fotos y antes que el precio: es lo que decide todas
                 las cifras que vienen debajo.
               */}
-              <div className="rounded-lg border bg-secondary/40 p-5">
+              <div className="rounded-lg border bg-card p-5 shadow-sm">
                 <label
                   htmlFor="unidad"
                   className="mb-1.5 block text-xs tracking-widest text-muted-foreground uppercase"
@@ -158,36 +164,37 @@ export function ProjectPage() {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
 
-                <div className="mt-4 flex flex-wrap items-end justify-between gap-4">
-                  <div>
-                    <p className="text-xs tracking-widest text-muted-foreground uppercase">
-                      Código
-                    </p>
-                    <p className="tabular text-lg font-semibold">
-                      {selected.code}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xs tracking-widest text-muted-foreground uppercase">
-                      Precio de venta
-                    </p>
-                    <p className="tabular text-2xl leading-tight font-normal tracking-tight">
-                      {selected.salePrice ? price(selected.salePrice) : '—'}{' '}
-                      <small className="text-xs text-muted-foreground">
-                        {selected.currency?.iso ?? 'COP'}
-                      </small>
-                    </p>
-                  </div>
+              {/*
+                El codigo y el precio van en su propia caja, la misma que en la
+                ficha de inmueble. Elegir y leer son dos gestos distintos:
+                juntarlos en un solo recuadro hacia que el precio pareciera
+                parte del formulario.
+              */}
+              <div className="flex flex-wrap items-end justify-between gap-4 rounded-lg border bg-secondary/40 px-5 py-4">
+                <div>
+                  <p className="text-xs tracking-widest text-muted-foreground uppercase">
+                    Código
+                  </p>
+                  <p className="tabular text-lg font-semibold">
+                    {selected.code}
+                  </p>
                 </div>
-
-                <div className="mt-4 border-t pt-4">
-                  <Button asChild variant="outline" size="sm">
-                    <Link to={propertyPath(selected)}>
-                      Ver la ficha completa de esta unidad
-                    </Link>
-                  </Button>
+                <div className="text-right">
+                  <p className="text-xs tracking-widest text-muted-foreground uppercase">
+                    Precio de venta
+                  </p>
+                  <p className="tabular text-2xl leading-tight font-normal tracking-tight">
+                    {selected.salePrice ? price(selected.salePrice) : '—'}{' '}
+                    <small className="text-xs text-muted-foreground">
+                      {selected.currency?.iso ?? 'COP'}
+                    </small>
+                  </p>
                 </div>
+                <Button asChild variant="outline" size="sm">
+                  <Link to={propertyPath(selected)}>Ver la ficha completa</Link>
+                </Button>
               </div>
 
               {family.description && (
