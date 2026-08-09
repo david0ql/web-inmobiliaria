@@ -131,7 +131,18 @@ export const ROOM_OPTIONS = [1, 2, 3, 4, 5, 6, 7].map((n) => ({
   label: `${n} o más`,
 }))
 
-export const PAGE_SIZE = 24
+/**
+ * Doce por pagina, no veinticuatro.
+ *
+ * Veinticuatro tarjetas son ocho filas en escritorio y veinticuatro pantallazos
+ * en movil: quien no encuentra lo suyo en las primeras no baja hasta el final,
+ * baja hasta que se cansa. Doce son cuatro filas, se ven enteras y el paginador
+ * queda a la vista, que es lo que de verdad hace recorrer un inventario.
+ *
+ * El numero de paginas lo calcula la API a partir de este limite, asi que basta
+ * cambiarlo aqui.
+ */
+export const PAGE_SIZE = 12
 
 /**
  * De los filtros de pantalla a la consulta que acepta `GET /public/properties`.
