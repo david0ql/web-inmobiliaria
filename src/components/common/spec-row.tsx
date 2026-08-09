@@ -16,11 +16,12 @@ export interface Spec {
  *
  *  - Una sola fila. En dos por dos la franja medía sesenta y pico pixeles y
  *    empujaba el precio fuera de la tarjeta; en una linea son treinta.
- *  - Sin fondo gris ni lineas entre columnas. El recuadro le daba a cuatro
- *    cifras el peso de una tabla, y compite con la foto y con el precio, que es
- *    lo que de verdad decide. Separan el aire y las dos lineas de la tarjeta,
- *    que ya estaban. El alto se iguala al del pie del precio para que los dos
- *    extremos de la tarjeta pesen lo mismo.
+ *  - Fondo gris suave, pero sin lineas entre columnas. El gris asienta la
+ *    franja como una banda; las lineas ademas la convertian en una tabla y le
+ *    daban a cuatro cifras un peso que compite con la foto y con el precio, que
+ *    es lo que de verdad decide. Ahora separan el aire y el propio fondo. El
+ *    alto se iguala al del pie del precio para que los dos extremos de la
+ *    tarjeta pesen lo mismo.
  *  - El icono y la cifra van seguidos, no apilados. Apilar el numero sobre la
  *    palabra se lee bien pero triplica el alto, que era justo el problema.
  *  - Las columnas se cuentan al vuelo: no todos los inmuebles tienen garaje ni
@@ -38,7 +39,7 @@ export function SpecRow({ specs }: { specs: Spec[] }) {
 
   return (
     <div
-      className="grid border-b px-2 py-3 text-[11px]"
+      className="grid border-b bg-secondary/50 px-2 py-3 text-[11px]"
       style={{
         gridTemplateColumns: `repeat(${visibles.length}, minmax(0, 1fr))`,
       }}
