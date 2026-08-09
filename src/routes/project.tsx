@@ -3,8 +3,8 @@ import { useMemo, useState } from 'react'
 import type { LoaderFunctionArgs } from 'react-router-dom'
 import { Link, useLoaderData } from 'react-router-dom'
 
+import { UnitPhotos } from '@/components/project/unit-photos'
 import { AgentPanel } from '@/components/property/agent-panel'
-import { PropertyGallery } from '@/components/property/property-gallery'
 import { PropertyMap } from '@/components/property/property-map'
 import { SpecTable } from '@/components/property/spec-table'
 import { VisitForm } from '@/components/property/visit-form'
@@ -57,30 +57,25 @@ export function ProjectPage() {
   )
 
   /*
-    Las fotos son las de la unidad elegida: cambiar de unidad cambia lo que se
-    ve, que es lo que se espera al elegir.
+    Arriba, una sola foto: la del proyecto.
 
-    Con una excepcion, y solo esa: si la unidad no tiene ninguna foto se
-    enseñan las de la que mas tenga. Hay unidades cargadas sin fotos —en
-    Bulevar del Puente las hay con veintidos y con una— y una galeria en blanco
-    se lee como una pagina rota, no como "esta ficha no tiene fotos". Las del
-    proyecto valen porque son del edificio, la piscina y la porteria.
+    Es la que dice donde estas, y no tiene por que cambiar al cambiar de unidad
+    —el edificio es el mismo—. Las fotos del interior van abajo, pegadas al
+    desplegable que las decide. Si el proyecto no tiene portada cargada se usa
+    la de la unidad con mas fotos, que en la practica es una aerea del conjunto.
   */
-  const respaldo = useMemo(
-    () =>
-      properties.reduce(
-        (mejor, property) =>
-          (property.images?.length ?? 0) > (mejor?.images?.length ?? 0)
-            ? property
-            : mejor,
-        properties[0],
-      ),
-    [properties],
-  )
-
-  const fotos = selected?.images?.length
-    ? selected.images
-    : (respaldo?.images ?? [])
+  const portada = useMemo(() => {
+    if (family.coverUrl) return family.coverUrl
+    const mejor = properties.reduce(
+      (mejor, property) =>
+        (property.images?.length ?? 0) > (mejor?.images?.length ?? 0)
+          ? property
+          : mejor,
+      properties[0],
+    )
+    const imagen = mejor?.images?.[0]
+    return imagen?.urlLarge ?? imagen?.url ?? null
+  }, [family.coverUrl, properties])
 
   const place = [family.zone?.name, family.city?.name, family.city?.region?.name]
     .filter(Boolean)
@@ -124,12 +119,15 @@ export function ProjectPage() {
 
       <div className="grid gap-8 lg:grid-cols-12">
         <div className="flex min-w-0 flex-col gap-8 lg:col-span-8 xl:col-span-9">
-          <PropertyGallery
-            key={selected?.id}
-            images={fotos}
-            title={family.name}
-            availability={selected?.availability ?? 'AVAILABLE'}
-          />
+          {portada && (
+            <div className="overflow-hidden rounded-lg border bg-secondary">
+              <img
+                src={portada}
+                alt={family.name}
+                className="h-[240px] w-full object-cover sm:h-[340px] lg:h-[420px]"
+              />
+            </div>
+          )}
 
           {selected ? (
             <>
@@ -164,6 +162,11 @@ export function ProjectPage() {
                   </SelectContent>
                 </Select>
               </div>
+
+              <UnitPhotos
+                images={selected.images ?? []}
+                title={`${family.name} · ${selected.code}`}
+              />
 
               {/*
                 El codigo y el precio van en su propia caja, la misma que en la
