@@ -5,7 +5,6 @@ import { SpecRow } from '@/components/common/spec-row'
 import { Badge } from '@/components/ui/misc'
 import { price } from '@/lib/format'
 import {
-  FAMILY_KIND_LABEL,
   FAMILY_STATUS_COLOR,
   FAMILY_STATUS_LABEL,
   projectPath,
@@ -98,10 +97,14 @@ export function ProjectCard({ project }: { project: ProjectSummary }) {
       />
 
       <div className="flex flex-1 flex-col gap-2 p-4">
-        <p className="truncate text-xs tracking-wide text-muted-foreground uppercase">
-          {FAMILY_KIND_LABEL[project.kind] ?? 'Proyecto'}
-          {project.developer ? ` · ${project.developer}` : ''}
-        </p>
+        {/* La constructora, si se sabe. La clase de familia —"Conjunto",
+            "Edificio"— no aporta: quien mira ya sabe que esta en proyectos, y
+            la agencia prefiere hablar de proyectos y de nada mas. */}
+        {project.developer && (
+          <p className="truncate text-xs tracking-wide text-muted-foreground uppercase">
+            {project.developer}
+          </p>
+        )}
         <h2 className="line-clamp-2-title text-sm leading-snug font-semibold uppercase">
           <Link to={to} className="hover:underline">
             {project.name}

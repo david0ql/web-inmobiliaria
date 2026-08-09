@@ -13,7 +13,6 @@ import { Badge } from '@/components/ui/misc'
 import { Button } from '@/components/ui/button'
 import { area as fmtArea, number, price } from '@/lib/format'
 import {
-  FAMILY_KIND_LABEL,
   FAMILY_STATUS_COLOR,
   FAMILY_STATUS_LABEL,
   getProject,
@@ -52,7 +51,6 @@ export function ProjectPage() {
             Proyectos
           </Link>
           <span aria-hidden="true">·</span>
-          {FAMILY_KIND_LABEL[family.kind] ?? 'Proyecto'}
           <Badge
             variant="tag"
             style={{ backgroundColor: FAMILY_STATUS_COLOR[family.status] }}
