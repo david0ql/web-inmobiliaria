@@ -25,7 +25,6 @@ import {
   PROJECTS_PATH,
   type ProjectDetail,
 } from '@/lib/projects'
-import { propertyPath } from '@/lib/slug'
 import { ROUTES } from '@/lib/site'
 import type { Property } from '@/lib/types'
 
@@ -192,9 +191,6 @@ export function ProjectPage() {
                     </small>
                   </p>
                 </div>
-                <Button asChild variant="outline" size="sm">
-                  <Link to={propertyPath(selected)}>Ver la ficha completa</Link>
-                </Button>
               </div>
 
               {family.description && (
