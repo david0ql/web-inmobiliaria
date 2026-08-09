@@ -58,6 +58,7 @@ export function SearchResults() {
       <div ref={anchor}>
         <SectionHeading
           as="h1"
+          size="sm"
           light="Resultados de la"
           strong="búsqueda"
           className="mb-2"

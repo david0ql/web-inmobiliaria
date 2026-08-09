@@ -1,6 +1,6 @@
 import { Eraser, Search } from 'lucide-react'
 import { Suspense, useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -91,6 +91,7 @@ function SearchFormSkeleton() {
 
 function AdvancedSearchForm({ initial }: { initial?: Filters }) {
   const navigate = useNavigate()
+  const { pathname } = useLocation()
   const { catalogs } = useSiteData()
   const [filters, setFilters] = useState<Filters>(initial ?? EMPTY_FILTERS)
   const [facets, setFacets] = useState<Facets | null>(null)
@@ -352,8 +353,11 @@ function AdvancedSearchForm({ initial }: { initial?: Filters }) {
             title="Limpiar todos los filtros"
             className="size-9 shrink-0 p-0"
             onClick={() => {
-              setFilters(EMPTY_FILTERS)
-              navigate(ROUTES.search)
+              // Se conserva lo que impone la ruta —en `/venta`, la venta— y se
+              // vuelve a la misma pantalla sin query: limpiar los filtros no es
+              // pedir que te saquen de donde estabas.
+              setFilters({ ...EMPTY_FILTERS, businessType: filters.businessType })
+              navigate(pathname)
             }}
           >
             <Eraser className="size-4" />

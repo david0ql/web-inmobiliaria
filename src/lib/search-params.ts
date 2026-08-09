@@ -162,9 +162,19 @@ export function toApiQuery(filters: Filters, limit = PAGE_SIZE): Query {
   }
 }
 
-/** Cuantos filtros ha tocado el visitante, para el boton de limpiar. */
+/**
+ * Cuantos filtros ha tocado el VISITANTE, para el boton de limpiar.
+ *
+ * Fuera el orden y la pagina, que no son filtros. Y fuera `businessType`: en
+ * `/venta` lo pone la propia ruta, no la persona, y ademas no tiene casilla en
+ * el formulario desde que se quito el desplegable de tipo de negocio. Contarlo
+ * hacia aparecer "limpiar filtros" nada mas entrar, ofreciendo deshacer algo
+ * que nadie habia hecho.
+ */
+const IMPLICITOS: (keyof Filters)[] = ['page', 'sort', 'businessType']
+
 export function countActive(filters: Filters): number {
   return (Object.keys(EMPTY_FILTERS) as (keyof Filters)[]).filter(
-    (key) => key !== 'page' && key !== 'sort' && filters[key] !== '',
+    (key) => !IMPLICITOS.includes(key) && filters[key] !== '',
   ).length
 }
