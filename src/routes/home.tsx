@@ -14,7 +14,6 @@ import {
 import { ROUTES, SITE } from '@/lib/site'
 import { useSeo } from '@/lib/use-seo'
 import { ProjectCard } from '@/components/project/project-card'
-import { PropertyTypesNav } from '@/components/property/property-types-nav'
 import { RecentCarousel } from '@/components/property/recent-carousel'
 import type { Showcase } from '@/lib/api'
 import type { ProjectSummary } from '@/lib/projects'
@@ -70,10 +69,6 @@ export function Home() {
       <Suspense fallback={<ShowcaseSkeleton />}>
         <ShowcaseSection promise={data.showcase} />
       </Suspense>
-
-      {/* Los tipos, al final: es navegacion de rescate para quien llego abajo
-          sin encontrar lo suyo, no lo primero que hay que enseñar. */}
-      <PropertyTypesNav />
     </>
   )
 }
