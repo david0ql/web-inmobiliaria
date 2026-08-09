@@ -49,7 +49,7 @@ export function SpecRow({ specs }: { specs: Spec[] }) {
           <div
             key={texto}
             title={texto}
-            className="flex min-w-0 items-center justify-center gap-1 px-1 text-muted-foreground"
+            className="flex min-h-5 min-w-0 items-center justify-center gap-1 px-1 text-muted-foreground"
           >
             <spec.icon className="size-3.5 shrink-0" aria-hidden="true" />
             <span className="tabular truncate text-foreground">{texto}</span>
