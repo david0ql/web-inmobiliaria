@@ -1,11 +1,6 @@
-import {
-  Building2,
-  CalendarClock,
-  Check,
-  KeyRound,
-  Layers,
-  MapPin,
-} from 'lucide-react'
+import { Check, MapPin } from 'lucide-react'
+
+import { UnitPicker } from '@/components/project/unit-picker'
 import type { LoaderFunctionArgs } from 'react-router-dom'
 import { Link, useLoaderData } from 'react-router-dom'
 
@@ -22,7 +17,6 @@ import {
 } from '@/lib/projects'
 import { propertyPath } from '@/lib/slug'
 import { ROUTES } from '@/lib/site'
-import type { Property } from '@/lib/types'
 
 export async function loader({
   params,
@@ -44,41 +38,27 @@ export function ProjectPage() {
   const fromPrice = prices.length ? Math.min(...prices) : null
 
   /*
-    Solo las cifras que dicen algo. "Unidades totales" sobra cuando coincide con
-    las libres —es el caso de casi todos los proyectos entregados—, y una
-    tipologia sin nombre no es una tipologia que contar.
+    Lo que acompaña al precio, en una linea y solo si dice algo.
+
+    Antes eran cuatro casillas en una caja a todo lo ancho: en un proyecto de
+    lotes salia "Tipologias 1", "Unidades libres 10", "Unidades totales 10" y
+    "Entrega —" —dos veces el mismo numero y un guion— y en los demas quedaba
+    una sola casilla perdida en una caja enorme. Lo que de verdad importa aqui
+    es cuantas quedan y para cuando: cabe en un renglon.
   */
   // Una tipologia sin nombre no es una tipologia: es una unidad sin clasificar.
   const hayTipologias = unitTypes.some((type) => Boolean(type.unitType))
 
-  const cifras = [
-    unitTypes.length > 1 && {
-      icon: Layers,
-      label: 'Tipologías',
-      value: number(unitTypes.length),
-    },
-    available > 0 && {
-      icon: KeyRound,
-      label: available === 1 ? 'Unidad libre' : 'Unidades libres',
-      value: number(available),
-    },
-    family.totalUnits && family.totalUnits !== available
-      ? {
-          icon: Building2,
-          label: 'Unidades totales',
-          value: number(family.totalUnits),
-        }
-      : null,
-    family.deliveryYear && {
-      icon: CalendarClock,
-      label: 'Entrega',
-      value: String(family.deliveryYear),
-    },
-  ].filter(Boolean) as {
-    icon: typeof Layers
-    label: string
-    value: string
-  }[]
+  const contexto = [
+    available > 0 &&
+      `${number(available)} ${available === 1 ? 'unidad libre' : 'unidades libres'}`,
+    hayTipologias &&
+      unitTypes.length > 1 &&
+      `${number(unitTypes.length)} tipologías`,
+    family.deliveryYear && `entrega ${family.deliveryYear}`,
+  ]
+    .filter(Boolean)
+    .join(' · ')
 
   return (
     <div className="container-site py-8">
@@ -134,6 +114,10 @@ export function ProjectPage() {
               </span>
             </p>
           )}
+          {contexto && (
+            <p className="mb-3 text-sm text-muted-foreground">{contexto}</p>
+          )}
+
           <div className="flex flex-wrap gap-2 lg:justify-end">
             <Button asChild>
               <Link to={ROUTES.contact}>Me interesa</Link>
@@ -160,31 +144,6 @@ export function ProjectPage() {
             className="h-[220px] w-full object-cover sm:h-[320px] lg:h-[420px]"
           />
         </div>
-      )}
-
-      {/*
-        Las cifras, sin las que no dicen nada.
-
-        Estaban las cuatro siempre: en un proyecto de lotes salia "Tipologias 1",
-        "Unidades libres 10", "Unidades totales 10" y "Entrega —". Dos veces el
-        mismo numero y un guion. Se pinta lo que existe y lo que aporta.
-      */}
-      {cifras.length > 0 && (
-        <dl
-          className="mb-10 grid gap-4 rounded-lg border bg-secondary/40 p-5"
-          style={{
-            gridTemplateColumns: `repeat(${Math.min(cifras.length, 2)}, minmax(0, 1fr))`,
-          }}
-        >
-          {cifras.map((cifra) => (
-            <Stat
-              key={cifra.label}
-              icon={cifra.icon}
-              label={cifra.label}
-              value={cifra.value}
-            />
-          ))}
-        </dl>
       )}
 
       {/*
@@ -283,10 +242,9 @@ export function ProjectPage() {
           Unidades disponibles
         </h2>
         {properties.length > 0 ? (
-          <UnitsTable properties={properties} />
+          <UnitPicker properties={properties} />
         ) : (
           <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed px-5 py-16 text-center">
-            <KeyRound className="size-8 text-muted-foreground" />
             <p className="text-sm text-muted-foreground">
               Ahora mismo no hay unidades disponibles en este proyecto.
             </p>
@@ -305,93 +263,6 @@ export function ProjectPage() {
  * seis columnas y en un movil de 320px no caben, pero lo que no puede pasar es
  * que empujen la pagina entera a lo ancho.
  */
-/**
- * Las unidades del proyecto, en tabla.
- *
- * Con tarjetas parecian inmuebles distintos —misma foto, mismo titulo repetido
- * diez veces— cuando son diez unidades del mismo sitio que solo se diferencian
- * en metros, alcobas y precio. En columnas esa diferencia se compara de un
- * vistazo, que es lo que se hace aqui.
- *
- * Las columnas vacias no se pintan: en un proyecto de lotes, "Alcobas" y
- * "Baños" eran dos columnas enteras de guiones ocupando la mitad del ancho.
- */
-function UnitsTable({ properties }: { properties: Property[] }) {
-  const hay = (campo: 'bedrooms' | 'bathrooms' | 'garages') =>
-    properties.some((property) => Number(property[campo]) > 0)
-
-  const columnas = [
-    { clave: 'bedrooms' as const, titulo: 'Alcobas' },
-    { clave: 'bathrooms' as const, titulo: 'Baños' },
-    { clave: 'garages' as const, titulo: 'Garajes' },
-  ].filter((columna) => hay(columna.clave))
-
-  return (
-    <div className="w-full min-w-0 overflow-x-auto rounded-lg border">
-      <table className="w-full min-w-[34rem] text-sm">
-        <thead className="bg-secondary/60 text-xs tracking-wide uppercase">
-          <tr>
-            <th className="px-4 py-3 text-left font-semibold">Unidad</th>
-            <th className="px-4 py-3 text-left font-semibold">Tipo</th>
-            <th className="px-4 py-3 text-right font-semibold">Área</th>
-            {columnas.map((columna) => (
-              <th
-                key={columna.clave}
-                className="px-4 py-3 text-right font-semibold"
-              >
-                {columna.titulo}
-              </th>
-            ))}
-            <th className="px-4 py-3 text-right font-semibold">Precio</th>
-            <th className="px-4 py-3 text-right font-semibold">
-              <span className="sr-only">Ver</span>
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {properties.map((property) => {
-            const built = property.builtArea ?? property.area
-            return (
-              <tr key={property.id} className="border-t hover:bg-secondary/40">
-                <td className="tabular px-4 py-3 font-medium">
-                  {property.code}
-                </td>
-                <td className="px-4 py-3 text-muted-foreground">
-                  {property.propertyType?.name ?? '—'}
-                </td>
-                <td className="tabular px-4 py-3 text-right whitespace-nowrap">
-                  {built ? fmtArea(built) : '—'}
-                </td>
-                {columnas.map((columna) => (
-                  <td
-                    key={columna.clave}
-                    className="tabular px-4 py-3 text-right"
-                  >
-                    {property[columna.clave] || '—'}
-                  </td>
-                ))}
-                <td className="tabular px-4 py-3 text-right whitespace-nowrap">
-                  {property.salePrice
-                    ? price(property.salePrice)
-                    : 'A consultar'}
-                </td>
-                <td className="px-4 py-3 text-right">
-                  <Link
-                    to={propertyPath(property)}
-                    className="text-xs font-bold tracking-widest uppercase hover:underline"
-                  >
-                    Ver
-                  </Link>
-                </td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
-    </div>
-  )
-}
-
 function UnitTypesTable({ unitTypes }: { unitTypes: UnitTypeSummary[] }) {
   return (
     <div className="w-full min-w-0 overflow-x-auto rounded-lg border">
@@ -449,22 +320,3 @@ function priceRange(min: number | null, max: number | null): string {
   return `${price(min)} – ${price(max)}`
 }
 
-function Stat({
-  icon: Icon,
-  label,
-  value,
-}: {
-  icon: typeof Layers
-  label: string
-  value: string
-}) {
-  return (
-    <div className="min-w-0">
-      <dt className="flex items-center gap-1.5 text-xs text-muted-foreground">
-        <Icon className="size-3.5 shrink-0" />
-        <span className="truncate">{label}</span>
-      </dt>
-      <dd className="tabular mt-1 truncate text-lg font-semibold">{value}</dd>
-    </div>
-  )
-}
