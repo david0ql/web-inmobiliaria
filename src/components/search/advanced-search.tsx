@@ -234,9 +234,14 @@ function AdvancedSearchForm({ initial }: { initial?: Filters }) {
           disabled={!filters.cityId || opciones.zones.length === 0}
         >
           <SelectTrigger className={CONTROL} aria-label="Zona / barrio">
-            <SelectValue
-              placeholder={filters.cityId ? 'Todos' : 'Elige ciudad'}
-            />
+            {/*
+              El aviso va en el propio disparador y no como `placeholder`: el
+              valor nunca esta vacio —"Todos" es una opcion de verdad, porque
+              Radix no admite la cadena vacia—, asi que el `placeholder` no
+              llegaba a pintarse nunca y el campo solo se veia gris, sin decir
+              por que.
+            */}
+            {filters.cityId ? <SelectValue /> : <span>Elige ciudad</span>}
           </SelectTrigger>
           <SelectContent>
             <SelectItem value={ANY}>Todos</SelectItem>
