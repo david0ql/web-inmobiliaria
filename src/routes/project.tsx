@@ -43,40 +43,113 @@ export function ProjectPage() {
     .filter((value): value is number => value !== null && value > 0)
   const fromPrice = prices.length ? Math.min(...prices) : null
 
+  /*
+    Solo las cifras que dicen algo. "Unidades totales" sobra cuando coincide con
+    las libres —es el caso de casi todos los proyectos entregados—, y una
+    tipologia sin nombre no es una tipologia que contar.
+  */
+  // Una tipologia sin nombre no es una tipologia: es una unidad sin clasificar.
+  const hayTipologias = unitTypes.some((type) => Boolean(type.unitType))
+
+  const cifras = [
+    unitTypes.length > 1 && {
+      icon: Layers,
+      label: 'Tipologías',
+      value: number(unitTypes.length),
+    },
+    available > 0 && {
+      icon: KeyRound,
+      label: available === 1 ? 'Unidad libre' : 'Unidades libres',
+      value: number(available),
+    },
+    family.totalUnits && family.totalUnits !== available
+      ? {
+          icon: Building2,
+          label: 'Unidades totales',
+          value: number(family.totalUnits),
+        }
+      : null,
+    family.deliveryYear && {
+      icon: CalendarClock,
+      label: 'Entrega',
+      value: String(family.deliveryYear),
+    },
+  ].filter(Boolean) as {
+    icon: typeof Layers
+    label: string
+    value: string
+  }[]
+
   return (
     <div className="container-site py-8">
-      <header className="mb-8">
-        <p className="mb-2 flex flex-wrap items-center gap-2 text-xs tracking-widest text-muted-foreground uppercase">
-          <Link to={PROJECTS_PATH} className="hover:underline">
-            Proyectos
-          </Link>
-          <span aria-hidden="true">·</span>
-          <Badge
-            variant="tag"
-            style={{ backgroundColor: FAMILY_STATUS_COLOR[family.status] }}
-          >
-            {FAMILY_STATUS_LABEL[family.status] ?? family.status}
-          </Badge>
-        </p>
-
-        <h1 className="tt-square text-xl leading-tight font-semibold uppercase sm:text-2xl">
-          {family.name}
-        </h1>
-
-        {family.developer && (
-          <p className="mt-3 text-sm text-muted-foreground">
-            Promotor: <span className="font-medium">{family.developer}</span>
+      {/*
+        La cabecera lleva a la derecha lo unico que decide: desde cuanto, y que
+        hacer al respecto. Antes el precio flotaba solo, en gris, entre dos
+        bloques, y no habia ninguna accion en toda la pagina: quien se
+        interesaba tenia que volver a subir a buscar el telefono.
+      */}
+      <header className="mb-8 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+        <div className="min-w-0">
+          <p className="mb-2 flex flex-wrap items-center gap-2 text-xs tracking-widest text-muted-foreground uppercase">
+            <Link to={PROJECTS_PATH} className="hover:underline">
+              Proyectos
+            </Link>
+            <span aria-hidden="true">·</span>
+            <Badge
+              variant="tag"
+              style={{ backgroundColor: FAMILY_STATUS_COLOR[family.status] }}
+            >
+              {FAMILY_STATUS_LABEL[family.status] ?? family.status}
+            </Badge>
           </p>
-        )}
 
-        {(place || family.address) && (
-          <p className="mt-2 flex items-start gap-1.5 text-sm text-muted-foreground">
-            <MapPin className="mt-0.5 size-4 shrink-0" />
-            <span className="min-w-0">
-              {[family.address, place].filter(Boolean).join(' · ')}
-            </span>
-          </p>
-        )}
+          <h1 className="tt-square text-xl leading-tight font-semibold uppercase sm:text-2xl">
+            {family.name}
+          </h1>
+
+          {(place || family.address) && (
+            <p className="mt-2 flex items-start gap-1.5 text-sm text-muted-foreground">
+              <MapPin className="mt-0.5 size-4 shrink-0" />
+              <span className="min-w-0">
+                {[family.address, place].filter(Boolean).join(' · ')}
+              </span>
+            </p>
+          )}
+
+          {family.developer && (
+            <p className="mt-1 text-sm text-muted-foreground">
+              Promotor: <span className="font-medium">{family.developer}</span>
+            </p>
+          )}
+        </div>
+
+        <div className="shrink-0 lg:text-right">
+          {fromPrice !== null && (
+            <p className="mb-3">
+              <span className="block text-[0.625rem] tracking-widest text-muted-foreground uppercase">
+                Desde
+              </span>
+              <span className="tabular text-2xl leading-none font-normal tracking-tight">
+                {price(fromPrice)}
+              </span>
+            </p>
+          )}
+          <div className="flex flex-wrap gap-2 lg:justify-end">
+            <Button asChild>
+              <Link to={ROUTES.contact}>Me interesa</Link>
+            </Button>
+            {/*
+              Y un atajo a la primera unidad libre, que es donde se agenda la
+              visita: la cita se pide sobre un inmueble concreto, no sobre el
+              conjunto.
+            */}
+            {properties.length > 0 && (
+              <Button asChild variant="outline">
+                <Link to={propertyPath(properties[0])}>Agendar visita</Link>
+              </Button>
+            )}
+          </div>
+        </div>
       </header>
 
       {family.coverUrl && (
@@ -89,36 +162,29 @@ export function ProjectPage() {
         </div>
       )}
 
-      <dl className="mb-10 grid grid-cols-2 gap-4 rounded-lg border bg-secondary/40 p-5 sm:grid-cols-4">
-        <Stat
-          icon={Layers}
-          label="Tipologías"
-          value={unitTypes.length ? number(unitTypes.length) : '—'}
-        />
-        <Stat
-          icon={KeyRound}
-          label="Unidades libres"
-          value={available ? number(available) : '—'}
-        />
-        <Stat
-          icon={Building2}
-          label="Unidades totales"
-          value={family.totalUnits ? number(family.totalUnits) : '—'}
-        />
-        <Stat
-          icon={CalendarClock}
-          label="Entrega"
-          value={family.deliveryYear ? String(family.deliveryYear) : '—'}
-        />
-      </dl>
+      {/*
+        Las cifras, sin las que no dicen nada.
 
-      {fromPrice !== null && (
-        <p className="mb-10 text-sm text-muted-foreground">
-          Desde{' '}
-          <span className="tabular text-xl font-normal tracking-tight text-foreground">
-            {price(fromPrice)}
-          </span>
-        </p>
+        Estaban las cuatro siempre: en un proyecto de lotes salia "Tipologias 1",
+        "Unidades libres 10", "Unidades totales 10" y "Entrega —". Dos veces el
+        mismo numero y un guion. Se pinta lo que existe y lo que aporta.
+      */}
+      {cifras.length > 0 && (
+        <dl
+          className="mb-10 grid gap-4 rounded-lg border bg-secondary/40 p-5"
+          style={{
+            gridTemplateColumns: `repeat(${Math.min(cifras.length, 2)}, minmax(0, 1fr))`,
+          }}
+        >
+          {cifras.map((cifra) => (
+            <Stat
+              key={cifra.label}
+              icon={cifra.icon}
+              label={cifra.label}
+              value={cifra.value}
+            />
+          ))}
+        </dl>
       )}
 
       {/*
@@ -129,18 +195,23 @@ export function ProjectPage() {
         detras de dos bloques de texto que nadie lee antes de saber si el
         proyecto le encaja.
       */}
-      <section className="mb-10">
-        <h2 className="mb-3 text-xs font-bold tracking-widest uppercase">
-          Tipologías
-        </h2>
-        {unitTypes.length > 0 ? (
+      {/*
+        La tabla de tipologias solo si hay tipologias de verdad.
+
+        En Ruitoque salia una sola fila que decia "Sin clasificar · Lote /
+        Terreno · — alcobas": una tabla entera para no decir nada, y encima
+        repitiendo el rango de precio y de area que ya esta en la de unidades.
+        Si nadie ha clasificado las unidades, la tabla de abajo ya lo cuenta
+        todo, y mejor.
+      */}
+      {hayTipologias && (
+        <section className="mb-10">
+          <h2 className="mb-3 text-xs font-bold tracking-widest uppercase">
+            Tipologías
+          </h2>
           <UnitTypesTable unitTypes={unitTypes} />
-        ) : (
-          <p className="rounded-lg border border-dashed px-5 py-10 text-center text-sm text-muted-foreground">
-            Todavía no hay tipologías publicadas para este proyecto.
-          </p>
-        )}
-      </section>
+        </section>
+      )}
 
       {/*
         Y las zonas comunes debajo, que es lo segundo que se pregunta: si tiene
@@ -234,17 +305,43 @@ export function ProjectPage() {
  * seis columnas y en un movil de 320px no caben, pero lo que no puede pasar es
  * que empujen la pagina entera a lo ancho.
  */
+/**
+ * Las unidades del proyecto, en tabla.
+ *
+ * Con tarjetas parecian inmuebles distintos —misma foto, mismo titulo repetido
+ * diez veces— cuando son diez unidades del mismo sitio que solo se diferencian
+ * en metros, alcobas y precio. En columnas esa diferencia se compara de un
+ * vistazo, que es lo que se hace aqui.
+ *
+ * Las columnas vacias no se pintan: en un proyecto de lotes, "Alcobas" y
+ * "Baños" eran dos columnas enteras de guiones ocupando la mitad del ancho.
+ */
 function UnitsTable({ properties }: { properties: Property[] }) {
+  const hay = (campo: 'bedrooms' | 'bathrooms' | 'garages') =>
+    properties.some((property) => Number(property[campo]) > 0)
+
+  const columnas = [
+    { clave: 'bedrooms' as const, titulo: 'Alcobas' },
+    { clave: 'bathrooms' as const, titulo: 'Baños' },
+    { clave: 'garages' as const, titulo: 'Garajes' },
+  ].filter((columna) => hay(columna.clave))
+
   return (
     <div className="w-full min-w-0 overflow-x-auto rounded-lg border">
-      <table className="w-full min-w-[40rem] text-sm">
+      <table className="w-full min-w-[34rem] text-sm">
         <thead className="bg-secondary/60 text-xs tracking-wide uppercase">
           <tr>
             <th className="px-4 py-3 text-left font-semibold">Unidad</th>
             <th className="px-4 py-3 text-left font-semibold">Tipo</th>
             <th className="px-4 py-3 text-right font-semibold">Área</th>
-            <th className="px-4 py-3 text-right font-semibold">Alcobas</th>
-            <th className="px-4 py-3 text-right font-semibold">Baños</th>
+            {columnas.map((columna) => (
+              <th
+                key={columna.clave}
+                className="px-4 py-3 text-right font-semibold"
+              >
+                {columna.titulo}
+              </th>
+            ))}
             <th className="px-4 py-3 text-right font-semibold">Precio</th>
             <th className="px-4 py-3 text-right font-semibold">
               <span className="sr-only">Ver</span>
@@ -252,36 +349,43 @@ function UnitsTable({ properties }: { properties: Property[] }) {
           </tr>
         </thead>
         <tbody>
-          {properties.map((property) => (
-            <tr key={property.id} className="border-t hover:bg-secondary/40">
-              <td className="tabular px-4 py-3 font-medium">{property.code}</td>
-              <td className="px-4 py-3 text-muted-foreground">
-                {property.propertyType?.name ?? '—'}
-              </td>
-              <td className="tabular px-4 py-3 text-right whitespace-nowrap">
-                {property.builtArea ?? property.area
-                  ? fmtArea(property.builtArea ?? property.area)
-                  : '—'}
-              </td>
-              <td className="tabular px-4 py-3 text-right">
-                {property.bedrooms || '—'}
-              </td>
-              <td className="tabular px-4 py-3 text-right">
-                {property.bathrooms || '—'}
-              </td>
-              <td className="tabular px-4 py-3 text-right whitespace-nowrap">
-                {property.salePrice ? price(property.salePrice) : 'A consultar'}
-              </td>
-              <td className="px-4 py-3 text-right">
-                <Link
-                  to={propertyPath(property)}
-                  className="text-xs font-bold tracking-widest uppercase hover:underline"
-                >
-                  Ver
-                </Link>
-              </td>
-            </tr>
-          ))}
+          {properties.map((property) => {
+            const built = property.builtArea ?? property.area
+            return (
+              <tr key={property.id} className="border-t hover:bg-secondary/40">
+                <td className="tabular px-4 py-3 font-medium">
+                  {property.code}
+                </td>
+                <td className="px-4 py-3 text-muted-foreground">
+                  {property.propertyType?.name ?? '—'}
+                </td>
+                <td className="tabular px-4 py-3 text-right whitespace-nowrap">
+                  {built ? fmtArea(built) : '—'}
+                </td>
+                {columnas.map((columna) => (
+                  <td
+                    key={columna.clave}
+                    className="tabular px-4 py-3 text-right"
+                  >
+                    {property[columna.clave] || '—'}
+                  </td>
+                ))}
+                <td className="tabular px-4 py-3 text-right whitespace-nowrap">
+                  {property.salePrice
+                    ? price(property.salePrice)
+                    : 'A consultar'}
+                </td>
+                <td className="px-4 py-3 text-right">
+                  <Link
+                    to={propertyPath(property)}
+                    className="text-xs font-bold tracking-widest uppercase hover:underline"
+                  >
+                    Ver
+                  </Link>
+                </td>
+              </tr>
+            )
+          })}
         </tbody>
       </table>
     </div>
