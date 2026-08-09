@@ -451,7 +451,7 @@ const LARGO = new Intl.DateTimeFormat('es-CO', {
 
 const HORA = new Intl.DateTimeFormat('es-CO', {
   timeZone: COLOMBIA,
-  hour: '2-digit',
+  hour: 'numeric',
   minute: '2-digit',
 })
 
@@ -460,7 +460,7 @@ const CUANDO = new Intl.DateTimeFormat('es-CO', {
   weekday: 'long',
   day: 'numeric',
   month: 'long',
-  hour: '2-digit',
+  hour: 'numeric',
   minute: '2-digit',
 })
 
@@ -477,13 +477,13 @@ function largo(value: string): string {
 */
 function hora(iso: string): string {
   return HORA.format(new Date(iso))
-    .replace(/\s?a\.\s?m\./i, 'a.m.')
-    .replace(/\s?p\.\s?m\./i, 'p.m.')
+    .replace(/\s?a\.\s?m\./i, ' a.m.')
+    .replace(/\s?p\.\s?m\./i, ' p.m.')
     .replace(/^0/, '')
 }
 
 function cuando(iso: string): string {
   return CUANDO.format(new Date(iso))
-    .replace(/\s?a\.\s?m\./i, 'a.m.')
-    .replace(/\s?p\.\s?m\./i, 'p.m.')
+    .replace(/\s?a\.\s?m\./i, ' a.m.')
+    .replace(/\s?p\.\s?m\./i, ' p.m.')
 }
