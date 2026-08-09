@@ -60,7 +60,7 @@ export function ProjectsList() {
   useSeo({
     title: `Proyectos de vivienda nueva en Santander · ${SITE.name}`,
     description:
-      'Conjuntos y proyectos con unidades disponibles en Bucaramanga y su ' +
+      'Proyectos con unidades disponibles en Bucaramanga y su ' +
       'área metropolitana. Compara tipologías, áreas y precios desde.',
     canonical: SITE.url + ROUTES.projects,
   }, {
@@ -94,8 +94,9 @@ export function ProjectsList() {
         <div className="min-w-0">
           <SectionHeading
             as="h1"
-            light="Proyectos y"
-            strong="conjuntos"
+            size="sm"
+            light="Nuestros"
+            strong="proyectos"
             className="mb-2"
           />
           <p className="tabular text-sm text-muted-foreground">
@@ -106,7 +107,7 @@ export function ProjectsList() {
                 {Math.max(pages, 1)}
               </>
             ) : (
-              'Obra nueva, conjuntos cerrados y edificios de la agencia.'
+              'Obra nueva y edificios de la agencia.'
             )}
           </p>
         </div>

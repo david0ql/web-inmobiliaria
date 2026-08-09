@@ -1,9 +1,14 @@
-import { Building2, CalendarClock, KeyRound, Layers, MapPin } from 'lucide-react'
+import {
+  Building2,
+  CalendarClock,
+  Check,
+  KeyRound,
+  Layers,
+  MapPin,
+} from 'lucide-react'
 import type { LoaderFunctionArgs } from 'react-router-dom'
 import { Link, useLoaderData } from 'react-router-dom'
 
-import { SectionHeading } from '@/components/common/section-heading'
-import { PropertyGrid } from '@/components/property/property-grid'
 import { Badge } from '@/components/ui/misc'
 import { Button } from '@/components/ui/button'
 import { area as fmtArea, number, price } from '@/lib/format'
@@ -16,7 +21,9 @@ import {
   type ProjectDetail,
   type UnitTypeSummary,
 } from '@/lib/projects'
+import { propertyPath } from '@/lib/slug'
 import { ROUTES } from '@/lib/site'
+import type { Property } from '@/lib/types'
 
 export async function loader({
   params,
@@ -25,7 +32,8 @@ export async function loader({
 }
 
 export function ProjectPage() {
-  const { family, unitTypes, properties } = useLoaderData() as ProjectDetail
+  const { family, unitTypes, properties, amenities } =
+    useLoaderData() as ProjectDetail
 
   const place = [family.zone?.name, family.city?.name, family.city?.region?.name]
     .filter(Boolean)
@@ -115,6 +123,54 @@ export function ProjectPage() {
         </p>
       )}
 
+      {/*
+        Las tipologias, arriba del todo.
+
+        Es lo que se viene a ver: cuantas formas hay, de que tamaño y a que
+        precio. Estaban detras de la descripcion y de las etapas, es decir,
+        detras de dos bloques de texto que nadie lee antes de saber si el
+        proyecto le encaja.
+      */}
+      <section className="mb-10">
+        <h2 className="mb-3 text-xs font-bold tracking-widest uppercase">
+          Tipologías
+        </h2>
+        {unitTypes.length > 0 ? (
+          <UnitTypesTable unitTypes={unitTypes} />
+        ) : (
+          <p className="rounded-lg border border-dashed px-5 py-10 text-center text-sm text-muted-foreground">
+            Todavía no hay tipologías publicadas para este proyecto.
+          </p>
+        )}
+      </section>
+
+      {/*
+        Y las zonas comunes debajo, que es lo segundo que se pregunta: si tiene
+        piscina, si hay salon, si hay vigilancia.
+
+        No salen de una tabla propia: son las caracteristicas EXTERNAS que
+        comparten las unidades, que es lo mismo dicho de otra manera. Ver
+        `amenidades()` en la API.
+      */}
+      {amenities.length > 0 && (
+        <section className="mb-10">
+          <h2 className="mb-3 text-xs font-bold tracking-widest uppercase">
+            Zonas comunes
+          </h2>
+          <ul className="grid grid-cols-2 gap-x-4 gap-y-2.5 text-sm sm:grid-cols-3 lg:grid-cols-4">
+            {amenities.map((amenity) => (
+              <li key={amenity.id} className="flex min-w-0 items-center gap-2">
+                <Check
+                  className="size-4 shrink-0 text-muted-foreground"
+                  aria-hidden="true"
+                />
+                <span className="truncate">{amenity.name}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       {family.description && (
         <section className="mb-10">
           <h2 className="mb-3 text-xs font-bold tracking-widest uppercase">
@@ -143,34 +199,30 @@ export function ProjectPage() {
         </section>
       )}
 
-      <section className="mb-12">
-        <h2 className="mb-3 text-xs font-bold tracking-widest uppercase">
-          Tipologías
-        </h2>
-        {unitTypes.length > 0 ? (
-          <UnitTypesTable unitTypes={unitTypes} />
-        ) : (
-          <p className="rounded-lg border border-dashed px-5 py-10 text-center text-sm text-muted-foreground">
-            Todavía no hay tipologías publicadas para este proyecto.
-          </p>
-        )}
-      </section>
+      {/*
+        Las unidades, en tabla y no en tarjetas.
 
+        Con tarjetas parecian siete inmuebles distintos —misma foto, mismo
+        titulo repetido siete veces, "APARTAMENTO EN VENTA EN BOSQUES DEL
+        HATO"— cuando en realidad son siete apartamentos del mismo conjunto que
+        solo se distinguen por metros, alcobas y precio. En una tabla esa
+        diferencia esta en columnas y se compara de un vistazo, que es lo que
+        de verdad se hace aqui.
+      */}
       <section>
-        <SectionHeading light="Unidades" strong="disponibles" />
+        <h2 className="mb-3 text-xs font-bold tracking-widest uppercase">
+          Unidades disponibles
+        </h2>
         {properties.length > 0 ? (
-          <PropertyGrid properties={properties} />
+          <UnitsTable properties={properties} />
         ) : (
           <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed px-5 py-16 text-center">
             <KeyRound className="size-8 text-muted-foreground" />
-            <p className="font-medium">No queda ninguna unidad disponible</p>
-            <p className="max-w-md text-sm text-muted-foreground">
-              Las unidades de este proyecto están vendidas o reservadas.
-              Escríbenos y te avisamos si se libera alguna, o mira el resto del
-              inventario.
+            <p className="text-sm text-muted-foreground">
+              Ahora mismo no hay unidades disponibles en este proyecto.
             </p>
-            <Button asChild variant="outline">
-              <Link to={ROUTES.sales}>Ver inmuebles en venta</Link>
+            <Button asChild variant="outline" size="sm">
+              <Link to={ROUTES.sales}>Ver otros inmuebles</Link>
             </Button>
           </div>
         )}
@@ -184,6 +236,60 @@ export function ProjectPage() {
  * seis columnas y en un movil de 320px no caben, pero lo que no puede pasar es
  * que empujen la pagina entera a lo ancho.
  */
+function UnitsTable({ properties }: { properties: Property[] }) {
+  return (
+    <div className="w-full min-w-0 overflow-x-auto rounded-lg border">
+      <table className="w-full min-w-[40rem] text-sm">
+        <thead className="bg-secondary/60 text-xs tracking-wide uppercase">
+          <tr>
+            <th className="px-4 py-3 text-left font-semibold">Unidad</th>
+            <th className="px-4 py-3 text-left font-semibold">Tipo</th>
+            <th className="px-4 py-3 text-right font-semibold">Área</th>
+            <th className="px-4 py-3 text-right font-semibold">Alcobas</th>
+            <th className="px-4 py-3 text-right font-semibold">Baños</th>
+            <th className="px-4 py-3 text-right font-semibold">Precio</th>
+            <th className="px-4 py-3 text-right font-semibold">
+              <span className="sr-only">Ver</span>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {properties.map((property) => (
+            <tr key={property.id} className="border-t hover:bg-secondary/40">
+              <td className="tabular px-4 py-3 font-medium">{property.code}</td>
+              <td className="px-4 py-3 text-muted-foreground">
+                {property.propertyType?.name ?? '—'}
+              </td>
+              <td className="tabular px-4 py-3 text-right whitespace-nowrap">
+                {property.builtArea ?? property.area
+                  ? fmtArea(property.builtArea ?? property.area)
+                  : '—'}
+              </td>
+              <td className="tabular px-4 py-3 text-right">
+                {property.bedrooms || '—'}
+              </td>
+              <td className="tabular px-4 py-3 text-right">
+                {property.bathrooms || '—'}
+              </td>
+              <td className="tabular px-4 py-3 text-right whitespace-nowrap">
+                {property.salePrice ? price(property.salePrice) : 'A consultar'}
+              </td>
+              <td className="px-4 py-3 text-right">
+                <Link
+                  to={propertyPath(property)}
+                  className="text-xs font-bold tracking-widest uppercase hover:underline"
+                >
+                  Ver
+                </Link>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
 function UnitTypesTable({ unitTypes }: { unitTypes: UnitTypeSummary[] }) {
   return (
     <div className="w-full min-w-0 overflow-x-auto rounded-lg border">

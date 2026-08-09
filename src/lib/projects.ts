@@ -68,6 +68,8 @@ export interface ProjectDetail {
   family: ProjectFamily
   unitTypes: UnitTypeSummary[]
   properties: Property[]
+  /** Zonas comunes: lo que comparten las unidades del proyecto. */
+  amenities: { id: number; name: string }[]
 }
 
 // --- etiquetas del dominio, en castellano ---------------------------------
