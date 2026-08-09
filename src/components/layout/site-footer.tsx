@@ -1,4 +1,4 @@
-import { ArrowRight, Mail, MapPin, Phone } from 'lucide-react'
+import { Mail, MapPin, Phone } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 import { CreditButton } from '@/components/credit/credit-button'
@@ -13,14 +13,18 @@ import { PANEL_URL, ROUTES, SITE } from '@/lib/site'
  * tu inmueble", que es donde la gente la busca, y repetir la navegacion abajo no
  * aportaba nada en un sitio de cinco pantallas.
  */
-/** Lo mismo que ofrece la cabecera, para quien llega abajo. */
-const NAVEGACION = [
-  { to: ROUTES.home, label: 'Inicio' },
-  { to: ROUTES.sales, label: 'Inmuebles en venta' },
+/**
+ * Los seis sitios a los que se llega desde el pie.
+ *
+ * No es el menu repetido: "Inicio" y "Busqueda avanzada" no pintan nada aqui
+ * —quien esta en el pie viene de recorrer la portada— y "Mi cuenta" ya vive en
+ * la cabecera, que es donde se busca.
+ */
+const INFORMACION = [
   { to: ROUTES.projects, label: 'Proyectos' },
-  { to: ROUTES.search, label: 'Búsqueda avanzada' },
+  { to: ROUTES.sales, label: 'Ventas' },
   { to: ROUTES.contact, label: 'Contáctenos' },
-  { to: ROUTES.account, label: 'Mi cuenta' },
+  { to: ROUTES.privacy, label: 'Políticas de privacidad' },
 ]
 
 export function SiteFooter() {
@@ -57,13 +61,6 @@ export function SiteFooter() {
               <span className="truncate">{SITE.email}</span>
             </a>
           </address>
-          <Link
-            to={ROUTES.contact}
-            className="mt-4 inline-block text-sm font-medium hover:underline"
-          >
-            Ir a Contáctenos
-            <ArrowRight className="ml-1 inline size-3.5" aria-hidden="true" />
-          </Link>
         </section>
 
         {/*
@@ -78,20 +75,27 @@ export function SiteFooter() {
           en escritorio, donde la columna ya es estrecha.
         */}
         <section className="sm:col-span-2 lg:col-span-1">
-          <FooterHeading>Navegación</FooterHeading>
+          <FooterHeading>Información</FooterHeading>
           <nav aria-label="Enlaces del sitio">
             <ul className="grid grid-cols-2 gap-x-6 gap-y-2.5 text-sm lg:grid-cols-1">
-              {NAVEGACION.map((item) => (
-                <li key={item.to}>
-                  <Link to={item.to} className="hover:underline">
-                    {item.label}
-                  </Link>
-                </li>
-              ))}
+              <li>
+                <Link to={ROUTES.projects} className="hover:underline">
+                  Proyectos
+                </Link>
+              </li>
               <li>
                 {/* Créditos no es una página: es el modal que abre el menú. */}
                 <CreditButton className="h-auto p-0 text-sm font-normal tracking-normal normal-case hover:underline" />
               </li>
+              {INFORMACION.filter((item) => item.to !== ROUTES.projects).map(
+                (item) => (
+                  <li key={item.to}>
+                    <Link to={item.to} className="hover:underline">
+                      {item.label}
+                    </Link>
+                  </li>
+                ),
+              )}
             </ul>
           </nav>
         </section>

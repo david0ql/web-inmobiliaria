@@ -1,17 +1,16 @@
 import { Suspense, use } from 'react'
-import { Link, useLoaderData } from 'react-router-dom'
+import { useLoaderData } from 'react-router-dom'
 
 import { SectionHeading } from '@/components/common/section-heading'
 import { MapSection } from '@/components/property/map-section'
 import { PropertyGridSkeleton } from '@/components/property/property-grid'
 import { AdvancedSearch } from '@/components/search/advanced-search'
-import { Button } from '@/components/ui/button'
 import {
   breadcrumbJsonLd,
   organizationJsonLd,
   websiteJsonLd,
 } from '@/lib/seo'
-import { ROUTES, SITE } from '@/lib/site'
+import { SITE } from '@/lib/site'
 import { useSeo } from '@/lib/use-seo'
 import { ProjectCard } from '@/components/project/project-card'
 import { RecentCarousel } from '@/components/property/recent-carousel'
@@ -86,11 +85,6 @@ function ProjectsSection({ promise }: { promise: Promise<ProjectSummary[]> }) {
           <ProjectCard key={project.id} project={project} />
         ))}
       </div>
-      <div className="mt-6 flex justify-center">
-        <Button asChild variant="outline">
-          <Link to={ROUTES.projects}>Ver todos los proyectos</Link>
-        </Button>
-      </div>
     </section>
   )
 }
@@ -103,11 +97,6 @@ function ShowcaseSection({ promise }: { promise: Promise<Showcase> }) {
     <section className="container-site mb-14">
       <SectionHeading size="sm" light="Últimos" strong="inmuebles" />
       <RecentCarousel promise={promise} />
-      <div className="mt-6 flex justify-center">
-        <Button asChild variant="outline">
-          <Link to={ROUTES.sales}>Ver todos los inmuebles</Link>
-        </Button>
-      </div>
     </section>
   )
 }

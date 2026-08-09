@@ -27,6 +27,7 @@ import {
   type Showcase,
 } from '@/lib/api'
 import {
+  getHomeProjects,
   getProject,
   listProjects,
   type ProjectSummary,
@@ -76,7 +77,7 @@ export function homeLoader(): HomeData {
     Los proyectos si son otra cosa: conjuntos con varias unidades.
   */
   return {
-    projects: listProjects({ limit: 6 }).then((page) => page.data),
+    projects: getHomeProjects(),
     // Que inmuebles salen, cuantos y como se mueven lo decide la agencia desde
     // el panel; la API lo resuelve y aqui solo se pinta.
     showcase: getShowcase(),

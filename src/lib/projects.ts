@@ -198,6 +198,17 @@ export async function listProjects(
   )
 }
 
+/**
+ * Los proyectos de la portada.
+ *
+ * Endpoint propio y no `listProjects`: este rota —otros proyectos en cada
+ * visita— sirviendo de un grupo que la API guarda en memoria, asi que cambia
+ * sin consultar la base en cada carga.
+ */
+export function getHomeProjects(signal?: AbortSignal) {
+  return api.get<ProjectSummary[]>('/public/home/projects', undefined, signal)
+}
+
 export function getProject(slug: string, signal?: AbortSignal) {
   return api.get<ProjectDetail>(
     `/public/projects/${encodeURIComponent(slug)}`,
