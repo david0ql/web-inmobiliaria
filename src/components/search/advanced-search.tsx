@@ -225,13 +225,18 @@ function AdvancedSearchForm({ initial }: { initial?: Filters }) {
         <Select
           value={filters.zoneId || ANY}
           onValueChange={(value) => set('zoneId', value === ANY ? '' : value)}
-          disabled={opciones.zones.length === 0}
+          /*
+            El barrio pide ciudad primero. Sin ella la lista son los 139 barrios
+            de once municipios, muchos con el mismo nombre en dos sitios
+            distintos: elegir ahi es adivinar. Con la ciudad puesta son
+            veintitantos y cada uno significa algo.
+          */
+          disabled={!filters.cityId || opciones.zones.length === 0}
         >
           <SelectTrigger className={CONTROL} aria-label="Zona / barrio">
-            {/* Ya no dice "Elige ciudad": con las cuentas por delante, los
-                barrios se pueden elegir sueltos y la lista se acorta sola en
-                cuanto se marca una ciudad. */}
-            <SelectValue placeholder="Todos" />
+            <SelectValue
+              placeholder={filters.cityId ? 'Todos' : 'Elige ciudad'}
+            />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value={ANY}>Todos</SelectItem>
