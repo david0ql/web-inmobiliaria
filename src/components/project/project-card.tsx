@@ -114,27 +114,34 @@ export function ProjectCard({ project }: { project: ProjectSummary }) {
         )}
       </div>
 
-      <div className="border-t px-4 py-3">
-        {project.fromPrice ? (
-          <p className="tabular text-xl leading-none font-normal tracking-tight">
-            <small className="mr-1 text-[0.625rem] tracking-widest text-muted-foreground uppercase">
-              Desde
-            </small>
-            {price(project.fromPrice)}
-          </p>
-        ) : (
-          <p className="text-sm leading-none text-muted-foreground">
-            Precio a consultar
-          </p>
-        )}
+      {/*
+        El precio y el boton en la misma fila, como en la tarjeta de inmueble.
+        "Ver proyecto" se llevaba una franja entera para el solo debajo del
+        precio: dos tarjetas que van una al lado de la otra en la portada no
+        pueden terminar de dos maneras distintas.
+      */}
+      <div className="mt-auto flex items-stretch border-t">
+        <p className="flex-1 px-4 py-3">
+          {project.fromPrice ? (
+            <span className="tabular text-xl leading-none font-normal tracking-tight">
+              <small className="mr-1 text-[0.625rem] tracking-widest text-muted-foreground uppercase">
+                Desde
+              </small>
+              {price(project.fromPrice)}
+            </span>
+          ) : (
+            <span className="text-sm leading-none text-muted-foreground">
+              Precio a consultar
+            </span>
+          )}
+        </p>
+        <Link
+          to={to}
+          className="flex shrink-0 items-center border-l bg-primary px-5 text-xs font-bold tracking-widest text-primary-foreground uppercase transition-opacity hover:opacity-90"
+        >
+          Detalle
+        </Link>
       </div>
-
-      <Link
-        to={to}
-        className="border-t bg-primary py-3 text-center text-xs font-bold tracking-widest text-primary-foreground uppercase transition-opacity hover:opacity-90"
-      >
-        Ver proyecto
-      </Link>
     </article>
   )
 }
