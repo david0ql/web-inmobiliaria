@@ -5,7 +5,7 @@ import {
   Loader2,
   Pencil,
 } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
@@ -118,6 +118,19 @@ export function VisitForm({ property }: { property: Property }) {
     // Si el mes que se está mirando no tiene nada, se salta al primero que sí.
     if (meses.length && !meses.includes(mes)) setMes(meses[0])
   }, [meses, mes])
+
+  /*
+    Elegida la hora, el cursor salta al primer campo.
+
+    Sin esto hay que buscarlo: el calendario se recoge, aparecen cinco campos
+    de golpe y la columna se ha reordenado entera debajo del punto donde se
+    acaba de pulsar. El foco lo trae a la vista y ademas deja escribir sin
+    tocar el raton.
+  */
+  const primerCampo = useRef<HTMLInputElement | null>(null)
+  useEffect(() => {
+    if (startsAt) primerCampo.current?.focus({ preventScroll: false })
+  }, [startsAt])
 
   const elegirDia = (value: string) => {
     setDate(value)
@@ -232,7 +245,12 @@ export function VisitForm({ property }: { property: Property }) {
       */}
       {startsAt && (
         <>
-          <Field form={form} name="firstName" label="Nombres" />
+          <Field
+            form={form}
+            name="firstName"
+            label="Nombres"
+            innerRef={primerCampo}
+          />
           <Field form={form} name="lastName" label="Apellidos (opcional)" />
           <Field
             form={form}
@@ -394,14 +412,19 @@ function Field({
   form,
   name,
   label,
+  innerRef,
   ...props
 }: {
   form: ReturnType<typeof useForm<VisitValues>>
   name: keyof VisitValues
   label: string
+  innerRef?: React.MutableRefObject<HTMLInputElement | null>
   /* `form` es tambien un atributo nativo del input, asi que se descarta. */
 } & Omit<React.ComponentProps<'input'>, 'form' | 'name'>) {
   const error = form.formState.errors[name]
+  // `register` trae su propia `ref` y hay que conservarla: si se pisa, el
+  // formulario deja de ver el campo.
+  const { ref, ...registro } = form.register(name)
   return (
     <div className="grid gap-1.5">
       <Label htmlFor={`visit-${name}`}>{label}</Label>
@@ -409,7 +432,11 @@ function Field({
         id={`visit-${name}`}
         aria-invalid={error ? true : undefined}
         {...props}
-        {...form.register(name)}
+        {...registro}
+        ref={(node) => {
+          ref(node)
+          if (innerRef) innerRef.current = node
+        }}
       />
       {error && (
         <p className="text-xs text-destructive">{error.message as string}</p>
