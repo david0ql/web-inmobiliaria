@@ -173,9 +173,10 @@ export function VisitForm({ property }: { property: Property }) {
             <span className="block text-[0.625rem] tracking-widest text-muted-foreground uppercase">
               Tu visita
             </span>
-            <span className="block truncate text-sm font-medium">
-              {cuando(startsAt)}
-            </span>
+            {/* Sin `truncate`: en la columna del asesor son 280 px y "lunes,
+                10 de agosto, 8:00 a.m." se cortaba en "lunes, 10 de ag…", que
+                es justo esconder el dato que se quiere confirmar. */}
+            <span className="block text-sm font-medium">{cuando(startsAt)}</span>
           </span>
           <span className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
             <Pencil className="size-3.5" aria-hidden="true" />
@@ -457,9 +458,9 @@ const HORA = new Intl.DateTimeFormat('es-CO', {
 
 const CUANDO = new Intl.DateTimeFormat('es-CO', {
   timeZone: COLOMBIA,
-  weekday: 'long',
+  weekday: 'short',
   day: 'numeric',
-  month: 'long',
+  month: 'short',
   hour: 'numeric',
   minute: '2-digit',
 })
