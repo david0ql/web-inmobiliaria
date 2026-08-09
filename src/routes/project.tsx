@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react'
 import type { LoaderFunctionArgs } from 'react-router-dom'
 import { Link, useLoaderData } from 'react-router-dom'
 
+import { Lightbox } from '@/components/common/lightbox'
 import { UnitPhotos } from '@/components/project/unit-photos'
 import { AgentPanel } from '@/components/property/agent-panel'
 import { PropertyMap } from '@/components/property/property-map'
@@ -50,6 +51,7 @@ export async function loader({
 export function ProjectPage() {
   const { family, properties, amenities } = useLoaderData() as ProjectDetail
   const [selectedId, setSelectedId] = useState(properties[0]?.id ?? '')
+  const [portadaAbierta, setPortadaAbierta] = useState(false)
 
   const selected = useMemo(
     () => properties.find((p) => p.id === selectedId) ?? properties[0],
@@ -120,13 +122,41 @@ export function ProjectPage() {
       <div className="grid gap-8 lg:grid-cols-12">
         <div className="flex min-w-0 flex-col gap-8 lg:col-span-8 xl:col-span-9">
           {portada && (
-            <div className="overflow-hidden rounded-lg border bg-secondary">
-              <img
-                src={portada}
-                alt={family.name}
-                className="h-[240px] w-full object-cover sm:h-[340px] lg:h-[420px]"
+            <>
+              {/* La portada tambien se amplia: esta recortada a 420 px de alto
+                  y es la unica foto del conjunto entero. */}
+              <button
+                type="button"
+                onClick={() => setPortadaAbierta(true)}
+                aria-label={`Ampliar la foto de ${family.name}`}
+                className="block cursor-zoom-in overflow-hidden rounded-lg border bg-secondary"
+              >
+                <img
+                  src={portada}
+                  alt={family.name}
+                  className="h-[240px] w-full object-cover sm:h-[340px] lg:h-[420px]"
+                />
+              </button>
+              <Lightbox
+                images={[
+                  {
+                    id: 'portada',
+                    url: portada,
+                    urlMedium: portada,
+                    urlLarge: portada,
+                    urlOriginal: portada,
+                    description: family.name,
+                    position: 1,
+                    isMain: true,
+                    width: null,
+                    height: null,
+                  },
+                ]}
+                index={portadaAbierta ? 0 : null}
+                onIndex={(i) => setPortadaAbierta(i !== null)}
+                title={family.name}
               />
-            </div>
+            </>
           )}
 
           {selected ? (

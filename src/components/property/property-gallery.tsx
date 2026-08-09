@@ -2,6 +2,7 @@ import useEmblaCarousel from 'embla-carousel-react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 
+import { Lightbox } from '@/components/common/lightbox'
 import { Badge } from '@/components/ui/misc'
 import { AVAILABILITY_COLOR, AVAILABILITY_LABEL } from '@/lib/format'
 import type { Availability, PropertyImage } from '@/lib/types'
@@ -41,6 +42,8 @@ export function PropertyGallery({
     la anterior y la siguiente. Lo demas llega al deslizar.
   */
   const [cargadas, setCargadas] = useState(() => new Set([0, 1]))
+  /** Que foto se esta viendo a pantalla completa, o `null`. */
+  const [ampliada, setAmpliada] = useState<number | null>(null)
 
   const onSelect = useCallback(() => {
     if (!embla) return
@@ -96,6 +99,19 @@ export function PropertyGallery({
                     aria-hidden="true"
                   />
                 ) : (
+                  /*
+                    La foto se pulsa para verla entera. En una ficha de inmueble
+                    es lo primero que hace cualquiera: la del carrusel esta
+                    recortada a 480 px de alto y muchas veces lo que se quiere
+                    mirar —el fondo de la sala, la vista— esta justo en el
+                    recorte.
+                  */
+                  <button
+                    type="button"
+                    onClick={() => setAmpliada(index)}
+                    aria-label={`Ampliar foto ${index + 1} de ${images.length}`}
+                    className="block w-full cursor-zoom-in"
+                  >
                   <img
                     src={image.urlLarge}
                     srcSet={[
@@ -114,6 +130,7 @@ export function PropertyGallery({
                     decoding="async"
                     className="h-[320px] w-full object-cover sm:h-[480px]"
                   />
+                  </button>
                 )}
               </div>
             ))}
@@ -141,6 +158,13 @@ export function PropertyGallery({
           </>
         )}
       </div>
+
+      <Lightbox
+        images={images}
+        index={ampliada}
+        onIndex={setAmpliada}
+        title={title}
+      />
 
       {images.length > 1 && (
         <div ref={thumbsViewport} className="w-full overflow-hidden">
