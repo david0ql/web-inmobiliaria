@@ -105,7 +105,7 @@ function ShowcaseSection({ promise }: { promise: Promise<Showcase> }) {
       <RecentCarousel promise={promise} />
       <div className="mt-6 flex justify-center">
         <Button asChild variant="outline">
-          <Link to={ROUTES.sales}>Ver todo el inventario</Link>
+          <Link to={ROUTES.sales}>Ver todos los inmuebles</Link>
         </Button>
       </div>
     </section>

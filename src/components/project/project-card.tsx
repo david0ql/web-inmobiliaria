@@ -79,32 +79,7 @@ export function ProjectCard({ project }: { project: ProjectSummary }) {
         </div>
       </figure>
 
-      <div className="grid grid-cols-2 gap-x-3 gap-y-2 border-b bg-secondary/50 px-4 py-3 text-xs">
-        <Spec
-          icon={Layers}
-          value={
-            project.unitTypeCount
-              ? `${project.unitTypeCount} ${project.unitTypeCount === 1 ? 'tipología' : 'tipologías'}`
-              : null
-          }
-        />
-        <Spec
-          icon={KeyRound}
-          value={
-            project.availableUnits
-              ? `${project.availableUnits} ${project.availableUnits === 1 ? 'unidad' : 'unidades'}`
-              : null
-          }
-        />
-        <Spec
-          icon={CalendarClock}
-          value={project.deliveryYear ? `Entrega ${project.deliveryYear}` : null}
-        />
-        <Spec
-          icon={Building2}
-          value={project.totalUnits ? `${project.totalUnits} en total` : null}
-        />
-      </div>
+      <Specs project={project} />
 
       <div className="flex flex-1 flex-col gap-2 p-4">
         <p className="truncate text-xs tracking-wide text-muted-foreground uppercase">
@@ -148,18 +123,69 @@ export function ProjectCard({ project }: { project: ProjectSummary }) {
   )
 }
 
-function Spec({
-  icon: Icon,
-  value,
-}: {
-  icon: typeof Layers
-  value: string | null
-}) {
-  if (!value) return null
+/**
+ * Las cifras del proyecto, en una sola fila.
+ *
+ * Estaban en dos por dos y cada casilla decia la cifra y la palabra seguidas
+ * —"1 tipología", "10 en total"—, que en una tarjeta de 340 px obligaba a
+ * partir el texto. Aqui el numero va grande y la palabra debajo, pequena: se
+ * lee de un vistazo, cabe entero y las columnas quedan repartidas a partes
+ * iguales.
+ *
+ * Las columnas se cuentan en tiempo de ejecucion porque no todos los proyectos
+ * traen las cuatro cifras —la fecha de entrega falta a menudo— y tres columnas
+ * repartidas se ven bien; tres columnas y un hueco, no. Va en `style` y no en
+ * una clase porque Tailwind no puede generar una clase que se decide al vuelo.
+ */
+function Specs({ project }: { project: ProjectSummary }) {
+  const cifras = [
+    project.unitTypeCount && {
+      icon: Layers,
+      valor: project.unitTypeCount,
+      etiqueta: project.unitTypeCount === 1 ? 'tipología' : 'tipologías',
+    },
+    project.availableUnits && {
+      icon: KeyRound,
+      valor: project.availableUnits,
+      etiqueta: project.availableUnits === 1 ? 'disponible' : 'disponibles',
+    },
+    project.totalUnits && {
+      icon: Building2,
+      valor: project.totalUnits,
+      etiqueta: 'en total',
+    },
+    project.deliveryYear && {
+      icon: CalendarClock,
+      valor: project.deliveryYear,
+      etiqueta: 'entrega',
+    },
+  ].filter(Boolean) as {
+    icon: typeof Layers
+    valor: number
+    etiqueta: string
+  }[]
+
+  if (!cifras.length) return null
+
   return (
-    <div className="flex min-w-0 items-center gap-1.5 text-muted-foreground">
-      <Icon className="size-3.5 shrink-0" />
-      <span className="tabular truncate text-foreground">{value}</span>
+    <div
+      className="grid divide-x border-b bg-secondary/50"
+      style={{ gridTemplateColumns: `repeat(${cifras.length}, minmax(0, 1fr))` }}
+    >
+      {cifras.map((cifra) => (
+        <div
+          key={cifra.etiqueta}
+          className="flex min-w-0 flex-col items-center gap-0.5 px-1 py-2.5"
+        >
+          <cifra.icon className="size-3.5 shrink-0 text-muted-foreground" />
+          <span className="tabular text-sm leading-none font-semibold">
+            {cifra.valor}
+          </span>
+          <span className="w-full truncate text-center text-[10px] leading-none text-muted-foreground">
+            {cifra.etiqueta}
+          </span>
+        </div>
+      ))}
     </div>
   )
 }
