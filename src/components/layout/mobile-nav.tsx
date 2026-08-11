@@ -1,5 +1,5 @@
 import { LogIn, Mail, Phone } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Link } from '@/lib/nav'
 
 import { AccountButton } from '@/components/layout/account-button'
 import { CreditButton } from '@/components/credit/credit-button'

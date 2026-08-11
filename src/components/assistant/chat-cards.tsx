@@ -1,5 +1,5 @@
 import { Bath, BedDouble, Car, CalendarCheck, Ruler } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Link } from '@/lib/nav'
 
 import type { AssistantCard, PropertyCardView } from '@/lib/assistant'
 import { useCurrency } from '@/lib/currency'

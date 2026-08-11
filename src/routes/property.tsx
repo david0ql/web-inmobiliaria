@@ -1,6 +1,7 @@
 import { ArrowRight, MapPin, Share2, Video } from 'lucide-react'
 import { Suspense, use, useEffect } from 'react'
-import { Await, Link, useLoaderData, useParams } from 'react-router-dom'
+import { Await, useLoaderData, useParams } from 'react-router-dom'
+import { Link } from '@/lib/nav'
 import { toast } from 'sonner'
 
 import { SectionHeading } from '@/components/common/section-heading'
@@ -20,7 +21,7 @@ import { registerVisit } from '@/lib/api'
 import { breadcrumbJsonLd, propertyJsonLd } from '@/lib/seo'
 import { ROUTES, SITE } from '@/lib/site'
 import { useCatalogo } from '@/lib/catalog-i18n'
-import { useT } from '@/lib/i18n'
+import { useIdioma, useT } from '@/lib/i18n'
 import { useCurrency } from '@/lib/currency'
 import { propertyPath } from '@/lib/slug'
 import { useSeo } from '@/lib/use-seo'
@@ -85,8 +86,12 @@ function PropertySkeleton({ code }: { code?: string }) {
 function Detail({ data }: { data: PropertyData }) {
   const { precio, moneda } = useCurrency()
   const { tipo, titulo } = useCatalogo()
+  const { idioma } = useIdioma()
   const t = useT()
   const property = use(data.property)
+  const observaciones = (
+    idioma === 'en' ? property.observationsEn : property.observations
+  )?.trim()
   const siblings = data.siblings
   const amount = property.salePrice ?? property.rentPrice
 
@@ -260,9 +265,16 @@ function Detail({ data }: { data: PropertyData }) {
             <p className="text-sm leading-relaxed text-muted-foreground">
               {autoDescription(property, t)}
             </p>
-            {property.observations?.trim() && (
+            {/*
+              La del asesor solo si esta en el idioma que se esta leyendo. En
+              ingles sin traducir no se enseña nada: es texto libre de una
+              ficha concreta —no cabe en un diccionario de claves— y poner el
+              español seria justo lo que se quiere evitar. Los datos ya los
+              cuenta la descripcion automatica de arriba.
+            */}
+            {observaciones && (
               <p className="mt-3 text-sm leading-relaxed whitespace-pre-line">
-                {property.observations.trim()}
+                {observaciones}
               </p>
             )}
           </section>

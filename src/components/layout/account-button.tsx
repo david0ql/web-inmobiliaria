@@ -1,5 +1,5 @@
 import { LogIn, UserRound } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Link } from '@/lib/nav'
 
 import { Button } from '@/components/ui/button'
 import { useT } from '@/lib/i18n'

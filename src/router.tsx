@@ -33,14 +33,7 @@ import {
  */
 const errorElement = <ErrorState />
 
-export const router = createBrowserRouter([
-  {
-    id: 'root',
-    path: '/',
-    element: <Root />,
-    loader: rootLoader,
-    errorElement,
-    children: [
+const PANTALLAS = [
       {
         index: true,
         loader: homeLoader,
@@ -133,6 +126,29 @@ export const router = createBrowserRouter([
         path: '*',
         element: <Navigate to={ROUTES.home} replace />,
       },
-    ],
-  },
+]
+
+/*
+  Las dos ramas del sitio: el español en la raiz y el ingles bajo `/en`.
+
+  El idioma va en la URL y no solo en el navegador porque si no, para un
+  buscador la version inglesa no existe: hay una sola direccion que a veces
+  responde en un idioma y a veces en otro, y eso no se puede indexar, ni
+  enlazar, ni compartir. Con dos rutas hay dos paginas que se declaran
+  hermanas con `hreflang` y cada una posiciona en su idioma.
+
+  El español se queda en la raiz —es el mercado principal y son las URLs que
+  ya estan indexadas— y el ingles cuelga de un prefijo, que es lo que hace todo
+  el mundo y lo que Google documenta.
+*/
+const RAMA = {
+  element: <Root />,
+  loader: rootLoader,
+  errorElement,
+  children: PANTALLAS,
+}
+
+export const router = createBrowserRouter([
+  { id: 'root', path: '/', ...RAMA },
+  { id: 'root-en', path: '/en', ...RAMA },
 ])

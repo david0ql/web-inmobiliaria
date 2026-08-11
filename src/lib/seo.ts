@@ -61,7 +61,33 @@ export function applyMeta(meta: Meta) {
   upsert('meta[property="og:url"]', { property: 'og:url', content: meta.canonical })
   upsert('meta[property="og:type"]', { property: 'og:type', content: meta.type ?? 'website' })
   upsert('meta[property="og:image"]', { property: 'og:image', content: image })
-  upsert('meta[property="og:locale"]', { property: 'og:locale', content: 'es_CO' })
+  /*
+    Las dos versiones se declaran hermanas.
+
+    Sin `hreflang`, un buscador ve dos paginas casi iguales y elige una —o las
+    penaliza por duplicadas—; con el, sabe que son la misma en dos idiomas y
+    enseña la que le toca a cada quien. `x-default` es a donde manda a quien no
+    encaja en ninguno de los dos.
+  */
+  const ruta = new URL(meta.canonical, SITE.url).pathname
+  const enEs = SITE.url + rutaSinIdioma(ruta)
+  const enEn = SITE.url + rutaConIdioma(ruta)
+
+  upsertAll('link[rel="alternate"][hreflang]', [
+    { rel: 'alternate', hreflang: 'es', href: enEs },
+    { rel: 'alternate', hreflang: 'en', href: enEn },
+    { rel: 'alternate', hreflang: 'x-default', href: enEs },
+  ])
+
+  const ingles = ruta === '/en' || ruta.startsWith('/en/')
+  upsert('meta[property="og:locale"]', {
+    property: 'og:locale',
+    content: ingles ? 'en_US' : 'es_CO',
+  })
+  upsert('meta[property="og:locale:alternate"]', {
+    property: 'og:locale:alternate',
+    content: ingles ? 'es_CO' : 'en_US',
+  })
 
   upsert('meta[name="twitter:card"]', {
     name: 'twitter:card',
@@ -242,5 +268,29 @@ export function listingJsonLd(
       url: new URL(pathOf(property), SITE.url).toString(),
       name: property.title,
     })),
+  }
+}
+
+function rutaSinIdioma(ruta: string): string {
+  if (ruta === '/en') return '/'
+  return ruta.startsWith('/en/') ? ruta.slice(3) : ruta
+}
+
+function rutaConIdioma(ruta: string): string {
+  const limpia = rutaSinIdioma(ruta)
+  return limpia === '/' ? '/en' : `/en${limpia}`
+}
+
+/**
+ * Los `hreflang` son varios enlaces con el mismo selector, asi que no vale
+ * `upsert`: se quitan los que hubiera y se ponen los de esta pagina. Sin esto,
+ * navegar de una ficha a otra iria acumulando alternativas de todas.
+ */
+function upsertAll(selector: string, etiquetas: Record<string, string>[]) {
+  document.head.querySelectorAll(selector).forEach((el) => el.remove())
+  for (const attrs of etiquetas) {
+    const el = document.createElement('link')
+    for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v)
+    document.head.append(el)
   }
 }

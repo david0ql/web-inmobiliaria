@@ -1,5 +1,5 @@
 import { Phone, Search } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate } from '@/lib/nav'
 
 import { CurrencySwitch } from '@/components/layout/currency-switch'
 import { LanguageSwitch } from '@/components/layout/language-switch'

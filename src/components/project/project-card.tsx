@@ -1,5 +1,5 @@
 import { Building2, CalendarClock, Layers, KeyRound } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Link } from '@/lib/nav'
 
 import { SpecRow } from '@/components/common/spec-row'
 import { Badge } from '@/components/ui/misc'

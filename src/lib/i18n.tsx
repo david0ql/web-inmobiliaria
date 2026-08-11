@@ -7,6 +7,9 @@ import {
   useState,
 } from 'react'
 
+import { useLocation } from 'react-router-dom'
+import { useNavigate } from '@/lib/nav'
+
 import { api } from '@/lib/api'
 import es from '@/i18n/es.json'
 import en from '@/i18n/en.json'
@@ -58,7 +61,20 @@ const I18nContext = createContext<Traduccion | null>(null)
 const CLAVE = 'serrano:idioma'
 
 export function I18nProvider({ children }: { children: React.ReactNode }) {
-  const [idioma, setIdioma] = useState<Idioma>(() => leerPreferencia())
+  const { pathname } = useLocation()
+  const navigate = useNavigate()
+
+  /*
+    El idioma lo dice la URL, no el navegador.
+
+    `/en/venta` es ingles y `/venta` es español, y eso es lo que hace que las
+    dos versiones existan para un buscador, se puedan enlazar y se puedan
+    compartir. La preferencia guardada solo decide a donde mandar a quien llega
+    a la raiz por primera vez.
+  */
+  const idioma: Idioma = pathname === '/en' || pathname.startsWith('/en/')
+    ? 'en'
+    : 'es'
   const [remoto, setRemoto] = useState<Partial<Record<Idioma, Diccionario>>>({})
 
   useEffect(() => {
@@ -78,14 +94,24 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
     document.documentElement.lang = idioma
   }, [idioma])
 
-  const cambiar = useCallback((siguiente: Idioma) => {
-    setIdioma(siguiente)
-    try {
-      localStorage.setItem(CLAVE, siguiente)
-    } catch {
-      /* Navegación privada: dura lo que la pestaña. */
-    }
-  }, [])
+  /*
+    Cambiar de idioma es cambiar de direccion, y a la MISMA pagina: quien esta
+    mirando un inmueble en español quiere verlo en ingles, no volver a la
+    portada. Se guarda ademas la eleccion para la proxima visita.
+  */
+  const cambiar = useCallback(
+    (siguiente: Idioma) => {
+      try {
+        localStorage.setItem(CLAVE, siguiente)
+      } catch {
+        /* Navegación privada: dura lo que la pestaña. */
+      }
+      navigate(otroIdioma(pathname, siguiente) + window.location.search, {
+        replace: true,
+      })
+    },
+    [navigate, pathname],
+  )
 
   const valor = useMemo<Traduccion>(() => {
     const diccionario = { ...BASE[idioma], ...(remoto[idioma] ?? {}) }
@@ -138,7 +164,19 @@ function resolver(
   )
 }
 
-function leerPreferencia(): Idioma {
+/** La misma pagina en el otro idioma. */
+export function otroIdioma(pathname: string, idioma: Idioma): string {
+  const limpio =
+    pathname === '/en'
+      ? '/'
+      : pathname.startsWith('/en/')
+        ? pathname.slice(3)
+        : pathname
+  if (idioma === 'es') return limpio
+  return limpio === '/' ? '/en' : `/en${limpio}`
+}
+
+export function leerPreferencia(): Idioma {
   try {
     const guardado = localStorage.getItem(CLAVE)
     if (guardado && (IDIOMAS as readonly string[]).includes(guardado))

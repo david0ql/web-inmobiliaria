@@ -1,6 +1,7 @@
 import { Eraser, Search } from 'lucide-react'
 import { Suspense, useEffect, useMemo, useState } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useLocation } from 'react-router-dom'
+import { useNavigate } from '@/lib/nav'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'

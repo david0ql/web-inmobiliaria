@@ -146,6 +146,8 @@ export interface Property {
 
   /** No hay campo `description`: la descripcion vive en observaciones. */
   observations: string | null
+  /** Lo mismo en ingles, escrito a mano desde el panel. */
+  observationsEn?: string | null
   videoUrl: string | null
   /** Recorrido 360 (Kuula). */
   tourUrl: string | null

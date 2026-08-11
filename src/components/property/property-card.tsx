@@ -1,5 +1,5 @@
 import { Bath, BedDouble, Car, Ruler } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Link } from '@/lib/nav'
 
 import { SpecRow } from '@/components/common/spec-row'
 import { prefetchProperty } from '@/lib/api'

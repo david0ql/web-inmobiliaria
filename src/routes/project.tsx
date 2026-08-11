@@ -1,7 +1,8 @@
 import { Check, MapPin } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import type { LoaderFunctionArgs } from 'react-router-dom'
-import { Link, useLoaderData } from 'react-router-dom'
+import { useLoaderData } from 'react-router-dom'
+import { Link } from '@/lib/nav'
 
 import { Lightbox } from '@/components/common/lightbox'
 import { UnitPhotos } from '@/components/project/unit-photos'

@@ -1,8 +1,9 @@
-import { Outlet, useNavigation } from 'react-router-dom'
+import { useEffect } from 'react'
+import { Outlet, useLocation, useNavigate, useNavigation } from 'react-router-dom'
 
 import { useSmoothScrollTop } from '@/lib/scroll'
 import { CurrencyProvider } from '@/lib/currency'
-import { I18nProvider } from '@/lib/i18n'
+import { I18nProvider, leerPreferencia, otroIdioma } from '@/lib/i18n'
 import { usePortalSession } from '@/lib/use-portal'
 import { ChatFab } from '@/components/assistant/chat-fab'
 import { SiteFooter } from '@/components/layout/site-footer'
@@ -29,6 +30,7 @@ export function Root() {
       arriba y manda en las tarjetas, en la ficha y en el buscador.
     */
     <I18nProvider>
+      <PreferenciaDeIdioma />
       <CurrencyProvider>
       <div className="flex min-h-screen flex-col">
       <TopBar />
@@ -60,4 +62,29 @@ export function Root() {
       </CurrencyProvider>
     </I18nProvider>
   )
+}
+
+/**
+ * A quien llega en español pero prefiere ingles, se le lleva a `/en`.
+ *
+ * Solo con una preferencia GUARDADA, es decir, solo si ya eligio antes en este
+ * navegador: adivinar el idioma por la cabecera del navegador y redirigir a
+ * ciegas es lo que hace que un buscador indexe la pagina equivocada y que
+ * alguien comparta un enlace que a otro le abre en otro idioma.
+ */
+function PreferenciaDeIdioma() {
+  const { pathname } = useLocation()
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    const guardada = leerPreferencia()
+    const enIngles = pathname === '/en' || pathname.startsWith('/en/')
+    if (guardada === 'en' && !enIngles) {
+      navigate(otroIdioma(pathname, 'en') + window.location.search, {
+        replace: true,
+      })
+    }
+  }, [pathname, navigate])
+
+  return null
 }

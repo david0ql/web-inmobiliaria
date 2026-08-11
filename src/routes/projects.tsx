@@ -1,12 +1,8 @@
 import { Building2, Search, SearchX } from 'lucide-react'
 import { useState } from 'react'
 import type { LoaderFunctionArgs } from 'react-router-dom'
-import {
-  Link,
-  useLoaderData,
-  useNavigation,
-  useSearchParams,
-} from 'react-router-dom'
+import { useLoaderData, useNavigation, useSearchParams } from 'react-router-dom'
+import { Link } from '@/lib/nav'
 import { breadcrumbJsonLd } from '@/lib/seo'
 import { ROUTES, SITE } from '@/lib/site'
 import { useT } from '@/lib/i18n'

@@ -1,6 +1,6 @@
 import { Menu, Search } from 'lucide-react'
 import { lazy, Suspense, useState } from 'react'
-import { Link, NavLink, useNavigate } from 'react-router-dom'
+import { Link, NavLink, useNavigate } from '@/lib/nav'
 
 import { AccountButton } from '@/components/layout/account-button'
 import { CreditButton } from '@/components/credit/credit-button'

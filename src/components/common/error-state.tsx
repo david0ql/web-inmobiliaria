@@ -1,5 +1,6 @@
 import { AlertTriangle } from 'lucide-react'
-import { Link, Navigate, useRouteError } from 'react-router-dom'
+import { Navigate, useRouteError } from 'react-router-dom'
+import { Link } from '@/lib/nav'
 
 import { Button } from '@/components/ui/button'
 import { ApiError } from '@/lib/api'
