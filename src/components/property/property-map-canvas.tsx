@@ -2,6 +2,7 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { useEffect, useRef } from 'react'
 
+import { useT } from '@/lib/i18n'
 import type { Property } from '@/lib/types'
 
 /**
@@ -16,6 +17,7 @@ import type { Property } from '@/lib/types'
  *   EXACT       — la chincheta en su sitio
  */
 export function PropertyMapCanvas({ property }: { property: Property }) {
+  const t = useT()
   const container = useRef<HTMLDivElement>(null)
   const { latitude, longitude, mapPublication } = property
 
@@ -66,7 +68,7 @@ export function PropertyMapCanvas({ property }: { property: Property }) {
     <div
       ref={container}
       role="application"
-      aria-label={`Ubicación de ${property.title}`}
+      aria-label={t('property.map.canvas_label', { title: property.title })}
       className="h-[320px] w-full overflow-hidden rounded-lg border"
     />
   )

@@ -20,6 +20,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet'
+import { useT } from '@/lib/i18n'
 import { PANEL_URL, ROUTES, SITE } from '@/lib/site'
 import { menuTypes, typePath, useSiteData } from '@/lib/site-data'
 
@@ -40,6 +41,7 @@ export function MobileNav({
   onOpenChange: (open: boolean) => void
 }) {
   const types = menuTypes(useSiteData())
+  const t = useT()
   const close = () => onOpenChange(false)
 
   return (
@@ -47,14 +49,14 @@ export function MobileNav({
       <SheetContent side="right" className="overflow-y-auto">
         <SheetHeader>
           <SheetTitle>{SITE.name}</SheetTitle>
-          <SheetDescription>{SITE.tagline}</SheetDescription>
+          <SheetDescription>{t(SITE.tagline)}</SheetDescription>
         </SheetHeader>
 
         {/* Mismo orden que en la barra de escritorio. Sin "Inicio": el logo de
             la cabecera ya lleva a la portada. */}
         <nav className="px-4">
           <Link to={ROUTES.projects} onClick={close} className={ITEM}>
-            Proyectos
+            {t('nav.projects')}
           </Link>
 
           {/* Abre la consulta de viabilidad. El panel lateral se queda abierto
@@ -66,7 +68,7 @@ export function MobileNav({
           <Accordion type="single" collapsible defaultValue="ventas">
             <AccordionItem value="ventas">
               <AccordionTrigger className="text-[0.8125rem] tracking-wide uppercase">
-                Ventas
+                {t('nav.sales')}
               </AccordionTrigger>
               <AccordionContent className="flex flex-col">
                 <Link
@@ -74,7 +76,7 @@ export function MobileNav({
                   onClick={close}
                   className="rounded-md px-2 py-2 font-medium hover:bg-secondary"
                 >
-                  Todos los inmuebles
+                  {t('nav.sales.all')}
                 </Link>
                 {types.map((type) => (
                   <Link
@@ -107,7 +109,7 @@ export function MobileNav({
             >
               <a href={PANEL_URL} target="_blank" rel="noreferrer noopener">
                 <LogIn />
-                Iniciar sesión
+                {t('nav.signin')}
               </a>
             </Button>
           </div>

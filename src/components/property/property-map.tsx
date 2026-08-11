@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react'
 
 import { useCuandoOcioso } from '@/lib/cuando-ocioso'
+import { useT } from '@/lib/i18n'
 import type { Property } from '@/lib/types'
 
 const PropertyMapCanvas = lazy(() =>
@@ -19,6 +20,7 @@ const PropertyMapCanvas = lazy(() =>
  * hasta el.
  */
 export function PropertyMap({ property }: { property: Property }) {
+  const t = useT()
   const { latitude, longitude, mapPublication } = property
   const ocioso = useCuandoOcioso()
 
@@ -29,7 +31,7 @@ export function PropertyMap({ property }: { property: Property }) {
   return (
     <section>
       <h2 className="mb-3 text-xs font-bold tracking-widest uppercase">
-        Ubicación
+        {t('property.map.section_title')}
       </h2>
       {/* El alto es el mismo que tendra el mapa, para que nada salte al llegar. */}
       <div className="h-[320px] w-full">
@@ -43,8 +45,7 @@ export function PropertyMap({ property }: { property: Property }) {
       </div>
       {mapPublication === 'APPROXIMATE' && (
         <p className="mt-2 text-xs text-muted-foreground">
-          Ubicación aproximada. Tu asesor te da la dirección exacta al agendar
-          la visita.
+          {t('property.map.approximate')}
         </p>
       )}
     </section>

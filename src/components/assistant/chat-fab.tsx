@@ -1,6 +1,7 @@
 import { MessageCircle } from 'lucide-react'
 import { lazy, Suspense, useEffect, useState } from 'react'
 
+import { useT } from '@/lib/i18n'
 import { useAssistant } from '@/lib/use-assistant'
 import { cn } from '@/lib/utils'
 
@@ -35,6 +36,7 @@ const preloadPanel = () => {
  * animación de entrada y el acoplado del escritorio sin pelear con el foco.
  */
 export function ChatFab() {
+  const t = useT()
   const assistant = useAssistant()
   const [open, setOpen] = useState(false)
   const isMobile = useIsMobile()
@@ -68,7 +70,7 @@ export function ChatFab() {
         onClick={() => setOpen(true)}
         onMouseEnter={preloadPanel}
         onFocus={preloadPanel}
-        aria-label="Abrir el asistente"
+        aria-label={t('chat.fab.open')}
         aria-expanded={open}
         className={cn(
           'fixed right-4 bottom-4 z-40 flex size-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-all duration-200 hover:bg-primary/90 hover:shadow-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring sm:right-6 sm:bottom-6',
@@ -92,7 +94,7 @@ export function ChatFab() {
           />
           <div
             role="dialog"
-            aria-label="Asistente de Serrano Inmobiliaria"
+            aria-label={t('chat.panel.aria')}
             className={cn(
               'fixed z-50 overflow-hidden bg-background shadow-2xl',
               'animate-in fade-in-0 zoom-in-95 slide-in-from-bottom-2 duration-200',

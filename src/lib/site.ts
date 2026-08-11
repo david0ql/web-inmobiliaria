@@ -6,17 +6,18 @@
 
 export const SITE = {
   name: 'Serrano Inmobiliaria',
-  tagline: 'Lideres en compra y venta de inmuebles en Colombia',
+  /**
+   * El lema y la descripcion son texto visible, y esto es una constante de
+   * modulo: guardan la CLAVE y se traducen donde se pintan, con `t`.
+   */
+  tagline: 'site.tagline',
   /**
    * La descripcion que ve alguien en el resultado de Google. Dice donde
    * operamos y que vendemos, porque "lideres en Colombia" no responde a
    * ninguna busqueda real: quien busca escribe "apartamentos en venta en
    * Bucaramanga".
    */
-  description:
-    'Apartamentos, casas y lotes en venta en Bucaramanga, Floridablanca, ' +
-    'Girón y Piedecuesta. Más de 600 inmuebles con fotos, ubicación y visita ' +
-    'agendable en línea.',
+  description: 'site.description',
   phone: '+573222023280',
   phoneHref: 'tel:+573222023280',
   email: 'contacto@serrano-inmobiliaria.com',

@@ -16,6 +16,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { ApiError, api, bookVisit } from '@/lib/api'
+import { useT } from '@/lib/i18n'
 import type { Property } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
@@ -32,13 +33,14 @@ interface DayAvailability {
   slots: Slot[]
 }
 
+/* Los mensajes son claves: se traducen al pintarlos, dentro del componente. */
 const schema = z.object({
-  firstName: z.string().trim().min(2, 'Escribe tu nombre.'),
+  firstName: z.string().trim().min(2, 'property.visit.error.first_name'),
   lastName: z.string().trim().optional(),
-  phone: z.string().trim().min(7, 'Necesitamos un teléfono para confirmarte.'),
-  email: z.email('Ese correo no parece válido.').or(z.literal('')),
+  phone: z.string().trim().min(7, 'property.visit.error.phone'),
+  email: z.email('property.visit.error.email').or(z.literal('')),
   message: z.string().trim().optional(),
-  startsAt: z.string().min(1, 'Elige día y hora.'),
+  startsAt: z.string().min(1, 'property.visit.error.starts_at'),
 })
 
 type VisitValues = z.infer<typeof schema>
@@ -60,6 +62,7 @@ type VisitValues = z.infer<typeof schema>
  * de Bucaramanga, y una visita a las 10 tiene que decir 10 aquí y en Madrid.
  */
 export function VisitForm({ property }: { property: Property }) {
+  const t = useT()
   const [days, setDays] = useState<DayAvailability[]>([])
   const [date, setDate] = useState('')
   const [mes, setMes] = useState<string>(() => mesDe(hoy()))
@@ -148,14 +151,16 @@ export function VisitForm({ property }: { property: Property }) {
         email: values.email || undefined,
         message: values.message || undefined,
       })
-      toast.success('Visita agendada', { description: result.message })
+      toast.success(t('property.visit.toast.success'), {
+        description: result.message,
+      })
       form.reset()
       setDate('')
     } catch (error) {
       toast.error(
         error instanceof ApiError
           ? error.message
-          : 'No pudimos agendar la visita. Inténtalo de nuevo en un momento.',
+          : t('property.visit.toast.error'),
       )
     }
   })
@@ -164,12 +169,12 @@ export function VisitForm({ property }: { property: Property }) {
     <form onSubmit={onSubmit} className="flex flex-col gap-4">
       <p className="flex items-center gap-2 text-sm font-medium">
         <CalendarCheck className="size-4" />
-        Agenda una visita
+        {t('property.visit.title')}
       </p>
 
       {days.length === 0 ? (
         <p className="rounded-md bg-secondary px-3 py-2 text-xs text-muted-foreground">
-          No hay horarios publicados ahora mismo. Llámanos y lo cuadramos.
+          {t('property.visit.no_slots')}
         </p>
       ) : startsAt ? (
         /*
@@ -184,7 +189,7 @@ export function VisitForm({ property }: { property: Property }) {
         >
           <span className="min-w-0">
             <span className="block text-[0.625rem] tracking-widest text-muted-foreground uppercase">
-              Tu visita
+              {t('property.visit.your_visit')}
             </span>
             {/* Sin `truncate`: en la columna del asesor son 280 px y "lunes,
                 10 de agosto, 8:00 a.m." se cortaba en "lunes, 10 de ag…", que
@@ -193,7 +198,7 @@ export function VisitForm({ property }: { property: Property }) {
           </span>
           <span className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
             <Pencil className="size-3.5" aria-hidden="true" />
-            Cambiar
+            {t('property.visit.change')}
           </span>
         </button>
       ) : (
@@ -210,7 +215,7 @@ export function VisitForm({ property }: { property: Property }) {
           {date && (
             <div>
               <p className="mb-2 text-xs text-muted-foreground">
-                Horas libres el {largo(date)}
+                {t('property.visit.free_hours', { date: largo(date) })}
               </p>
               <div className="grid grid-cols-3 gap-2">
                 {slots.map((slot) => (
@@ -233,7 +238,7 @@ export function VisitForm({ property }: { property: Property }) {
 
           {!date && (
             <p className="text-xs text-muted-foreground">
-              Elige un día con hueco para ver las horas.
+              {t('property.visit.pick_day')}
             </p>
           )}
         </>
@@ -248,32 +253,45 @@ export function VisitForm({ property }: { property: Property }) {
           <Field
             form={form}
             name="firstName"
-            label="Nombres"
+            label={t('property.visit.form.first_name')}
             innerRef={primerCampo}
           />
-          <Field form={form} name="lastName" label="Apellidos (opcional)" />
+          <Field
+            form={form}
+            name="lastName"
+            label={t('property.visit.form.last_name')}
+          />
           <Field
             form={form}
             name="phone"
-            label="Teléfono"
+            label={t('property.visit.form.phone')}
             type="tel"
             inputMode="tel"
           />
-          <Field form={form} name="email" label="Correo (opcional)" type="email" />
+          <Field
+            form={form}
+            name="email"
+            label={t('property.visit.form.email')}
+            type="email"
+          />
 
           <div className="grid gap-1.5">
-            <Label htmlFor="visit-message">Mensaje (opcional)</Label>
+            <Label htmlFor="visit-message">
+              {t('property.visit.form.message')}
+            </Label>
             <Textarea
               id="visit-message"
               rows={3}
-              placeholder={`Me interesa el inmueble ${property.code}.`}
+              placeholder={t('property.visit.form.message_placeholder', {
+                code: property.code,
+              })}
               {...form.register('message')}
             />
           </div>
 
           <Button type="submit" disabled={form.formState.isSubmitting}>
             {form.formState.isSubmitting && <Loader2 className="animate-spin" />}
-            Solicitar visita
+            {t('property.visit.submit')}
           </Button>
         </>
       )}
@@ -281,7 +299,16 @@ export function VisitForm({ property }: { property: Property }) {
   )
 }
 
-const DIAS = ['D', 'L', 'M', 'M', 'J', 'V', 'S']
+/* Las iniciales de la cabecera del calendario, de domingo a sabado. */
+const DIAS = [
+  'property.visit.weekday.sunday',
+  'property.visit.weekday.monday',
+  'property.visit.weekday.tuesday',
+  'property.visit.weekday.wednesday',
+  'property.visit.weekday.thursday',
+  'property.visit.weekday.friday',
+  'property.visit.weekday.saturday',
+]
 
 /**
  * El mes, con los días que tienen hueco encendidos.
@@ -306,6 +333,7 @@ function Calendario({
   onMes: (mes: string) => void
   onDia: (date: string) => void
 }) {
+  const t = useT()
   const [year, month] = mes.split('-').map(Number)
   const primero = new Date(year, month - 1, 1)
   const dias = new Date(year, month, 0).getDate()
@@ -322,7 +350,7 @@ function Calendario({
           lado="left"
           hacia={anterior}
           onMes={onMes}
-          etiqueta="Mes anterior"
+          etiqueta={t('property.visit.previous_month')}
         />
         {/* `capitalize` pondria "Agosto De 2026": solo la primera letra. */}
         <p className="text-sm font-medium first-letter:uppercase">
@@ -332,18 +360,18 @@ function Calendario({
           lado="right"
           hacia={siguiente}
           onMes={onMes}
-          etiqueta="Mes siguiente"
+          etiqueta={t('property.visit.next_month')}
         />
       </div>
 
       <div className="grid grid-cols-7 gap-1 text-center">
-        {DIAS.map((dia, i) => (
+        {DIAS.map((clave, i) => (
           <span
             key={i}
             aria-hidden="true"
             className="py-1 text-[0.625rem] font-medium tracking-wide text-muted-foreground uppercase"
           >
-            {dia}
+            {t(clave)}
           </span>
         ))}
 
@@ -421,6 +449,7 @@ function Field({
   innerRef?: React.MutableRefObject<HTMLInputElement | null>
   /* `form` es tambien un atributo nativo del input, asi que se descarta. */
 } & Omit<React.ComponentProps<'input'>, 'form' | 'name'>) {
+  const t = useT()
   const error = form.formState.errors[name]
   // `register` trae su propia `ref` y hay que conservarla: si se pisa, el
   // formulario deja de ver el campo.
@@ -439,7 +468,7 @@ function Field({
         }}
       />
       {error && (
-        <p className="text-xs text-destructive">{error.message as string}</p>
+        <p className="text-xs text-destructive">{t(error.message as string)}</p>
       )}
     </div>
   )

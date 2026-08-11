@@ -6,6 +6,7 @@ import { prefetchProperty } from '@/lib/api'
 import { Badge } from '@/components/ui/misc'
 import {AVAILABILITY_COLOR, AVAILABILITY_LABEL, area as fmtArea, stratumLabel} from '@/lib/format'
 import { useCurrency } from '@/lib/currency'
+import { useT } from '@/lib/i18n'
 import { propertyPath } from '@/lib/slug'
 import type { Property } from '@/lib/types'
 
@@ -25,10 +26,13 @@ export function PropertyCard({
   /** La portada de las primeras tarjetas suele ser el LCP: esa no se difiere. */
   priority?: boolean
 }) {
+  const t = useT()
   const { precio, moneda } = useCurrency()
   const to = propertyPath(property)
   const cover = property.images?.[0]
   const built = property.builtArea ?? property.area
+  /* El estrato, con su separador. */
+  const estrato = stratumLabel(property.stratum, t)
 
   /* Al apuntar a una tarjeta se adelantan las dos cosas que hacen falta para
      pintar la ficha: su codigo de pantalla y sus datos. */
@@ -73,14 +77,14 @@ export function PropertyCard({
               />
             ) : (
               <div className="flex size-full items-center justify-center text-xs text-muted-foreground">
-                Sin fotografía
+                {t('property.card.no_photo')}
               </div>
             )}
 
             {/* La cortina con el boton centrado solo aparece donde hay raton. */}
             <div className="absolute inset-0 hidden items-center justify-center bg-black/70 opacity-0 transition-opacity duration-300 group-hover:opacity-100 lg:flex">
               <span className="rounded-sm border-2 border-white px-3 py-2 text-xs font-bold tracking-wide text-white uppercase">
-                Ver detalles
+                {t('property.card.view_details')}
               </span>
             </div>
           </div>
@@ -94,7 +98,9 @@ export function PropertyCard({
                 AVAILABILITY_COLOR[property.availability] ?? '#767676',
             }}
           >
-            {AVAILABILITY_LABEL[property.availability] ?? property.availability}
+            {AVAILABILITY_LABEL[property.availability]
+              ? t(AVAILABILITY_LABEL[property.availability])
+              : property.availability}
           </Badge>
         </div>
       </figure>
@@ -105,24 +111,33 @@ export function PropertyCard({
           {
             icon: BedDouble,
             value: property.bedrooms,
-            unit: property.bedrooms === 1 ? 'alcoba' : 'alcobas',
+            unit:
+              property.bedrooms === 1
+                ? t('property.spec.bedrooms.one')
+                : t('property.spec.bedrooms.other'),
           },
           {
             icon: Bath,
             value: property.bathrooms,
-            unit: property.bathrooms === 1 ? 'baño' : 'baños',
+            unit:
+              property.bathrooms === 1
+                ? t('property.spec.bathrooms.one')
+                : t('property.spec.bathrooms.other'),
           },
           {
             icon: Car,
             value: property.garages,
-            unit: property.garages === 1 ? 'garaje' : 'garajes',
+            unit:
+              property.garages === 1
+                ? t('property.spec.garages.one')
+                : t('property.spec.garages.other'),
           },
         ]}
       />
 
       <div className="flex flex-1 flex-col gap-2 p-4">
         <p className="text-xs tracking-wide text-muted-foreground uppercase">
-          {property.propertyType?.name ?? 'Inmueble'}
+          {property.propertyType?.name ?? t('property.card.fallback_type')}
         </p>
         <h2 className="line-clamp-2-title text-sm leading-snug font-semibold uppercase">
           <Link to={to} className="hover:underline">
@@ -130,10 +145,10 @@ export function PropertyCard({
           </Link>
         </h2>
         <p className="line-clamp-2-title text-xs text-muted-foreground">
-          Código: {property.code}
+          {t('property.card.code', { code: property.code })}
           {property.zone ? ` · ${property.zone.name}` : ''}
           {property.city ? ` · ${property.city.name}` : ''}
-          {stratumLabel(property.stratum)}
+          {estrato}
         </p>
       </div>
 
@@ -153,7 +168,7 @@ export function PropertyCard({
           to={to}
           className="flex shrink-0 items-center border-l bg-primary px-5 text-xs font-bold tracking-widest text-primary-foreground uppercase transition-opacity hover:opacity-90"
         >
-          Detalle
+          {t('property.card.detail')}
         </Link>
       </div>
     </article>

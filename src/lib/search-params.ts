@@ -101,17 +101,21 @@ export function digits(value: string): string {
   return value.replace(/\D/g, '')
 }
 
+/*
+  `label` guarda la CLAVE de la frase, no la frase: son constantes de modulo y
+  `useT()` solo vive dentro de un componente. El select las traduce al pintar.
+*/
 export const SORTS = [
-  { value: '', label: 'Más nuevo' },
-  { value: 'price_asc', label: 'Menor precio' },
-  { value: 'price_desc', label: 'Mayor precio' },
+  { value: '', label: 'catalog.sort.newest' },
+  { value: 'price_asc', label: 'catalog.sort.price_asc' },
+  { value: 'price_desc', label: 'catalog.sort.price_desc' },
 ] as const
 
 export const CONDITIONS = [
-  { value: 'NEW', label: 'Nuevo' },
-  { value: 'USED', label: 'Usado' },
-  { value: 'PROJECT', label: 'Proyecto' },
-  { value: 'UNDER_CONSTRUCTION', label: 'En construcción' },
+  { value: 'NEW', label: 'catalog.condition.new' },
+  { value: 'USED', label: 'catalog.condition.used' },
+  { value: 'PROJECT', label: 'catalog.condition.project' },
+  { value: 'UNDER_CONSTRUCTION', label: 'catalog.condition.under_construction' },
 ] as const
 
 /*
@@ -125,10 +129,16 @@ export const CONDITIONS = [
   (`business_type[0]=for_sale`) y no se pueden romper.
 */
 
-/** "1 o más" … "7 o más", igual que los selects del tema anterior. */
+/**
+ * "1 o más" … "7 o más", igual que los selects del tema anterior.
+ *
+ * Viaja el numero, no la frase: la frase la arma el select con
+ * `t('search.rooms.option', { count })`, que en cada idioma la ordena a su
+ * manera.
+ */
 export const ROOM_OPTIONS = [1, 2, 3, 4, 5, 6, 7].map((n) => ({
   value: String(n),
-  label: `${n} o más`,
+  n,
 }))
 
 /**

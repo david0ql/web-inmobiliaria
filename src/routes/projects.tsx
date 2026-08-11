@@ -9,6 +9,7 @@ import {
 } from 'react-router-dom'
 import { breadcrumbJsonLd } from '@/lib/seo'
 import { ROUTES, SITE } from '@/lib/site'
+import { useT } from '@/lib/i18n'
 import { useSeo } from '@/lib/use-seo'
 
 import { SectionHeading } from '@/components/common/section-heading'
@@ -57,16 +58,16 @@ export async function loader({
 }
 
 export function ProjectsList() {
+  const t = useT()
+
   useSeo({
-    title: `Proyectos de vivienda nueva en Santander · ${SITE.name}`,
-    description:
-      'Proyectos con unidades disponibles en Bucaramanga y su ' +
-      'área metropolitana. Compara tipologías, áreas y precios desde.',
+    title: t('page.projects.seo.title', { site: SITE.name }),
+    description: t('page.projects.seo.description'),
     canonical: SITE.url + ROUTES.projects,
   }, {
     crumbs: breadcrumbJsonLd([
-      { name: 'Inicio', url: '/' },
-      { name: 'Proyectos', url: ROUTES.projects },
+      { name: t('nav.home'), url: '/' },
+      { name: t('nav.projects'), url: ROUTES.projects },
     ]),
   })
 
@@ -95,20 +96,21 @@ export function ProjectsList() {
           <SectionHeading
             as="h1"
             size="sm"
-            light="Nuestros"
-            strong="proyectos"
+            light={t('projects.heading.light')}
+            strong={t('projects.heading.strong')}
             className="mb-2"
           />
           <p className="tabular text-sm text-muted-foreground">
-            {total > 0 ? (
-              <>
-                {total.toLocaleString('es-CO')}{' '}
-                {total === 1 ? 'proyecto' : 'proyectos'} · página {page} de{' '}
-                {Math.max(pages, 1)}
-              </>
-            ) : (
-              'Obra nueva y edificios de la agencia.'
-            )}
+            {total > 0
+              ? t(
+                  total === 1 ? 'projects.count.one' : 'projects.count.other',
+                  {
+                    total: total.toLocaleString('es-CO'),
+                    page,
+                    pages: Math.max(pages, 1),
+                  },
+                )
+              : t('projects.subtitle.empty')}
           </p>
         </div>
 
@@ -127,27 +129,24 @@ export function ProjectsList() {
         <PropertyGridSkeleton count={6} />
       ) : results.data.length === 0 ? (
         filtered ? (
-          <EmptyShell icon={SearchX} title="Ningún proyecto coincide">
+          <EmptyShell icon={SearchX} title={t('projects.empty.filtered.title')}>
             <p className="max-w-sm text-sm text-muted-foreground">
-              Prueba con otro nombre o quita el filtro de ciudad.
+              {t('projects.empty.filtered.detail')}
             </p>
             <Button
               variant="outline"
               onClick={() => update({ match: '', cityId: '', page: 1 })}
             >
-              Ver todos los proyectos
+              {t('projects.empty.filtered.action')}
             </Button>
           </EmptyShell>
         ) : (
-          <EmptyShell icon={Building2} title="Aún no hay proyectos publicados">
+          <EmptyShell icon={Building2} title={t('projects.empty.title')}>
             <p className="max-w-md text-sm text-muted-foreground">
-              Estamos preparando esta sección. Cuando publiquemos un proyecto lo
-              verás aquí con sus tipologías, el precio desde y las unidades
-              disponibles. Mientras tanto, puedes ver todos los inmuebles que
-              tenemos en venta.
+              {t('projects.empty.detail')}
             </p>
             <Button asChild>
-              <Link to={ROUTES.sales}>Ver inmuebles en venta</Link>
+              <Link to={ROUTES.sales}>{t('projects.empty.action')}</Link>
             </Button>
           </EmptyShell>
         )
@@ -184,10 +183,11 @@ function ProjectFilterBar({
 }) {
   const { catalogs } = useSiteData()
   const [match, setMatch] = useState(filters.match)
+  const t = useT()
 
   return (
     <form
-      aria-label="Filtrar proyectos"
+      aria-label={t('projects.filters.aria')}
       onSubmit={(event) => {
         event.preventDefault()
         onApply({ match, page: 1 })
@@ -196,19 +196,19 @@ function ProjectFilterBar({
     >
       <div className="min-w-0 flex-1 sm:w-48 lg:flex-none">
         <Label htmlFor="project-match" className="mb-1.5 text-xs">
-          Nombre
+          {t('projects.filters.name')}
         </Label>
         <Input
           id="project-match"
           value={match}
           onChange={(event) => setMatch(event.target.value)}
-          placeholder="Reserva de la Loma"
+          placeholder={t('projects.filters.name.placeholder')}
         />
       </div>
 
       <div className="min-w-0 flex-1 sm:w-44 lg:flex-none">
         <Label htmlFor="project-city" className="mb-1.5 text-xs">
-          Ciudad
+          {t('projects.filters.city')}
         </Label>
         <Select
           value={filters.cityId || ANY}
@@ -217,10 +217,12 @@ function ProjectFilterBar({
           }
         >
           <SelectTrigger id="project-city" className="w-full">
-            <SelectValue placeholder="Todas" />
+            <SelectValue placeholder={t('projects.filters.city.any')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value={ANY}>Todas</SelectItem>
+            <SelectItem value={ANY}>
+              {t('projects.filters.city.any')}
+            </SelectItem>
             {catalogs.cities.map((city) => (
               <SelectItem key={city.id} value={String(city.id)}>
                 {city.name}
@@ -232,7 +234,7 @@ function ProjectFilterBar({
 
       <Button type="submit" className="shrink-0">
         <Search />
-        Buscar
+        {t('projects.filters.submit')}
       </Button>
     </form>
   )

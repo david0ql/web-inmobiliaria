@@ -1,4 +1,5 @@
 import { autoDescription } from '@/lib/auto-description'
+import type { Traducir } from '@/lib/format'
 import { SITE } from '@/lib/site'
 import type { Property } from '@/lib/types'
 
@@ -94,7 +95,7 @@ export function applyJsonLd(id: string, data: unknown) {
  * ficha de negocio y con el mapa: `RealEstateAgent` es el tipo que Google
  * entiende para una inmobiliaria, no `Organization` a secas.
  */
-export function organizationJsonLd() {
+export function organizationJsonLd(t: Traducir) {
   return {
     '@context': 'https://schema.org',
     '@type': 'RealEstateAgent',
@@ -103,7 +104,7 @@ export function organizationJsonLd() {
     url: SITE.url,
     logo: `${SITE.url}/logo.png`,
     image: `${SITE.url}/logo.png`,
-    description: SITE.description,
+    description: t(SITE.description),
     telephone: SITE.phone,
     email: SITE.email,
     address: {
@@ -164,7 +165,7 @@ export function breadcrumbJsonLd(trail: { name: string; url: string }[]) {
  * mostrar precio, area y numero de habitaciones en el resultado. `RealEstateListing`
  * envuelve a la pagina en si.
  */
-export function propertyJsonLd(property: Property, url: string) {
+export function propertyJsonLd(property: Property, url: string, t: Traducir) {
   const images = (property.images ?? [])
     .slice(0, 6)
     .map((image) => new URL(image.urlLarge || image.url, SITE.url).toString())
@@ -179,7 +180,7 @@ export function propertyJsonLd(property: Property, url: string) {
     name: property.title,
     // La automatica y no `observations`: los datos estructurados los leen los
     // portales, y ahi hace falta que el area y las alcobas aparezcan siempre.
-    description: autoDescription(property).slice(0, 400),
+    description: autoDescription(property, t).slice(0, 400),
     datePosted: property.createdAt,
     image: images.length ? images : undefined,
     provider: { '@id': `${SITE.url}/#organization` },

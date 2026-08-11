@@ -27,6 +27,7 @@ import {
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { ApiError, submitCreditRequest } from '@/lib/api'
+import { useT } from '@/lib/i18n'
 import { digits } from '@/lib/search-params'
 import { cn } from '@/lib/utils'
 
@@ -49,40 +50,68 @@ import { cn } from '@/lib/utils'
 
 // --- opciones --------------------------------------------------------------
 
+/*
+ * Las listas guardan la CLAVE de cada rotulo, no el rotulo: viven en el modulo
+ * y ahi no hay contexto que traducir. Cada paso las resuelve con `traducir`
+ * justo antes de pintarlas.
+ */
+
 const DOCUMENT_TYPES = [
-  { value: 'CC', label: 'Cédula de ciudadanía' },
-  { value: 'CE', label: 'Cédula de extranjería' },
-  { value: 'PASSPORT', label: 'Pasaporte' },
-  { value: 'NIT', label: 'NIT' },
+  { value: 'CC', label: 'form.doc.type.cc' },
+  { value: 'CE', label: 'form.doc.type.ce' },
+  { value: 'PASSPORT', label: 'form.doc.type.passport' },
+  { value: 'NIT', label: 'form.doc.type.nit' },
 ] as const
 
 const GENDERS = [
-  { value: 'FEMALE', label: 'Femenino' },
-  { value: 'MALE', label: 'Masculino' },
-  { value: 'OTHER', label: 'Otro' },
-  { value: 'UNDISCLOSED', label: 'Prefiero no decirlo' },
+  { value: 'FEMALE', label: 'form.gender.female' },
+  { value: 'MALE', label: 'form.gender.male' },
+  { value: 'OTHER', label: 'form.gender.other' },
+  { value: 'UNDISCLOSED', label: 'form.gender.undisclosed' },
 ] as const
 
 const OCCUPATIONS = [
-  { value: 'SALARIED', label: 'Asalariado' },
-  { value: 'PENSIONER', label: 'Pensionado' },
-  { value: 'SELF_EMPLOYED', label: 'Independiente' },
+  { value: 'SALARIED', label: 'form.occupation.salaried' },
+  { value: 'PENSIONER', label: 'form.occupation.pensioner' },
+  { value: 'SELF_EMPLOYED', label: 'form.occupation.self_employed' },
 ] as const
 
 const PORTFOLIOS = [
-  { value: 'VIS', label: 'VIS', hint: 'Vivienda de interés social' },
-  { value: 'NON_VIS', label: 'No VIS', hint: 'Fuera del tope VIS' },
+  {
+    value: 'VIS',
+    label: 'form.credit.portfolio.vis',
+    hint: 'form.credit.portfolio.vis.hint',
+  },
+  {
+    value: 'NON_VIS',
+    label: 'form.credit.portfolio.nonvis',
+    hint: 'form.credit.portfolio.nonvis.hint',
+  },
 ] as const
 
 const HOUSING_TYPES = [
-  { value: 'NEW', label: 'Nueva' },
-  { value: 'USED', label: 'Usada' },
+  { value: 'NEW', label: 'form.credit.housing.new' },
+  { value: 'USED', label: 'form.credit.housing.used' },
 ] as const
 
 const PRODUCTS = [
-  { value: 'MORTGAGE', label: 'Crédito hipotecario' },
-  { value: 'HOUSING_LEASING', label: 'Leasing habitacional' },
+  { value: 'MORTGAGE', label: 'form.credit.product.mortgage' },
+  { value: 'HOUSING_LEASING', label: 'form.credit.product.leasing' },
 ] as const
+
+type Traducir = ReturnType<typeof useT>
+
+/** Resuelve los rotulos de una lista de opciones con claves. */
+function traducir<V extends string | boolean>(
+  t: Traducir,
+  options: readonly { value: V; label: string; hint?: string }[],
+) {
+  return options.map((option) => ({
+    value: option.value,
+    label: t(option.label),
+    hint: option.hint ? t(option.hint) : undefined,
+  }))
+}
 
 const TERMS = [5, 10, 15, 20, 25, 30]
 
@@ -99,29 +128,37 @@ const isoYearsAgo = (years: number) => {
 
 // --- esquema ---------------------------------------------------------------
 
+/*
+ * Los mensajes son CLAVES: el esquema se construye al cargar el modulo, donde
+ * no hay hook que valga. `ErrorText` las traduce al pintarlas.
+ *
+ * OJO: el texto de 'form.error.age.max' lleva los 75 escritos, porque ahi no
+ * hay forma de pasarle variables. Si cambia MAX_AGE, cambia la frase.
+ */
+
 const money = z
   .string()
   .trim()
-  .refine((value) => Number(digits(value)) > 0, 'Escribe un valor.')
+  .refine((value) => Number(digits(value)) > 0, 'form.error.amount')
 
 const birthDate = z
   .string()
-  .min(1, 'Necesitamos tu fecha de nacimiento.')
+  .min(1, 'form.error.birthdate.required')
   .refine((value) => value >= isoYearsAgo(MAX_AGE), {
-    message: `La edad máxima para solicitar un crédito es de ${MAX_AGE} años.`,
+    message: 'form.error.age.max',
   })
   .refine((value) => value <= isoYearsAgo(MIN_AGE), {
-    message: 'Hay que ser mayor de edad.',
+    message: 'form.error.age.min',
   })
 
 const person = {
-  firstName: z.string().trim().min(2, 'Escribe los nombres.'),
-  lastName: z.string().trim().min(2, 'Escribe los apellidos.'),
+  firstName: z.string().trim().min(2, 'form.error.firstname'),
+  lastName: z.string().trim().min(2, 'form.error.lastname'),
   birthDate,
-  phone: z.string().trim().min(7, 'Necesitamos un teléfono para llamarte.'),
-  email: z.email('Ese correo no parece válido.'),
+  phone: z.string().trim().min(7, 'form.error.phone'),
+  email: z.email('form.error.email'),
   documentType: z.enum(['CC', 'CE', 'PASSPORT', 'NIT']),
-  documentNumber: z.string().trim().min(4, 'Escribe el número de documento.'),
+  documentNumber: z.string().trim().min(4, 'form.error.document'),
   gender: z.enum(['FEMALE', 'MALE', 'OTHER', 'UNDISCLOSED']).or(z.literal('')),
   occupation: z.enum(['SALARIED', 'PENSIONER', 'SELF_EMPLOYED']),
   monthlyIncome: z.string().trim().optional(),
@@ -155,7 +192,7 @@ const schema = z
     housingType: z.enum(['NEW', 'USED']),
     product: z.enum(['MORTGAGE', 'HOUSING_LEASING']),
     termYears: z.string(),
-    workCityName: z.string().trim().min(2, '¿En qué ciudad trabajas?'),
+    workCityName: z.string().trim().min(2, 'form.credit.error.city'),
     amount: money,
 
     hasPropertyPicked: z.boolean(),
@@ -163,7 +200,7 @@ const schema = z
     propertyCode: z.string().trim().optional(),
     notes: z.string().trim().optional(),
     acceptedTerms: z.literal(true, {
-      message: 'Hay que aceptar el tratamiento de datos para enviar.',
+      message: 'form.credit.error.terms',
     }),
   })
   /*
@@ -176,14 +213,14 @@ const schema = z
       ctx.addIssue({
         code: 'custom',
         path: ['phoneConfirm'],
-        message: 'Los teléfonos no coinciden.',
+        message: 'form.error.phone.mismatch',
       })
     }
     if (values.documentNumber.trim() !== values.documentNumberConfirm.trim()) {
       ctx.addIssue({
         code: 'custom',
         path: ['documentNumberConfirm'],
-        message: 'Los documentos no coinciden.',
+        message: 'form.error.document.mismatch',
       })
     }
 
@@ -191,17 +228,17 @@ const schema = z
       ctx.addIssue({
         code: 'custom',
         path: ['propertyValue'],
-        message: 'Si ya sabes cuál, dinos cuánto vale.',
+        message: 'form.credit.error.propertyvalue',
       })
     }
 
     if (!values.withCoApplicant) return
 
     const required: [Path<CreditValues>, string | undefined, string][] = [
-      ['coFirstName', values.coFirstName, 'Escribe los nombres.'],
-      ['coLastName', values.coLastName, 'Escribe los apellidos.'],
-      ['coPhone', values.coPhone, 'Necesitamos un teléfono.'],
-      ['coDocumentNumber', values.coDocumentNumber, 'Escribe el documento.'],
+      ['coFirstName', values.coFirstName, 'form.error.firstname'],
+      ['coLastName', values.coLastName, 'form.error.lastname'],
+      ['coPhone', values.coPhone, 'form.error.phone.short'],
+      ['coDocumentNumber', values.coDocumentNumber, 'form.error.document.short'],
     ]
     for (const [path, value, message] of required) {
       if (!value || value.trim().length < 2) {
@@ -212,7 +249,7 @@ const schema = z
       ctx.addIssue({
         code: 'custom',
         path: ['coEmail'],
-        message: 'Ese correo no parece válido.',
+        message: 'form.error.email',
       })
     }
     const parsed = birthDate.safeParse(values.coBirthDate ?? '')
@@ -220,7 +257,7 @@ const schema = z
       ctx.addIssue({
         code: 'custom',
         path: ['coBirthDate'],
-        message: parsed.error.issues[0]?.message ?? 'Revisa la fecha.',
+        message: parsed.error.issues[0]?.message ?? 'form.error.date',
       })
     }
   })
@@ -233,7 +270,7 @@ type Form = UseFormReturn<CreditValues>
 
 const STEP_APPLICANT: Step<CreditValues> = {
   id: 'applicant',
-  title: 'Tus datos',
+  title: 'form.step.owner',
   fields: [
     'firstName',
     'lastName',
@@ -252,7 +289,7 @@ const STEP_APPLICANT: Step<CreditValues> = {
 
 const STEP_CO_APPLICANT: Step<CreditValues> = {
   id: 'co-applicant',
-  title: 'Segundo solicitante',
+  title: 'form.credit.step.coapplicant',
   fields: [
     'coFirstName',
     'coLastName',
@@ -269,7 +306,7 @@ const STEP_CO_APPLICANT: Step<CreditValues> = {
 
 const STEP_CREDIT: Step<CreditValues> = {
   id: 'credit',
-  title: 'El crédito',
+  title: 'form.credit.step.credit',
   fields: [
     'portfolioType',
     'housingType',
@@ -282,7 +319,7 @@ const STEP_CREDIT: Step<CreditValues> = {
 
 const STEP_PROPERTY: Step<CreditValues> = {
   id: 'property',
-  title: 'El inmueble',
+  title: 'form.step.property',
   fields: ['hasPropertyPicked', 'propertyValue', 'propertyCode', 'notes', 'acceptedTerms'],
 }
 
@@ -305,6 +342,7 @@ export function CreditDialog({
 }) {
   const [open, setOpen] = useState(defaultOpen)
   const [index, setIndex] = useState(0)
+  const t = useT()
 
   const change = (next: boolean) => {
     setOpen(next)
@@ -394,7 +432,7 @@ export function CreditDialog({
   const onSubmit = form.handleSubmit(async (values) => {
     try {
       const result = await submitCreditRequest(toPayload(values))
-      toast.success(`Consulta ${result.reference} recibida`, {
+      toast.success(t('form.credit.toast.success', { reference: result.reference }), {
         description: result.message,
       })
       form.reset()
@@ -403,7 +441,7 @@ export function CreditDialog({
       toast.error(
         error instanceof ApiError
           ? error.message
-          : 'No pudimos enviar la consulta. Revisa tu conexión e inténtalo otra vez.',
+          : t('form.credit.toast.error'),
       )
     }
   })
@@ -411,17 +449,13 @@ export function CreditDialog({
   return (
     <Dialog open={open} onOpenChange={change}>
       <DialogTrigger asChild>
-        {children ?? <Button>Consulta de viabilidad</Button>}
+        {children ?? <Button>{t('form.credit.title')}</Button>}
       </DialogTrigger>
 
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Consulta de viabilidad</DialogTitle>
-          <DialogDescription>
-            Cuéntanos tu caso y un asesor te explica qué opciones tienes y qué
-            necesitas reunir. No consultamos centrales de riesgo ni esto aprueba
-            ningún crédito.
-          </DialogDescription>
+          <DialogTitle>{t('form.credit.title')}</DialogTitle>
+          <DialogDescription>{t('form.credit.description')}</DialogDescription>
         </DialogHeader>
 
         <Progress steps={steps} current={current} />
@@ -451,12 +485,15 @@ export function CreditDialog({
               className={cn(current === 0 && 'invisible')}
             >
               <ArrowLeft />
-              Atrás
+              {t('form.back')}
             </Button>
 
             <div className="flex items-center gap-3">
               <span className="tabular text-xs text-muted-foreground">
-                Paso {current + 1} de {steps.length}
+                {t('form.step.of', {
+                  current: current + 1,
+                  total: steps.length,
+                })}
               </span>
               {last ? (
                 <Button type="submit" disabled={form.formState.isSubmitting}>
@@ -465,11 +502,11 @@ export function CreditDialog({
                   ) : (
                     <Check />
                   )}
-                  Enviar consulta
+                  {t('form.credit.submit')}
                 </Button>
               ) : (
                 <Button type="button" onClick={() => void next()}>
-                  Continuar
+                  {t('form.continue')}
                   <ArrowRight />
                 </Button>
               )}
@@ -536,23 +573,35 @@ function toPayload(values: CreditValues) {
 // --- pasos -----------------------------------------------------------------
 
 function ApplicantStep({ form }: { form: Form }) {
+  const t = useT()
+
   return (
-    <Fieldset legend="Cuéntanos de ti">
-      <Field form={form} name="firstName" label="Nombres" autoComplete="given-name" />
-      <Field form={form} name="lastName" label="Apellidos" autoComplete="family-name" />
+    <Fieldset legend={t('form.credit.legend.applicant')}>
+      <Field
+        form={form}
+        name="firstName"
+        label={t('form.field.firstname')}
+        autoComplete="given-name"
+      />
+      <Field
+        form={form}
+        name="lastName"
+        label={t('form.field.lastname')}
+        autoComplete="family-name"
+      />
       <Field
         form={form}
         name="birthDate"
-        label="Fecha de nacimiento"
+        label={t('form.field.birthdate')}
         type="date"
         min={isoYearsAgo(MAX_AGE)}
         max={isoYearsAgo(MIN_AGE)}
-        hint={`La edad máxima para solicitar un crédito es de ${MAX_AGE} años.`}
+        hint={t('form.error.age.max')}
       />
       <Field
         form={form}
         name="phone"
-        label="Teléfono"
+        label={t('form.field.phone')}
         type="tel"
         inputMode="tel"
         autoComplete="tel"
@@ -560,7 +609,7 @@ function ApplicantStep({ form }: { form: Form }) {
       <Field
         form={form}
         name="phoneConfirm"
-        label="Confirma el teléfono"
+        label={t('form.field.phone.confirm')}
         type="tel"
         inputMode="tel"
         // Pegar el primero anula la comprobacion: hay que volver a teclearlo.
@@ -569,7 +618,7 @@ function ApplicantStep({ form }: { form: Form }) {
       <Field
         form={form}
         name="email"
-        label="Correo electrónico"
+        label={t('form.field.email')}
         type="email"
         autoComplete="email"
         className="sm:col-span-2"
@@ -577,51 +626,51 @@ function ApplicantStep({ form }: { form: Form }) {
       <SelectField
         form={form}
         name="documentType"
-        label="Tipo de documento"
-        options={DOCUMENT_TYPES}
+        label={t('form.field.documenttype')}
+        options={traducir(t, DOCUMENT_TYPES)}
       />
       <Field
         form={form}
         name="documentNumber"
-        label="Número de documento"
+        label={t('form.field.documentnumber')}
         inputMode="numeric"
       />
       <Field
         form={form}
         name="documentNumberConfirm"
-        label="Confirma el documento"
+        label={t('form.field.document.confirm')}
         inputMode="numeric"
         onPaste={(event) => event.preventDefault()}
       />
       <SelectField
         form={form}
         name="gender"
-        label="Género"
-        options={GENDERS}
-        placeholder="Prefiero no decirlo"
+        label={t('form.field.gender')}
+        options={traducir(t, GENDERS)}
+        placeholder={t('form.gender.undisclosed')}
       />
 
       <div className="sm:col-span-2">
         <Choice
           form={form}
           name="occupation"
-          label="Tipo de ocupación"
-          options={OCCUPATIONS}
+          label={t('form.field.occupation')}
+          options={traducir(t, OCCUPATIONS)}
         />
       </div>
       <MoneyField
         form={form}
         name="monthlyIncome"
-        label="Ingreso mensual (opcional)"
-        hint="Ayuda al asesor a estimar cuánto puedes pagar de cuota."
+        label={t('form.field.income')}
+        hint={t('form.credit.income.hint')}
       />
 
       <div className="sm:col-span-2">
         <Toggle
           form={form}
           name="withCoApplicant"
-          label="Agregar segundo solicitante"
-          hint="Sumar los ingresos de dos personas suele ampliar el monto al que se puede acceder."
+          label={t('form.credit.coapplicant.toggle')}
+          hint={t('form.credit.coapplicant.hint')}
         />
       </div>
     </Fieldset>
@@ -629,56 +678,64 @@ function ApplicantStep({ form }: { form: Form }) {
 }
 
 function CoApplicantStep({ form }: { form: Form }) {
+  const t = useT()
+
   return (
-    <Fieldset legend="Datos del segundo solicitante">
-      <Field form={form} name="coFirstName" label="Nombres" />
-      <Field form={form} name="coLastName" label="Apellidos" />
+    <Fieldset legend={t('form.credit.legend.coapplicant')}>
+      <Field form={form} name="coFirstName" label={t('form.field.firstname')} />
+      <Field form={form} name="coLastName" label={t('form.field.lastname')} />
       <Field
         form={form}
         name="coBirthDate"
-        label="Fecha de nacimiento"
+        label={t('form.field.birthdate')}
         type="date"
         min={isoYearsAgo(MAX_AGE)}
         max={isoYearsAgo(MIN_AGE)}
       />
-      <Field form={form} name="coPhone" label="Teléfono" type="tel" inputMode="tel" />
+      <Field
+        form={form}
+        name="coPhone"
+        label={t('form.field.phone')}
+        type="tel"
+        inputMode="tel"
+      />
       <Field
         form={form}
         name="coEmail"
-        label="Correo electrónico"
+        label={t('form.field.email')}
         type="email"
         className="sm:col-span-2"
       />
       <SelectField
         form={form}
         name="coDocumentType"
-        label="Tipo de documento"
-        options={DOCUMENT_TYPES}
+        label={t('form.field.documenttype')}
+        options={traducir(t, DOCUMENT_TYPES)}
       />
       <Field
         form={form}
         name="coDocumentNumber"
-        label="Número de documento"
+        label={t('form.field.documentnumber')}
         inputMode="numeric"
       />
       <SelectField
         form={form}
         name="coGender"
-        label="Género"
-        options={GENDERS}
-        placeholder="Prefiero no decirlo"
+        label={t('form.field.gender')}
+        options={traducir(t, GENDERS)}
+        placeholder={t('form.gender.undisclosed')}
       />
       <MoneyField
         form={form}
         name="coMonthlyIncome"
-        label="Ingreso mensual (opcional)"
+        label={t('form.field.income')}
       />
       <div className="sm:col-span-2">
         <Choice
           form={form}
           name="coOccupation"
-          label="Tipo de ocupación"
-          options={OCCUPATIONS}
+          label={t('form.field.occupation')}
+          options={traducir(t, OCCUPATIONS)}
         />
       </div>
     </Fieldset>
@@ -686,40 +743,51 @@ function CoApplicantStep({ form }: { form: Form }) {
 }
 
 function CreditStep({ form }: { form: Form }) {
+  const t = useT()
+
   return (
-    <Fieldset legend="El crédito que necesitas">
+    <Fieldset legend={t('form.credit.legend.credit')}>
       <div className="sm:col-span-2">
         <Choice
           form={form}
           name="portfolioType"
-          label="Tipo de cartera"
-          options={PORTFOLIOS}
+          label={t('form.credit.field.portfolio')}
+          options={traducir(t, PORTFOLIOS)}
         />
       </div>
       <div className="sm:col-span-2 grid gap-4 sm:grid-cols-2">
         <Choice
           form={form}
           name="housingType"
-          label="Tipo de vivienda"
-          options={HOUSING_TYPES}
+          label={t('form.credit.field.housing')}
+          options={traducir(t, HOUSING_TYPES)}
         />
-        <Choice form={form} name="product" label="Tipo de producto" options={PRODUCTS} />
+        <Choice
+          form={form}
+          name="product"
+          label={t('form.credit.field.product')}
+          options={traducir(t, PRODUCTS)}
+        />
       </div>
 
       <SelectField
         form={form}
         name="termYears"
-        label="Plazo"
+        label={t('form.credit.field.term')}
         options={TERMS.map((years) => ({
           value: String(years),
-          label: `${years} años`,
+          label: t('form.credit.term.years', { years }),
         }))}
       />
-      <Field form={form} name="workCityName" label="Ciudad donde trabajas" />
+      <Field
+        form={form}
+        name="workCityName"
+        label={t('form.credit.field.workcity')}
+      />
       <MoneyField
         form={form}
         name="amount"
-        label="Monto solicitado"
+        label={t('form.credit.field.amount')}
         className="sm:col-span-2"
       />
     </Fieldset>
@@ -729,40 +797,45 @@ function CreditStep({ form }: { form: Form }) {
 function PropertyStep({ form }: { form: Form }) {
   // Hijo del formulario: `form.watch` no le re-pintaria. Ver fields.tsx.
   const picked = useWatch({ control: form.control, name: 'hasPropertyPicked' })
+  const t = useT()
 
   return (
-    <Fieldset legend="Hablemos del inmueble">
+    <Fieldset legend={t('form.credit.legend.property')}>
       <div className="sm:col-span-2">
         <Choice
           form={form}
           name="hasPropertyPicked"
-          label="¿Ya sabes qué inmueble quieres comprar?"
+          label={t('form.credit.field.picked')}
           options={[
-            { value: true, label: 'Sí' },
-            { value: false, label: 'Todavía no' },
+            { value: true, label: t('form.yes') },
+            { value: false, label: t('form.credit.picked.no') },
           ]}
         />
       </div>
 
       {picked && (
         <>
-          <MoneyField form={form} name="propertyValue" label="Valor del inmueble" />
+          <MoneyField
+            form={form}
+            name="propertyValue"
+            label={t('form.credit.field.propertyvalue')}
+          />
           <Field
             form={form}
             name="propertyCode"
-            label="Código del inmueble (opcional)"
-            placeholder="Ej. 100234"
-            hint="Si lo viste en nuestra web, el código está en la ficha."
+            label={t('form.credit.field.propertycode')}
+            placeholder={t('form.credit.propertycode.placeholder')}
+            hint={t('form.credit.propertycode.hint')}
           />
         </>
       )}
 
       <div className="grid gap-1.5 sm:col-span-2">
-        <Label htmlFor="credit-notes">Observaciones (opcional)</Label>
+        <Label htmlFor="credit-notes">{t('form.field.notes')}</Label>
         <Textarea
           id="credit-notes"
           rows={3}
-          placeholder="Lo que quieras contarnos de tu caso."
+          placeholder={t('form.credit.notes.placeholder')}
           {...form.register('notes')}
         />
       </div>
@@ -771,8 +844,8 @@ function PropertyStep({ form }: { form: Form }) {
         <Toggle
           form={form}
           name="acceptedTerms"
-          label="Autorizo el tratamiento de mis datos personales"
-          hint="Solo los usamos para estudiar tu caso y contactarte."
+          label={t('form.credit.terms')}
+          hint={t('form.credit.terms.hint')}
         />
       </div>
     </Fieldset>

@@ -4,6 +4,7 @@ import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ApiError } from '@/lib/api'
 import { identify, type ChatScope } from '@/lib/assistant'
+import { useT } from '@/lib/i18n'
 
 /**
  * Los países desde los que escribe la gente, con Colombia primero.
@@ -59,6 +60,7 @@ export function ChatIdentify({
   scope: ChatScope
   onReady: (visitor: Visitor) => void
 }) {
+  const t = useT()
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [dial, setDial] = useState('+57')
@@ -97,7 +99,7 @@ export function ChatIdentify({
       setError(
         err instanceof ApiError
           ? err.message
-          : 'No pudimos conectar. Inténtalo otra vez.',
+          : t('chat.identify.error'),
       )
       setEnviando(false)
     }
@@ -106,20 +108,21 @@ export function ChatIdentify({
   return (
     <form onSubmit={enviar} className="flex flex-col gap-3 p-4">
       <p className="text-sm text-muted-foreground">
-        Cuéntanos quién eres y te atiendo enseguida. Así tu asesor puede
-        retomarlo contigo si hace falta.
+        {t('chat.identify.intro')}
       </p>
 
       <div className="grid grid-cols-2 gap-2">
         <Campo
-          label="Nombre"
+          id="chat-first-name"
+          label={t('chat.identify.firstName')}
           value={firstName}
           onChange={setFirstName}
           autoComplete="given-name"
           autoFocus
         />
         <Campo
-          label="Apellidos"
+          id="chat-last-name"
+          label={t('chat.identify.lastName')}
           value={lastName}
           onChange={setLastName}
           autoComplete="family-name"
@@ -131,7 +134,7 @@ export function ChatIdentify({
           htmlFor="chat-phone"
           className="mb-1 block text-xs font-medium text-muted-foreground"
         >
-          Celular
+          {t('chat.identify.phone')}
         </label>
         {/*
           El indicativo va aparte y no dentro del mismo campo: pegado al número
@@ -140,7 +143,7 @@ export function ChatIdentify({
         */}
         <div className="flex gap-2">
           <select
-            aria-label="Indicativo del país"
+            aria-label={t('chat.identify.dial')}
             value={dial}
             onChange={(e) => setDial(e.target.value)}
             className="h-10 w-[7.5rem] shrink-0 rounded-md border bg-background px-2 text-sm"
@@ -156,7 +159,7 @@ export function ChatIdentify({
             type="tel"
             inputMode="numeric"
             autoComplete="tel-national"
-            placeholder="300 123 4567"
+            placeholder={t('chat.identify.phone.placeholder')}
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             className="h-10 min-w-0 flex-1 rounded-md border bg-background px-3 text-sm"
@@ -165,39 +168,44 @@ export function ChatIdentify({
       </div>
 
       <Campo
-        label="Correo"
+        id="chat-email"
+        label={t('chat.identify.email')}
         type="email"
         value={email}
         onChange={setEmail}
         autoComplete="email"
-        placeholder="tu@correo.com"
+        placeholder={t('chat.identify.email.placeholder')}
       />
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 
       <Button type="submit" disabled={!listo || enviando} className="mt-1">
         {enviando && <Loader2 className="size-4 animate-spin" />}
-        Empezar a chatear
+        {t('chat.identify.submit')}
       </Button>
 
       <p className="text-[11px] leading-snug text-muted-foreground">
-        Usamos tus datos solo para atenderte y que un asesor te contacte.
+        {t('chat.identify.privacy')}
       </p>
     </form>
   )
 }
 
 function Campo({
+  id,
   label,
   value,
   onChange,
   ...rest
 }: {
+  id: string
   label: string
   value: string
   onChange: (value: string) => void
-} & Omit<React.InputHTMLAttributes<HTMLInputElement>, 'onChange' | 'value'>) {
-  const id = `chat-${label.toLowerCase().replace(/\s/g, '-')}`
+} & Omit<
+  React.InputHTMLAttributes<HTMLInputElement>,
+  'onChange' | 'value' | 'id'
+>) {
   return (
     <div>
       <label

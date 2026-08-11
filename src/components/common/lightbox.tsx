@@ -2,6 +2,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useCallback, useEffect } from 'react'
 
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
+import { useT } from '@/lib/i18n'
 import type { PropertyImage } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
@@ -29,6 +30,7 @@ export function Lightbox({
   onIndex: (index: number | null) => void
   title: string
 }) {
+  const t = useT()
   const mover = useCallback(
     (paso: number) => {
       if (index === null || !images.length) return
@@ -58,14 +60,24 @@ export function Lightbox({
     >
       <DialogContent className="max-w-6xl border-none bg-transparent p-0 shadow-none">
         <DialogTitle className="sr-only">
-          {title} · foto {(index ?? 0) + 1} de {images.length}
+          {t('property.lightbox.title', {
+            title,
+            index: (index ?? 0) + 1,
+            total: images.length,
+          })}
         </DialogTitle>
 
         {foto && (
           <div className="relative">
             <img
               src={foto.urlOriginal ?? foto.urlLarge}
-              alt={foto.description ?? `${title} · foto ${(index ?? 0) + 1}`}
+              alt={
+                foto.description ??
+                t('property.lightbox.photo_alt', {
+                  title,
+                  index: (index ?? 0) + 1,
+                })
+              }
               className="max-h-[85vh] w-full rounded-lg object-contain"
             />
 
@@ -92,12 +104,17 @@ function Flecha({
   lado: 'left' | 'right'
   onClick: () => void
 }) {
+  const t = useT()
   const Icon = lado === 'left' ? ChevronLeft : ChevronRight
   return (
     <button
       type="button"
       onClick={onClick}
-      aria-label={lado === 'left' ? 'Foto anterior' : 'Foto siguiente'}
+      aria-label={
+        lado === 'left'
+          ? t('property.gallery.previous')
+          : t('property.gallery.next')
+      }
       className={cn(
         'absolute top-1/2 flex size-10 -translate-y-1/2 items-center justify-center rounded-full bg-background/90 shadow-md transition-colors hover:bg-background',
         lado === 'left' ? 'left-3' : 'right-3',

@@ -11,6 +11,7 @@ import {
   websiteJsonLd,
 } from '@/lib/seo'
 import { SITE } from '@/lib/site'
+import { useT } from '@/lib/i18n'
 import { useSeo } from '@/lib/use-seo'
 import { ProjectCard } from '@/components/project/project-card'
 import { RecentCarousel } from '@/components/property/recent-carousel'
@@ -20,17 +21,18 @@ import type { HomeData } from '@/routes/loaders'
 
 export function Home() {
   const data = useLoaderData() as HomeData
+  const t = useT()
 
   useSeo(
     {
-      title: `${SITE.name} · Apartamentos, casas y lotes en Bucaramanga`,
-      description: SITE.description,
+      title: t('page.home.seo.title', { site: SITE.name }),
+      description: t(SITE.description),
       canonical: SITE.url + '/',
     },
     {
-      org: organizationJsonLd(),
+      org: organizationJsonLd(t),
       site: websiteJsonLd(),
-      crumbs: breadcrumbJsonLd([{ name: 'Inicio', url: '/' }]),
+      crumbs: breadcrumbJsonLd([{ name: t('nav.home'), url: '/' }]),
     },
   )
 
@@ -42,16 +44,18 @@ export function Home() {
         primero que lee un lector de pantalla y lo que le dice a un buscador de
         que va este sitio. Sin el, la portada no tenia ningun h1.
       */}
-      <h1 className="sr-only">
-        Inmobiliaria en Bucaramanga: apartamentos, casas y lotes en venta en
-        Floridablanca, Girón y Piedecuesta
-      </h1>
+      <h1 className="sr-only">{t('page.home.h1')}</h1>
 
       <MapSection />
 
       <section className="container-site relative z-10 -mt-8 mb-14 lg:-mt-10">
         <div className="rounded-lg border bg-card p-5 shadow-lg lg:p-6">
-          <SectionHeading as="h2" size="sm" light="Búsqueda" strong="avanzada" />
+          <SectionHeading
+            as="h2"
+            size="sm"
+            light={t('search.heading.light')}
+            strong={t('search.heading.strong')}
+          />
           <AdvancedSearch />
         </div>
       </section>
@@ -74,12 +78,17 @@ export function Home() {
 
 
 function ProjectsSection({ promise }: { promise: Promise<ProjectSummary[]> }) {
+  const t = useT()
   const projects = use(promise)
   if (!projects.length) return null
 
   return (
     <section className="container-site mb-14">
-      <SectionHeading size="sm" light="Nuestros" strong="proyectos" />
+      <SectionHeading
+        size="sm"
+        light={t('projects.heading.light')}
+        strong={t('projects.heading.strong')}
+      />
       <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {projects.map((project) => (
           <ProjectCard key={project.id} project={project} />
@@ -90,12 +99,17 @@ function ProjectsSection({ promise }: { promise: Promise<ProjectSummary[]> }) {
 }
 
 function ShowcaseSection({ promise }: { promise: Promise<Showcase> }) {
+  const t = useT()
   const showcase = use(promise)
   if (!showcase.enabled || !showcase.properties.length) return null
 
   return (
     <section className="container-site mb-14">
-      <SectionHeading size="sm" light="Últimos" strong="inmuebles" />
+      <SectionHeading
+        size="sm"
+        light={t('home.showcase.light')}
+        strong={t('home.showcase.strong')}
+      />
       <RecentCarousel promise={promise} />
     </section>
   )

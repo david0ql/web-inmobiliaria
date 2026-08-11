@@ -2,6 +2,7 @@ import { LogIn, UserRound } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 import { Button } from '@/components/ui/button'
+import { useT } from '@/lib/i18n'
 import { ROUTES } from '@/lib/site'
 import { usePortalClient } from '@/lib/use-portal'
 
@@ -23,12 +24,13 @@ export function AccountButton({
   size?: React.ComponentProps<typeof Button>['size']
 }) {
   const client = usePortalClient()
+  const t = useT()
 
   return (
     <Button asChild variant="outline" size={size} className={className}>
       <Link to={ROUTES.account}>
         {client ? <UserRound /> : <LogIn />}
-        {client ? 'Mi cuenta' : 'Iniciar sesión'}
+        {client ? t('nav.account') : t('nav.signin')}
       </Link>
     </Button>
   )

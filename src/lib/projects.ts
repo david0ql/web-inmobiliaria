@@ -72,20 +72,22 @@ export interface ProjectDetail {
   amenities: { id: number; name: string }[]
 }
 
-// --- etiquetas del dominio, en castellano ---------------------------------
+// --- etiquetas del dominio -------------------------------------------------
+// Guardan la CLAVE, no el texto: son constantes de modulo y `useT()` solo se
+// puede llamar dentro de un componente, asi que se traducen al pintarlas.
 
 export const FAMILY_KIND_LABEL: Record<FamilyKind, string> = {
-  PROJECT: 'Proyecto',
-  COMPLEX: 'Conjunto',
-  BUILDING: 'Edificio',
-  STAGE: 'Etapa',
+  PROJECT: 'catalog.family_kind.project',
+  COMPLEX: 'catalog.family_kind.complex',
+  BUILDING: 'catalog.family_kind.building',
+  STAGE: 'catalog.family_kind.stage',
 }
 
 export const FAMILY_STATUS_LABEL: Record<FamilyStatus, string> = {
-  PLANNED: 'Sobre planos',
-  UNDER_CONSTRUCTION: 'En construcción',
-  DELIVERED: 'Entregado',
-  SOLD_OUT: 'Vendido',
+  PLANNED: 'catalog.family_status.planned',
+  UNDER_CONSTRUCTION: 'catalog.family_status.under_construction',
+  DELIVERED: 'catalog.family_status.delivered',
+  SOLD_OUT: 'catalog.family_status.sold_out',
 }
 
 /**

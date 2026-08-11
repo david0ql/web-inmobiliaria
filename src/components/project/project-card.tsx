@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import { SpecRow } from '@/components/common/spec-row'
 import { Badge } from '@/components/ui/misc'
 import { useCurrency } from '@/lib/currency'
+import { useT } from '@/lib/i18n'
 import {
   FAMILY_STATUS_COLOR,
   FAMILY_STATUS_LABEL,
@@ -20,6 +21,7 @@ import {
  * y no tiene area, tiene tipologias y unidades libres.
  */
 export function ProjectCard({ project }: { project: ProjectSummary }) {
+  const t = useT()
   const { precio } = useCurrency()
   const to = projectPath(project)
   const place = [project.zone?.name, project.city?.name]
@@ -57,14 +59,14 @@ export function ProjectCard({ project }: { project: ProjectSummary }) {
             ) : (
               <div className="flex size-full flex-col items-center justify-center gap-2 text-muted-foreground">
                 <Building2 className="size-8" />
-                <span className="text-xs">Sin fotografía</span>
+                <span className="text-xs">{t('project.cover.none')}</span>
               </div>
             )}
 
             {/* La cortina con el boton centrado solo aparece donde hay raton. */}
             <div className="absolute inset-0 hidden items-center justify-center bg-black/70 opacity-0 transition-opacity duration-300 group-hover:opacity-100 lg:flex">
               <span className="rounded-sm border-2 border-white px-3 py-2 text-xs font-bold tracking-wide text-white uppercase">
-                Ver proyecto
+                {t('project.card.view')}
               </span>
             </div>
           </div>
@@ -75,7 +77,7 @@ export function ProjectCard({ project }: { project: ProjectSummary }) {
             variant="tag"
             style={{ backgroundColor: FAMILY_STATUS_COLOR[project.status] }}
           >
-            {FAMILY_STATUS_LABEL[project.status] ?? project.status}
+            {t(FAMILY_STATUS_LABEL[project.status] ?? project.status)}
           </Badge>
         </div>
       </figure>
@@ -85,15 +87,29 @@ export function ProjectCard({ project }: { project: ProjectSummary }) {
           {
             icon: Layers,
             value: project.unitTypeCount,
-            unit: project.unitTypeCount === 1 ? 'tipología' : 'tipologías',
+            unit:
+              project.unitTypeCount === 1
+                ? t('project.spec.unitTypes.one')
+                : t('project.spec.unitTypes.other'),
           },
           {
             icon: KeyRound,
             value: project.availableUnits,
-            unit: project.availableUnits === 1 ? 'libre' : 'libres',
+            unit:
+              project.availableUnits === 1
+                ? t('project.spec.available.one')
+                : t('project.spec.available.other'),
           },
-          { icon: Building2, value: project.totalUnits, unit: 'en total' },
-          { icon: CalendarClock, value: project.deliveryYear, unit: 'entrega' },
+          {
+            icon: Building2,
+            value: project.totalUnits,
+            unit: t('project.spec.total'),
+          },
+          {
+            icon: CalendarClock,
+            value: project.deliveryYear,
+            unit: t('project.spec.delivery'),
+          },
         ]}
       />
 
@@ -129,13 +145,13 @@ export function ProjectCard({ project }: { project: ProjectSummary }) {
           {project.fromPrice ? (
             <span className="tabular text-xl leading-none font-normal tracking-tight">
               <small className="mr-1 text-[0.625rem] tracking-widest text-muted-foreground uppercase">
-                Desde
+                {t('project.price.from')}
               </small>
               {precio(project.fromPrice)}
             </span>
           ) : (
             <span className="text-sm leading-none text-muted-foreground">
-              Precio a consultar
+              {t('project.price.onRequest')}
             </span>
           )}
         </p>
@@ -143,7 +159,7 @@ export function ProjectCard({ project }: { project: ProjectSummary }) {
           to={to}
           className="flex shrink-0 items-center border-l bg-primary px-5 text-xs font-bold tracking-widest text-primary-foreground uppercase transition-opacity hover:opacity-90"
         >
-          Detalle
+          {t('project.card.detail')}
         </Link>
       </div>
     </article>

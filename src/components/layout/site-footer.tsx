@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 
 import { CreditButton } from '@/components/credit/credit-button'
 import { SocialLinks } from '@/components/layout/social-links'
+import { useT } from '@/lib/i18n'
 import { PANEL_URL, ROUTES, SITE } from '@/lib/site'
 
 /**
@@ -20,25 +21,28 @@ import { PANEL_URL, ROUTES, SITE } from '@/lib/site'
  * —quien esta en el pie viene de recorrer la portada— y "Mi cuenta" ya vive en
  * la cabecera, que es donde se busca.
  */
+/* La lista guarda la clave, no la frase: el rotulo se traduce al pintarlo. */
 const INFORMACION = [
-  { to: ROUTES.projects, label: 'Proyectos' },
-  { to: ROUTES.sales, label: 'Ventas' },
-  { to: ROUTES.contact, label: 'Contáctenos' },
-  { to: ROUTES.privacy, label: 'Políticas de privacidad' },
+  { to: ROUTES.projects, label: 'nav.projects' },
+  { to: ROUTES.sales, label: 'nav.sales' },
+  { to: ROUTES.contact, label: 'nav.contact' },
+  { to: ROUTES.privacy, label: 'nav.privacy' },
 ]
 
 export function SiteFooter() {
+  const t = useT()
+
   return (
     <footer className="mt-16 border-t bg-secondary/40">
       <div className="container-site grid gap-10 py-12 sm:grid-cols-2 lg:grid-cols-3">
         <section>
-          <FooterHeading>Sobre nosotros</FooterHeading>
-          <p className="max-w-sm text-sm text-muted-foreground">{SITE.tagline}</p>
+          <FooterHeading>{t('footer.about.title')}</FooterHeading>
+          <p className="max-w-sm text-sm text-muted-foreground">{t(SITE.tagline)}</p>
           <SocialLinks className="mt-4 -ml-2" />
         </section>
 
         <section>
-          <FooterHeading>Contáctenos</FooterHeading>
+          <FooterHeading>{t('nav.contact')}</FooterHeading>
           <address className="flex min-w-0 flex-col gap-3 text-sm not-italic">
             <span className="flex gap-2">
               <MapPin className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
@@ -75,12 +79,12 @@ export function SiteFooter() {
           en escritorio, donde la columna ya es estrecha.
         */}
         <section className="sm:col-span-2 lg:col-span-1">
-          <FooterHeading>Información</FooterHeading>
-          <nav aria-label="Enlaces del sitio">
+          <FooterHeading>{t('footer.links.title')}</FooterHeading>
+          <nav aria-label={t('footer.links.nav')}>
             <ul className="grid grid-cols-2 gap-x-6 gap-y-2.5 text-sm lg:grid-cols-1">
               <li>
                 <Link to={ROUTES.projects} className="hover:underline">
-                  Proyectos
+                  {t('nav.projects')}
                 </Link>
               </li>
               <li>
@@ -91,7 +95,7 @@ export function SiteFooter() {
                 (item) => (
                   <li key={item.to}>
                     <Link to={item.to} className="hover:underline">
-                      {item.label}
+                      {t(item.label)}
                     </Link>
                   </li>
                 ),
@@ -104,14 +108,16 @@ export function SiteFooter() {
       <div className="border-t">
         <div className="container-site flex flex-col gap-1 py-5 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
           <p>
-            © {new Date().getFullYear()} {SITE.name}. Todos los derechos
-            reservados.
+            {t('footer.copyright', {
+              year: new Date().getFullYear(),
+              name: SITE.name,
+            })}
           </p>
           {/* La politica de privacidad se queda: es un enlace exigible, no
               navegacion, y esta indexado desde el sitio anterior. */}
           <div className="flex flex-wrap items-center gap-4">
             <Link to={ROUTES.privacy} className="hover:underline">
-              Políticas de privacidad
+              {t('nav.privacy')}
             </Link>
             {/* El acceso del equipo vive aqui y no en la cabecera: arriba,
                 "Entrar" es de los propietarios. En otra pestaña porque el panel
@@ -123,7 +129,7 @@ export function SiteFooter() {
               rel="noreferrer noopener"
               className="hover:underline"
             >
-              Acceso equipo
+              {t('footer.staff')}
             </a>
           </div>
         </div>

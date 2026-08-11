@@ -6,6 +6,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { useT } from '@/lib/i18n'
 
 /**
  * Entrar o crear cuenta sin salir de donde estabas.
@@ -24,15 +25,13 @@ export function AccountDialog({
   open: boolean
   onOpenChange: (open: boolean) => void
 }) {
+  const t = useT()
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Entra a tu cuenta</DialogTitle>
-          <DialogDescription>
-            Para publicar un inmueble necesitamos saber quién eres: es la cuenta
-            desde la que después sigues sus visitas.
-          </DialogDescription>
+          <DialogTitle>{t('account.dialog.title')}</DialogTitle>
+          <DialogDescription>{t('account.dialog.subtitle')}</DialogDescription>
         </DialogHeader>
 
         <AccountGate compact />

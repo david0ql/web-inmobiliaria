@@ -1,5 +1,5 @@
 import { Loader2 } from 'lucide-react'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
@@ -9,37 +9,47 @@ import { SectionHeading } from '@/components/common/section-heading'
 import { Field, Fieldset, Toggle } from '@/components/form/fields'
 import { Button } from '@/components/ui/button'
 import { ApiError } from '@/lib/api'
+import { useT } from '@/lib/i18n'
 import { login, register } from '@/lib/portal'
 import { cn } from '@/lib/utils'
 
 /** La misma longitud que exige la API: doce. */
 const MIN_PASSWORD = 12
 
-const loginSchema = z.object({
-  email: z.email('Ese correo no parece válido.'),
-  password: z.string().min(1, 'Escribe tu contraseña.'),
-})
+/*
+  Los mensajes de validación se traducen, y `useT` solo vive dentro de un
+  componente: por eso los esquemas se construyen con `t` ya resuelto, en vez de
+  ser constantes de módulo.
+*/
+type T = ReturnType<typeof useT>
 
-const registerSchema = z
-  .object({
-    firstName: z.string().trim().min(2, 'Escribe tu nombre.'),
-    lastName: z.string().trim().min(2, 'Escribe tus apellidos.'),
-    email: z.email('Ese correo no parece válido.'),
-    cellPhone: z.string().trim().min(7, 'Necesitamos un teléfono para llamarte.'),
-    identification: z.string().trim().optional(),
-    password: z
-      .string()
-      .min(MIN_PASSWORD, `Usa al menos ${MIN_PASSWORD} caracteres.`),
-    passwordConfirm: z.string(),
-    acceptsMarketing: z.boolean(),
-  })
-  .refine((values) => values.password === values.passwordConfirm, {
-    path: ['passwordConfirm'],
-    message: 'Las contraseñas no coinciden.',
+const crearLoginSchema = (t: T) =>
+  z.object({
+    email: z.email(t('errors.email')),
+    password: z.string().min(1, t('errors.password.required')),
   })
 
-type LoginValues = z.infer<typeof loginSchema>
-type RegisterValues = z.infer<typeof registerSchema>
+const crearRegisterSchema = (t: T) =>
+  z
+    .object({
+      firstName: z.string().trim().min(2, t('errors.firstName')),
+      lastName: z.string().trim().min(2, t('errors.lastName')),
+      email: z.email(t('errors.email')),
+      cellPhone: z.string().trim().min(7, t('errors.phone')),
+      identification: z.string().trim().optional(),
+      password: z
+        .string()
+        .min(MIN_PASSWORD, t('errors.password.min', { min: MIN_PASSWORD })),
+      passwordConfirm: z.string(),
+      acceptsMarketing: z.boolean(),
+    })
+    .refine((values) => values.password === values.passwordConfirm, {
+      path: ['passwordConfirm'],
+      message: t('errors.password.mismatch'),
+    })
+
+type LoginValues = z.infer<ReturnType<typeof crearLoginSchema>>
+type RegisterValues = z.infer<ReturnType<typeof crearRegisterSchema>>
 
 /**
  * Entrada al portal: iniciar sesión o crear la cuenta.
@@ -51,6 +61,7 @@ type RegisterValues = z.infer<typeof registerSchema>
  * es cliente de la agencia una dirección cada vez.
  */
 export function AccountGate({ compact = false }: { compact?: boolean } = {}) {
+  const t = useT()
   const [mode, setMode] = useState<'login' | 'register'>('login')
   const [prefill, setPrefill] = useState('')
 
@@ -63,12 +74,15 @@ export function AccountGate({ compact = false }: { compact?: boolean } = {}) {
         <>
           <SectionHeading
             as="h1"
-            light={mode === 'login' ? 'Entra a' : 'Crea'}
-            strong="tu cuenta"
+            light={
+              mode === 'login'
+                ? t('account.gate.title.login.light')
+                : t('account.gate.title.register.light')
+            }
+            strong={t('account.gate.title.strong')}
           />
           <p className="mb-6 text-sm text-muted-foreground">
-            Desde aquí publicas tus inmuebles y sigues sus visitas. Es la misma
-            cuenta que usa tu asesor para tenerte al día.
+            {t('account.gate.intro')}
           </p>
         </>
       )}
@@ -87,7 +101,9 @@ export function AccountGate({ compact = false }: { compact?: boolean } = {}) {
                 : 'hover:bg-secondary',
             )}
           >
-            {value === 'login' ? 'Ya tengo cuenta' : 'Soy nuevo'}
+            {value === 'login'
+              ? t('account.gate.tab.login')
+              : t('account.gate.tab.register')}
           </button>
         ))}
       </div>
@@ -107,8 +123,10 @@ export function AccountGate({ compact = false }: { compact?: boolean } = {}) {
 }
 
 function LoginForm({ defaultEmail }: { defaultEmail: string }) {
+  const t = useT()
+  const schema = useMemo(() => crearLoginSchema(t), [t])
   const form = useForm<LoginValues>({
-    resolver: zodResolver(loginSchema),
+    resolver: zodResolver(schema),
     defaultValues: { email: defaultEmail, password: '' },
   })
 
@@ -119,25 +137,25 @@ function LoginForm({ defaultEmail }: { defaultEmail: string }) {
       toast.error(
         error instanceof ApiError
           ? error.message
-          : 'No pudimos entrar. Revisa tu conexión e inténtalo otra vez.',
+          : t('account.login.error'),
       )
     }
   })
 
   return (
     <form onSubmit={onSubmit}>
-      <Fieldset legend="Iniciar sesión" columns={1}>
+      <Fieldset legend={t('account.login.legend')} columns={1}>
         <Field
           form={form}
           name="email"
-          label="Correo electrónico"
+          label={t('account.field.email')}
           type="email"
           autoComplete="email"
         />
         <Field
           form={form}
           name="password"
-          label="Contraseña"
+          label={t('account.field.password')}
           type="password"
           autoComplete="current-password"
         />
@@ -149,19 +167,21 @@ function LoginForm({ defaultEmail }: { defaultEmail: string }) {
         disabled={form.formState.isSubmitting}
       >
         {form.formState.isSubmitting && <Loader2 className="animate-spin" />}
-        Entrar
+        {t('account.login.submit')}
       </Button>
 
       <p className="mt-4 text-center text-xs text-muted-foreground">
-        ¿Olvidaste la contraseña? Escríbele a tu asesor y te la restablece.
+        {t('account.login.forgot')}
       </p>
     </form>
   )
 }
 
 function RegisterForm({ onDone }: { onDone: (email: string) => void }) {
+  const t = useT()
+  const schema = useMemo(() => crearRegisterSchema(t), [t])
   const form = useForm<RegisterValues>({
-    resolver: zodResolver(registerSchema),
+    resolver: zodResolver(schema),
     defaultValues: {
       firstName: '',
       lastName: '',
@@ -185,26 +205,36 @@ function RegisterForm({ onDone }: { onDone: (email: string) => void }) {
         password: values.password,
         acceptsMarketing: values.acceptsMarketing,
       })
-      toast.success('Datos recibidos', { description: result.message })
+      toast.success(t('account.register.done'), { description: result.message })
       onDone(values.email)
     } catch (error) {
       toast.error(
         error instanceof ApiError
           ? error.message
-          : 'No pudimos crear la cuenta. Inténtalo otra vez.',
+          : t('account.register.error'),
       )
     }
   })
 
   return (
     <form onSubmit={onSubmit}>
-      <Fieldset legend="Tus datos">
-        <Field form={form} name="firstName" label="Nombre" autoComplete="given-name" />
-        <Field form={form} name="lastName" label="Apellidos" autoComplete="family-name" />
+      <Fieldset legend={t('account.register.legend')}>
+        <Field
+          form={form}
+          name="firstName"
+          label={t('account.field.firstName')}
+          autoComplete="given-name"
+        />
+        <Field
+          form={form}
+          name="lastName"
+          label={t('account.field.lastName')}
+          autoComplete="family-name"
+        />
         <Field
           form={form}
           name="email"
-          label="Correo electrónico"
+          label={t('account.field.email')}
           type="email"
           autoComplete="email"
           className="sm:col-span-2"
@@ -212,7 +242,7 @@ function RegisterForm({ onDone }: { onDone: (email: string) => void }) {
         <Field
           form={form}
           name="cellPhone"
-          label="Celular"
+          label={t('account.field.cellPhone')}
           type="tel"
           inputMode="tel"
           autoComplete="tel"
@@ -220,21 +250,21 @@ function RegisterForm({ onDone }: { onDone: (email: string) => void }) {
         <Field
           form={form}
           name="identification"
-          label="Cédula (opcional)"
+          label={t('account.field.identification')}
           inputMode="numeric"
         />
         <Field
           form={form}
           name="password"
-          label="Contraseña"
+          label={t('account.field.password')}
           type="password"
           autoComplete="new-password"
-          hint={`Al menos ${MIN_PASSWORD} caracteres. Una frase que recuerdes es mejor que ocho símbolos.`}
+          hint={t('account.field.password.hint', { min: MIN_PASSWORD })}
         />
         <Field
           form={form}
           name="passwordConfirm"
-          label="Repite la contraseña"
+          label={t('account.field.passwordConfirm')}
           type="password"
           autoComplete="new-password"
         />
@@ -242,7 +272,7 @@ function RegisterForm({ onDone }: { onDone: (email: string) => void }) {
           <Toggle
             form={form}
             name="acceptsMarketing"
-            label="Quiero recibir novedades de la agencia"
+            label={t('account.field.acceptsMarketing')}
           />
         </div>
       </Fieldset>
@@ -253,7 +283,7 @@ function RegisterForm({ onDone }: { onDone: (email: string) => void }) {
         disabled={form.formState.isSubmitting}
       >
         {form.formState.isSubmitting && <Loader2 className="animate-spin" />}
-        Crear cuenta
+        {t('account.register.submit')}
       </Button>
     </form>
   )

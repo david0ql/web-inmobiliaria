@@ -1,5 +1,7 @@
 import { lazy, Suspense, useState } from 'react'
 
+import { useT } from '@/lib/i18n'
+
 /*
   Mismo truco que `OfferButton`: el modal de credito arrastra react-hook-form,
   zod, el resolver y el dialogo de Radix, y esta en el menu de todas las
@@ -29,17 +31,22 @@ const preload = () => {
 export function CreditButton({
   children,
   className,
-  label = 'Créditos',
+  label,
 }: {
   children?: React.ReactNode
   className?: string
   label?: string
 }) {
   const [open, setOpen] = useState(false)
+  const t = useT()
+
+  // El rotulo por defecto no puede ser un valor por defecto del parametro:
+  // traducirlo necesita el hook, y el hook solo vive dentro del componente.
+  const texto = label ?? t('nav.credits')
 
   const trigger = children ?? (
     <button type="button" className={className}>
-      {label}
+      {texto}
     </button>
   )
 
@@ -64,7 +71,7 @@ export function CreditButton({
         setOpen(true)
       }}
     >
-      {children ?? label}
+      {children ?? texto}
     </button>
   )
 }

@@ -6,6 +6,7 @@ import 'leaflet.markercluster/dist/MarkerCluster.Default.css'
 import { useEffect, useRef } from 'react'
 
 import { moneyShort } from '@/lib/format'
+import { useT } from '@/lib/i18n'
 import { MAP_CENTER, MAP_ZOOM } from '@/lib/site'
 import { propertyPath } from '@/lib/slug'
 import type { Property } from '@/lib/types'
@@ -23,6 +24,7 @@ import type { Property } from '@/lib/types'
  * porque su coordenada no es la puerta de la casa.
  */
 export function PropertiesMap({ properties }: { properties: Property[] }) {
+  const t = useT()
   const container = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -96,7 +98,7 @@ export function PropertiesMap({ properties }: { properties: Property[] }) {
     <div
       ref={container}
       role="application"
-      aria-label="Mapa de inmuebles"
+      aria-label={t('property.map.label')}
       className="h-[300px] w-full sm:h-[380px] lg:h-[450px]"
     />
   )

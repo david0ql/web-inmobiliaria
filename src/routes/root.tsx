@@ -2,6 +2,7 @@ import { Outlet, useNavigation } from 'react-router-dom'
 
 import { useSmoothScrollTop } from '@/lib/scroll'
 import { CurrencyProvider } from '@/lib/currency'
+import { I18nProvider } from '@/lib/i18n'
 import { usePortalSession } from '@/lib/use-portal'
 import { ChatFab } from '@/components/assistant/chat-fab'
 import { SiteFooter } from '@/components/layout/site-footer'
@@ -27,7 +28,8 @@ export function Root() {
       La moneda envuelve el sitio entero: se elige una vez en la barra de
       arriba y manda en las tarjetas, en la ficha y en el buscador.
     */
-    <CurrencyProvider>
+    <I18nProvider>
+      <CurrencyProvider>
       <div className="flex min-h-screen flex-col">
       <TopBar />
       <SiteHeader />
@@ -55,6 +57,7 @@ export function Root() {
 
       <Toaster />
       </div>
-    </CurrencyProvider>
+      </CurrencyProvider>
+    </I18nProvider>
   )
 }

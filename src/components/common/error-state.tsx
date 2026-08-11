@@ -3,6 +3,7 @@ import { Link, Navigate, useRouteError } from 'react-router-dom'
 
 import { Button } from '@/components/ui/button'
 import { ApiError } from '@/lib/api'
+import { useT } from '@/lib/i18n'
 import { ROUTES } from '@/lib/site'
 
 /**
@@ -19,6 +20,7 @@ import { ROUTES } from '@/lib/site'
  * ni nosotros.
  */
 export function ErrorState() {
+  const t = useT()
   const error = useRouteError()
   const notFound = error instanceof ApiError && error.status === 404
 
@@ -28,21 +30,21 @@ export function ErrorState() {
     <div className="container-site flex flex-col items-center gap-4 py-24 text-center">
       <AlertTriangle className="size-10 text-muted-foreground" />
       <h1 className="text-2xl font-semibold">
-        {notFound ? 'Ese inmueble ya no está publicado' : 'Algo se ha roto'}
+        {notFound ? t('errors.state.gone.title') : t('errors.state.title')}
       </h1>
       <p className="max-w-md text-sm text-muted-foreground">
         {notFound
-          ? 'Puede que se haya vendido o que lo hayamos retirado. Echa un vistazo al resto del inventario.'
+          ? t('errors.state.gone.text')
           : error instanceof ApiError
             ? error.message
-            : 'No hemos podido cargar la información. Revisa tu conexión e inténtalo otra vez.'}
+            : t('errors.state.text')}
       </p>
       <div className="flex gap-2">
         <Button asChild>
-          <Link to={ROUTES.sales}>Ver inmuebles</Link>
+          <Link to={ROUTES.sales}>{t('errors.state.cta.properties')}</Link>
         </Button>
         <Button asChild variant="outline">
-          <Link to={ROUTES.home}>Ir al inicio</Link>
+          <Link to={ROUTES.home}>{t('errors.state.cta.home')}</Link>
         </Button>
       </div>
     </div>

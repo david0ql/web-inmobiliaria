@@ -64,14 +64,24 @@ export function initials(name: string): string {
     .join('')
 }
 
-// --- etiquetas del dominio, en castellano ---------------------------------
+// --- etiquetas del dominio -------------------------------------------------
+
+/**
+ * La firma de `useT()`. Las etiquetas del dominio viven en constantes de modulo
+ * —fuera de todo componente— asi que guardan la CLAVE y se traducen en el punto
+ * donde se pintan, con la `t` que el componente ya tiene.
+ */
+export type Traducir = (
+  key: string,
+  vars?: Record<string, string | number>,
+) => string
 
 export const AVAILABILITY_LABEL: Record<string, string> = {
-  AVAILABLE: 'Disponible',
-  RESERVED: 'Reservado',
-  SOLD: 'Vendido',
-  RENTED: 'Arrendado',
-  WITHDRAWN: 'Retirado',
+  AVAILABLE: 'catalog.availability.available',
+  RESERVED: 'catalog.availability.reserved',
+  SOLD: 'catalog.availability.sold',
+  RENTED: 'catalog.availability.rented',
+  WITHDRAWN: 'catalog.availability.withdrawn',
 }
 
 /** Los colores son los que la agencia ya usaba en WASI para sus etiquetas. */
@@ -92,35 +102,38 @@ export const AVAILABILITY_COLOR: Record<string, string> = {
 }
 
 export const CONDITION_LABEL: Record<string, string> = {
-  NEW: 'Nuevo',
-  USED: 'Usado',
-  PROJECT: 'Sobre planos',
-  UNDER_CONSTRUCTION: 'En construcción',
+  NEW: 'catalog.condition.new',
+  USED: 'catalog.condition.used',
+  PROJECT: 'catalog.condition.plans',
+  UNDER_CONSTRUCTION: 'catalog.condition.under_construction',
 }
 
 export const RENT_PERIOD_LABEL: Record<string, string> = {
-  DAILY: 'Diario',
-  WEEKLY: 'Semanal',
-  BIWEEKLY: 'Quincenal',
-  MONTHLY: 'Mensual',
-  ANNUAL: 'Anual',
+  DAILY: 'catalog.rent_period.daily',
+  WEEKLY: 'catalog.rent_period.weekly',
+  BIWEEKLY: 'catalog.rent_period.biweekly',
+  MONTHLY: 'catalog.rent_period.monthly',
+  ANNUAL: 'catalog.rent_period.annual',
 }
 
 /**
  * Como el sitio nombra la operacion. En la base no hay un enum: son cuatro
  * booleanos que pueden darse a la vez.
  */
-export function businessType(p: {
-  forSale?: boolean
-  forRent?: boolean
-  forTransfer?: boolean
-  forTemporaryRent?: boolean
-}): string {
+export function businessType(
+  p: {
+    forSale?: boolean
+    forRent?: boolean
+    forTransfer?: boolean
+    forTemporaryRent?: boolean
+  },
+  t: Traducir,
+): string {
   const parts: string[] = []
-  if (p.forSale) parts.push('Venta')
-  if (p.forRent) parts.push('Arriendo')
-  if (p.forTemporaryRent) parts.push('Arriendo temporal')
-  if (p.forTransfer) parts.push('Permuta')
+  if (p.forSale) parts.push(t('catalog.business.sale'))
+  if (p.forRent) parts.push(t('catalog.business.rent'))
+  if (p.forTemporaryRent) parts.push(t('catalog.business.temporary_rent'))
+  if (p.forTransfer) parts.push(t('catalog.business.transfer'))
   return parts.join(' / ') || '—'
 }
 
@@ -135,9 +148,32 @@ export function businessType(p: {
  * Devuelve la cadena completa con su separador, o vacío si no hay dato: quien
  * lo usa lo concatena sin tener que comprobar nada.
  */
-export function stratumLabel(stratum?: number | null): string {
+export function stratumLabel(
+  stratum: number | null | undefined,
+  t: Traducir,
+): string {
+  const texto = stratumText(stratum, t)
+  return texto ? ` · ${texto}` : ''
+}
+
+/** Lo mismo sin el separador, para cuando va en una frase o en una celda. */
+export function stratumText(
+  stratum: number | null | undefined,
+  t: Traducir,
+): string {
   if (!stratum) return ''
-  if (stratum === 7) return ' · Rural'
-  if (stratum >= 8) return ' · Comercial'
-  return ` · Estrato ${stratum}`
+  if (stratum === 7) return t('catalog.stratum.rural')
+  if (stratum >= 8) return t('catalog.stratum.commercial')
+  return t('catalog.stratum.value', { n: stratum })
+}
+
+/** Solo el valor: la tabla de detalles ya lleva "Estrato" en su etiqueta. */
+export function stratumShort(
+  stratum: number | null | undefined,
+  t: Traducir,
+): string {
+  if (!stratum) return ''
+  if (stratum === 7) return t('catalog.stratum.rural')
+  if (stratum >= 8) return t('catalog.stratum.commercial')
+  return String(stratum)
 }

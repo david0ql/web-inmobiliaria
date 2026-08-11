@@ -1,3 +1,4 @@
+import { useT } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 
 /**
@@ -14,6 +15,8 @@ export function ResultsPager({
   pages: number
   onPage: (page: number) => void
 }) {
+  const t = useT()
+
   if (pages <= 1) return null
 
   const start = Math.max(1, Math.min(page - 2, pages - 4))
@@ -22,11 +25,13 @@ export function ResultsPager({
 
   return (
     <nav
-      aria-label="Paginación de resultados"
+      aria-label={t('search.pager.aria')}
       className="flex flex-wrap items-center justify-center gap-1.5"
     >
       {page > 1 && (
-        <PagerButton onClick={() => onPage(page - 1)}>« Anterior</PagerButton>
+        <PagerButton onClick={() => onPage(page - 1)}>
+          {t('search.pager.prev')}
+        </PagerButton>
       )}
 
       {start > 1 && (
@@ -54,7 +59,9 @@ export function ResultsPager({
       )}
 
       {page < pages && (
-        <PagerButton onClick={() => onPage(page + 1)}>» Siguiente</PagerButton>
+        <PagerButton onClick={() => onPage(page + 1)}>
+          {t('search.pager.next')}
+        </PagerButton>
       )}
     </nav>
   )

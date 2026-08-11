@@ -27,6 +27,7 @@ import {
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { ApiError, getZones } from '@/lib/api'
+import { useT } from '@/lib/i18n'
 import { portal } from '@/lib/portal'
 import { digits } from '@/lib/search-params'
 import { useSiteData } from '@/lib/site-data'
@@ -55,34 +56,54 @@ import { cn } from '@/lib/utils'
 
 const STRATA = [1, 2, 3, 4, 5, 6]
 
+/*
+ * Las listas guardan la CLAVE de cada rotulo, no el rotulo: viven en el modulo
+ * y ahi no hay contexto que traducir. Cada paso las resuelve con `traducir`
+ * justo antes de pintarlas.
+ */
+
 const VIEWS = [
-  { value: '', label: 'Sin especificar' },
-  { value: 'NORTH', label: 'Norte' },
-  { value: 'SOUTH', label: 'Sur' },
-  { value: 'EAST', label: 'Oriente' },
-  { value: 'WEST', label: 'Occidente' },
+  { value: '', label: 'form.consignment.view.none' },
+  { value: 'NORTH', label: 'form.consignment.view.north' },
+  { value: 'SOUTH', label: 'form.consignment.view.south' },
+  { value: 'EAST', label: 'form.consignment.view.east' },
+  { value: 'WEST', label: 'form.consignment.view.west' },
 ] as const
 
 const CONDITIONS = [
-  { value: 'ORIGINAL', label: 'Original' },
-  { value: 'TO_REMODEL', label: 'Para remodelar' },
-  { value: 'REMODELED', label: 'Remodelado' },
-  { value: 'BRAND_NEW', label: 'A estrenar' },
-  { value: 'SHELL', label: 'Obra gris' },
-  { value: 'BLUEPRINT', label: 'Sobre planos' },
+  { value: 'ORIGINAL', label: 'form.consignment.condition.original' },
+  { value: 'TO_REMODEL', label: 'form.consignment.condition.to_remodel' },
+  { value: 'REMODELED', label: 'form.consignment.condition.remodeled' },
+  { value: 'BRAND_NEW', label: 'form.consignment.condition.brand_new' },
+  { value: 'SHELL', label: 'form.consignment.condition.shell' },
+  { value: 'BLUEPRINT', label: 'form.consignment.condition.blueprint' },
 ] as const
 
 const CREDIT_TYPES = [
-  { value: 'DEBT_FREE', label: 'Libre de deuda' },
-  { value: 'MORTGAGE', label: 'Hipoteca' },
-  { value: 'LEASING', label: 'Leasing' },
+  { value: 'DEBT_FREE', label: 'form.consignment.credit.debtfree' },
+  { value: 'MORTGAGE', label: 'form.consignment.credit.mortgage' },
+  { value: 'LEASING', label: 'form.consignment.credit.leasing' },
 ] as const
 
 const OCCUPANCIES = [
-  { value: 'VACANT', label: 'Desocupado' },
-  { value: 'OWNER_OCCUPIED', label: 'Habitado por el propietario' },
-  { value: 'RENTED', label: 'Arrendado' },
+  { value: 'VACANT', label: 'form.consignment.occupancy.vacant' },
+  { value: 'OWNER_OCCUPIED', label: 'form.consignment.occupancy.owner' },
+  { value: 'RENTED', label: 'form.consignment.occupancy.rented' },
 ] as const
+
+type Traducir = ReturnType<typeof useT>
+
+/** Resuelve los rotulos de una lista de opciones con claves. */
+function traducir<V extends string | boolean>(
+  t: Traducir,
+  options: readonly { value: V; label: string; hint?: string }[],
+) {
+  return options.map((option) => ({
+    value: option.value,
+    label: t(option.label),
+    hint: option.hint ? t(option.hint) : undefined,
+  }))
+}
 
 /**
  * La zona social del formulario, resuelta por nombre contra el catalogo de
@@ -90,31 +111,31 @@ const OCCUPANCIES = [
  * volcado y no tienen por que ser los mismos en otro entorno.
  */
 const AMENITIES: { label: string; feature: string }[] = [
-  { label: 'Piscina', feature: 'Piscina' },
-  { label: 'Jacuzzi', feature: 'Jacuzzi' },
-  { label: 'Sauna', feature: 'Sauna' },
-  { label: 'Turco', feature: 'Turco' },
-  { label: 'BBQ', feature: 'Barbacoa / parrilla / quincho' },
-  { label: 'Gimnasio', feature: 'Gimnasio' },
-  { label: 'Cancha múltiple', feature: 'Zonas deportivas' },
-  { label: 'Salón de eventos', feature: 'Salón comunal' },
-  { label: 'Juegos infantiles', feature: 'Zona infantil' },
-  { label: 'Seguridad 24 horas', feature: 'Vigilancia' },
-  { label: 'Parqueadero de visitantes', feature: 'Parqueadero visitantes' },
-  { label: 'Zonas verdes', feature: 'Zonas verdes' },
+  { label: 'form.amenity.pool', feature: 'Piscina' },
+  { label: 'form.amenity.jacuzzi', feature: 'Jacuzzi' },
+  { label: 'form.amenity.sauna', feature: 'Sauna' },
+  { label: 'form.amenity.steamroom', feature: 'Turco' },
+  { label: 'form.amenity.bbq', feature: 'Barbacoa / parrilla / quincho' },
+  { label: 'form.amenity.gym', feature: 'Gimnasio' },
+  { label: 'form.amenity.court', feature: 'Zonas deportivas' },
+  { label: 'form.amenity.eventroom', feature: 'Salón comunal' },
+  { label: 'form.amenity.playground', feature: 'Zona infantil' },
+  { label: 'form.amenity.security', feature: 'Vigilancia' },
+  { label: 'form.amenity.visitorparking', feature: 'Parqueadero visitantes' },
+  { label: 'form.amenity.greenareas', feature: 'Zonas verdes' },
 ]
 
 /** Los cinco documentos, cada uno en su propio campo del multipart. */
 const DOCUMENTS = [
   {
     field: 'docTradition',
-    label: 'Certificado de tradición y libertad',
-    hint: 'No mayor a 30 días',
+    label: 'form.consignment.doc.tradition',
+    hint: 'form.consignment.doc.tradition.hint',
   },
-  { field: 'docDeed', label: 'Última escritura pública de adquisición' },
-  { field: 'docId', label: 'Cédula del o los propietarios' },
-  { field: 'docTax', label: 'Último recibo de impuesto predial' },
-  { field: 'docMaintenance', label: 'Último recibo de administración' },
+  { field: 'docDeed', label: 'form.consignment.doc.deed' },
+  { field: 'docId', label: 'form.consignment.doc.id' },
+  { field: 'docTax', label: 'form.consignment.doc.tax' },
+  { field: 'docMaintenance', label: 'form.consignment.doc.maintenance' },
 ] as const
 
 const MAX_DOCUMENT_BYTES = 10 * 1024 * 1024
@@ -128,6 +149,11 @@ function tomorrow(): string {
 }
 
 // --- esquema ---------------------------------------------------------------
+
+/*
+ * Los mensajes son CLAVES: el esquema se construye al cargar el modulo, donde
+ * no hay hook que valga. `ErrorText` las traduce al pintarlas.
+ */
 
 /** Entero en un campo de texto; `''` cuando es opcional y no se rellena. */
 const count = (message: string) =>
@@ -145,16 +171,16 @@ const amount = (message: string) =>
 const schema = z
   .object({
     // ubicacion
-    cityId: z.string().min(1, 'Elige la ciudad.'),
+    cityId: z.string().min(1, 'form.consignment.error.city'),
     commune: z.string().trim().optional(),
-    neighborhood: z.string().trim().min(2, '¿En qué barrio está?'),
-    complexName: z.string().trim().min(2, 'Nombre del conjunto o edificio.'),
-    address: z.string().trim().min(4, 'La dirección nos ayuda a ubicarlo.'),
-    unitNumber: z.string().trim().min(1, 'Número de apartamento, casa o local.'),
-    stratum: z.string().min(1, 'Elige el estrato.'),
+    neighborhood: z.string().trim().min(2, 'form.consignment.error.neighborhood'),
+    complexName: z.string().trim().min(2, 'form.consignment.error.complex'),
+    address: z.string().trim().min(4, 'form.consignment.error.address'),
+    unitNumber: z.string().trim().min(1, 'form.consignment.error.unit'),
+    stratum: z.string().min(1, 'form.consignment.error.stratum'),
 
     // caracteristicas
-    propertyTypeId: z.string().min(1, 'Elige el tipo de inmueble.'),
+    propertyTypeId: z.string().min(1, 'form.consignment.error.type'),
     floor: z.string().trim().optional(),
     view: z.enum(['NORTH', 'SOUTH', 'EAST', 'WEST']).or(z.literal('')),
     hasElevator: z.boolean(),
@@ -167,11 +193,11 @@ const schema = z
       'BLUEPRINT',
     ]),
     privateArea: z.string().trim().optional(),
-    builtArea: count('¿Cuántos metros construidos tiene?'),
+    builtArea: count('form.consignment.error.builtarea'),
     lotArea: z.string().trim().optional(),
-    bedrooms: count('¿Cuántas habitaciones?'),
-    bathrooms: count('¿Cuántos baños?'),
-    parkingSpaces: count('¿Cuántos parqueaderos?'),
+    bedrooms: count('form.consignment.error.bedrooms'),
+    bathrooms: count('form.consignment.error.bathrooms'),
+    parkingSpaces: count('form.consignment.error.parking'),
     hasStorageRoom: z.boolean(),
     buildingYear: z
       .string()
@@ -179,7 +205,7 @@ const schema = z
       .refine(
         (value) =>
           Number(value) >= 1800 && Number(value) <= new Date().getFullYear() + 5,
-        'Revisa el año de construcción.',
+        'form.consignment.error.year',
       ),
 
     // zona social
@@ -188,7 +214,7 @@ const schema = z
 
     // dinero
     maintenanceFee: z.string().trim().optional(),
-    salePrice: amount('¿En cuánto lo vendes?'),
+    salePrice: amount('form.consignment.error.price'),
     creditType: z.enum(['MORTGAGE', 'LEASING', 'DEBT_FREE']),
     creditInstitution: z.string().trim().optional(),
     debtAmount: z.string().trim().optional(),
@@ -199,10 +225,10 @@ const schema = z
     leaseEndsOn: z.string().optional(),
 
     // propietario
-    ownerFirstName: z.string().trim().min(2, 'Escribe tu nombre.'),
-    ownerLastName: z.string().trim().min(2, 'Escribe tus apellidos.'),
-    ownerEmail: z.email('Ese correo no parece válido.'),
-    ownerPhone: z.string().trim().min(7, 'Necesitamos un teléfono para llamarte.'),
+    ownerFirstName: z.string().trim().min(2, 'form.consignment.error.ownerfirstname'),
+    ownerLastName: z.string().trim().min(2, 'form.consignment.error.ownerlastname'),
+    ownerEmail: z.email('form.error.email'),
+    ownerPhone: z.string().trim().min(7, 'form.error.phone'),
     notes: z.string().trim().optional(),
 
     // visita
@@ -217,14 +243,14 @@ const schema = z
         ctx.addIssue({
           code: 'custom',
           path: ['creditInstitution'],
-          message: '¿Con qué entidad?',
+          message: 'form.consignment.error.institution',
         })
       }
       if (!Number(digits(values.debtAmount ?? ''))) {
         ctx.addIssue({
           code: 'custom',
           path: ['debtAmount'],
-          message: '¿Cuánto se debe hoy?',
+          message: 'form.consignment.error.debt',
         })
       }
     }
@@ -233,7 +259,7 @@ const schema = z
       ctx.addIssue({
         code: 'custom',
         path: ['rentAmount'],
-        message: '¿Por cuánto está arrendado?',
+        message: 'form.consignment.error.rent',
       })
     }
 
@@ -242,7 +268,7 @@ const schema = z
       ctx.addIssue({
         code: 'custom',
         path: [values.visitDate ? 'visitTime' : 'visitDate'],
-        message: 'Necesitamos el día y la hora.',
+        message: 'form.consignment.error.visit',
       })
     }
   })
@@ -253,7 +279,7 @@ type Form = UseFormReturn<Values>
 const STEPS: Step<Values>[] = [
   {
     id: 'location',
-    title: 'Ubicación',
+    title: 'form.consignment.step.location',
     fields: [
       'cityId',
       'commune',
@@ -266,7 +292,7 @@ const STEPS: Step<Values>[] = [
   },
   {
     id: 'property',
-    title: 'El inmueble',
+    title: 'form.step.property',
     fields: [
       'propertyTypeId',
       'floor',
@@ -283,10 +309,14 @@ const STEPS: Step<Values>[] = [
       'buildingYear',
     ],
   },
-  { id: 'amenities', title: 'Zona social', fields: ['amenitiesOther'] },
+  {
+    id: 'amenities',
+    title: 'form.consignment.step.amenities',
+    fields: ['amenitiesOther'],
+  },
   {
     id: 'money',
-    title: 'Precio',
+    title: 'form.consignment.step.money',
     fields: [
       'maintenanceFee',
       'salePrice',
@@ -300,7 +330,7 @@ const STEPS: Step<Values>[] = [
   },
   {
     id: 'owner',
-    title: 'Tus datos',
+    title: 'form.step.owner',
     fields: [
       'ownerFirstName',
       'ownerLastName',
@@ -309,7 +339,11 @@ const STEPS: Step<Values>[] = [
       'notes',
     ],
   },
-  { id: 'files', title: 'Documentos', fields: ['visitDate', 'visitTime'] },
+  {
+    id: 'files',
+    title: 'form.consignment.step.files',
+    fields: ['visitDate', 'visitTime'],
+  },
 ]
 
 // --- componente ------------------------------------------------------------
@@ -329,6 +363,7 @@ export function ConsignmentDialog({
   const [photos, setPhotos] = useState<File[]>([])
   const [filesError, setFilesError] = useState<string | null>(null)
   const { catalogs } = useSiteData()
+  const t = useT()
 
   const form = useForm<Values>({
     resolver: zodResolver(schema),
@@ -442,7 +477,8 @@ export function ConsignmentDialog({
 
   const onSubmit = form.handleSubmit(async (values) => {
     if (photos.length === 0) {
-      setFilesError('Necesitamos al menos una fotografía del inmueble.')
+      // La clave, no la frase: `FilesStep` la traduce al pintarla.
+      setFilesError('form.consignment.error.photos')
       return
     }
     setFilesError(null)
@@ -463,9 +499,12 @@ export function ConsignmentDialog({
 
     try {
       const result = await portal.createConsignment(body)
-      toast.success(`Solicitud ${result.reference} recibida`, {
-        description: result.message,
-      })
+      toast.success(
+        t('form.consignment.toast.success', { reference: result.reference }),
+        {
+          description: result.message,
+        },
+      )
       form.reset()
       setDocuments({})
       setPhotos([])
@@ -474,7 +513,7 @@ export function ConsignmentDialog({
       toast.error(
         error instanceof ApiError
           ? error.message
-          : 'No pudimos enviar la solicitud. Revisa tu conexión e inténtalo otra vez.',
+          : t('form.consignment.toast.error'),
       )
     }
   })
@@ -482,15 +521,14 @@ export function ConsignmentDialog({
   return (
     <Dialog open={open} onOpenChange={change}>
       <DialogTrigger asChild>
-        {children ?? <Button>Publica tu inmueble</Button>}
+        {children ?? <Button>{t('form.consignment.trigger')}</Button>}
       </DialogTrigger>
 
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Consignación de inmuebles</DialogTitle>
+          <DialogTitle>{t('form.consignment.title')}</DialogTitle>
           <DialogDescription>
-            Cuéntanos del inmueble y un asesor te contacta para coordinar la
-            visita de valoración.
+            {t('form.consignment.description')}
           </DialogDescription>
         </DialogHeader>
 
@@ -532,12 +570,12 @@ export function ConsignmentDialog({
               className={cn(index === 0 && 'invisible')}
             >
               <ArrowLeft />
-              Atrás
+              {t('form.back')}
             </Button>
 
             <div className="flex items-center gap-3">
               <span className="tabular text-xs text-muted-foreground">
-                Paso {index + 1} de {steps.length}
+                {t('form.step.of', { current: index + 1, total: steps.length })}
               </span>
               {last ? (
                 <Button type="submit" disabled={form.formState.isSubmitting}>
@@ -546,11 +584,11 @@ export function ConsignmentDialog({
                   ) : (
                     <Check />
                   )}
-                  Enviar solicitud
+                  {t('form.consignment.submit')}
                 </Button>
               ) : (
                 <Button type="button" onClick={() => void next()}>
-                  Continuar
+                  {t('form.continue')}
                   <ArrowRight />
                 </Button>
               )}
@@ -637,6 +675,7 @@ function toFormData(
 
 function LocationStep({ form }: { form: Form }) {
   const { catalogs } = useSiteData()
+  const t = useT()
   const cityId = useWatch({ control: form.control, name: 'cityId' })
   const [zones, setZones] = useState<Zone[]>([])
 
@@ -655,24 +694,28 @@ function LocationStep({ form }: { form: Form }) {
   }, [cityId])
 
   return (
-    <Fieldset legend="Dónde está el inmueble">
+    <Fieldset legend={t('form.consignment.legend.location')}>
       <SelectField
         form={form}
         name="cityId"
-        label="Ciudad"
-        placeholder="Elige una ciudad"
+        label={t('form.consignment.field.city')}
+        placeholder={t('form.consignment.city.placeholder')}
         options={catalogs.cities.map((city) => ({
           value: String(city.id),
           label: city.name,
         }))}
       />
-      <Field form={form} name="commune" label="Comuna (opcional)" />
+      <Field
+        form={form}
+        name="commune"
+        label={t('form.consignment.field.commune')}
+      />
 
       <div className="grid content-start gap-1.5">
         <Field
           form={form}
           name="neighborhood"
-          label="Barrio"
+          label={t('form.consignment.field.neighborhood')}
           list="consignment-zones"
         />
         <datalist id="consignment-zones">
@@ -682,24 +725,28 @@ function LocationStep({ form }: { form: Form }) {
         </datalist>
       </div>
 
-      <Field form={form} name="complexName" label="Nombre del conjunto" />
+      <Field
+        form={form}
+        name="complexName"
+        label={t('form.consignment.field.complex')}
+      />
       <Field
         form={form}
         name="address"
-        label="Dirección"
+        label={t('form.consignment.field.address')}
         className="sm:col-span-2"
       />
       <Field
         form={form}
         name="unitNumber"
-        label="Número de inmueble"
-        placeholder="Apartamento, casa o local"
+        label={t('form.consignment.field.unit')}
+        placeholder={t('form.consignment.unit.placeholder')}
       />
       <SelectField
         form={form}
         name="stratum"
-        label="Estrato"
-        placeholder="Elige el estrato"
+        label={t('form.consignment.field.stratum')}
+        placeholder={t('form.consignment.stratum.placeholder')}
         options={STRATA.map((value) => ({
           value: String(value),
           label: String(value),
@@ -711,54 +758,65 @@ function LocationStep({ form }: { form: Form }) {
 
 function PropertyStep({ form }: { form: Form }) {
   const { catalogs } = useSiteData()
+  const t = useT()
 
   return (
-    <Fieldset legend="Cómo es">
+    <Fieldset legend={t('form.consignment.legend.property')}>
       <SelectField
         form={form}
         name="propertyTypeId"
-        label="Tipo de inmueble"
-        placeholder="Elige el tipo"
+        label={t('form.consignment.field.type')}
+        placeholder={t('form.consignment.type.placeholder')}
         options={[...catalogs.propertyTypes]
           .sort((a, b) => a.name.localeCompare(b.name, 'es'))
           .map((type) => ({ value: String(type.id), label: type.name }))}
       />
-      <Field form={form} name="floor" label="Piso (opcional)" inputMode="numeric" />
+      <Field
+        form={form}
+        name="floor"
+        label={t('form.consignment.field.floor')}
+        inputMode="numeric"
+      />
 
-      <SelectField form={form} name="view" label="Vista" options={VIEWS} />
+      <SelectField
+        form={form}
+        name="view"
+        label={t('form.consignment.field.view')}
+        options={traducir(t, VIEWS)}
+      />
       <SelectField
         form={form}
         name="condition"
-        label="Estado"
-        options={CONDITIONS}
+        label={t('form.consignment.field.condition')}
+        options={traducir(t, CONDITIONS)}
       />
 
       <Field
         form={form}
         name="builtArea"
-        label="Área construida (m²)"
+        label={t('form.consignment.field.builtarea')}
         type="number"
         min={1}
-        hint="La que figura en la escritura."
+        hint={t('form.consignment.builtarea.hint')}
       />
       <Field
         form={form}
         name="privateArea"
-        label="Área privada (opcional)"
+        label={t('form.consignment.field.privatearea')}
         type="number"
         min={0}
       />
       <Field
         form={form}
         name="lotArea"
-        label="Área del lote (opcional)"
+        label={t('form.consignment.field.lotarea')}
         type="number"
         min={0}
       />
       <Field
         form={form}
         name="buildingYear"
-        label="Año de construcción"
+        label={t('form.consignment.field.year')}
         inputMode="numeric"
         placeholder="2015"
       />
@@ -766,7 +824,7 @@ function PropertyStep({ form }: { form: Form }) {
       <Field
         form={form}
         name="bedrooms"
-        label="Habitaciones"
+        label={t('form.consignment.field.bedrooms')}
         type="number"
         min={0}
         max={99}
@@ -774,7 +832,7 @@ function PropertyStep({ form }: { form: Form }) {
       <Field
         form={form}
         name="bathrooms"
-        label="Baños"
+        label={t('form.consignment.field.bathrooms')}
         type="number"
         min={0}
         max={99}
@@ -782,15 +840,23 @@ function PropertyStep({ form }: { form: Form }) {
       <Field
         form={form}
         name="parkingSpaces"
-        label="Parqueaderos"
+        label={t('form.consignment.field.parking')}
         type="number"
         min={0}
         max={99}
       />
 
       <div className="grid content-start gap-3">
-        <Toggle form={form} name="hasElevator" label="Tiene ascensor" />
-        <Toggle form={form} name="hasStorageRoom" label="Tiene depósito" />
+        <Toggle
+          form={form}
+          name="hasElevator"
+          label={t('form.consignment.field.elevator')}
+        />
+        <Toggle
+          form={form}
+          name="hasStorageRoom"
+          label={t('form.consignment.field.storage')}
+        />
       </div>
     </Fieldset>
   )
@@ -798,6 +864,7 @@ function PropertyStep({ form }: { form: Form }) {
 
 function AmenitiesStep({ form }: { form: Form }) {
   const { catalogs } = useSiteData()
+  const t = useT()
   // `useWatch` y no `form.watch`: esto es un hijo, y `form.watch` solo re-pinta
   // al componente que creo el formulario.
   const selected = useWatch({ control: form.control, name: 'amenityIds' }) ?? []
@@ -805,7 +872,7 @@ function AmenitiesStep({ form }: { form: Form }) {
   // Del nombre del formulario al id del catalogo. Lo que no exista en el
   // catalogo simplemente no se ofrece, en vez de mandar un id inventado.
   const options = AMENITIES.map((amenity) => ({
-    label: amenity.label,
+    label: t(amenity.label),
     id: catalogs.features.find((feature) => feature.name === amenity.feature)?.id,
   })).filter((option): option is { label: string; id: number } =>
     Boolean(option.id),
@@ -821,9 +888,9 @@ function AmenitiesStep({ form }: { form: Form }) {
     )
 
   return (
-    <Fieldset legend="Zona social" columns={1}>
+    <Fieldset legend={t('form.consignment.step.amenities')} columns={1}>
       <p className="text-sm text-muted-foreground">
-        Marca lo que tenga el conjunto. Si no tiene zona social, sigue adelante.
+        {t('form.consignment.amenities.intro')}
       </p>
 
       <div className="grid gap-2 sm:grid-cols-2">
@@ -851,8 +918,8 @@ function AmenitiesStep({ form }: { form: Form }) {
       <Field
         form={form}
         name="amenitiesOther"
-        label="Otro (opcional)"
-        placeholder="Lo que no esté en la lista"
+        label={t('form.consignment.field.amenitiesother')}
+        placeholder={t('form.consignment.amenitiesother.placeholder')}
       />
     </Fieldset>
   )
@@ -861,23 +928,28 @@ function AmenitiesStep({ form }: { form: Form }) {
 function MoneyStep({ form }: { form: Form }) {
   const creditType = useWatch({ control: form.control, name: 'creditType' })
   const occupancy = useWatch({ control: form.control, name: 'occupancy' })
+  const t = useT()
 
   return (
-    <Fieldset legend="Precio y situación">
-      <MoneyField form={form} name="salePrice" label="Precio de venta" />
+    <Fieldset legend={t('form.consignment.legend.money')}>
+      <MoneyField
+        form={form}
+        name="salePrice"
+        label={t('form.consignment.field.saleprice')}
+      />
       <MoneyField
         form={form}
         name="maintenanceFee"
-        label="Valor de administración"
-        hint="Deja en blanco si no paga."
+        label={t('form.consignment.field.maintenancefee')}
+        hint={t('form.consignment.maintenancefee.hint')}
       />
 
       <div className="sm:col-span-2">
         <Choice
           form={form}
           name="creditType"
-          label="¿El inmueble tiene deuda?"
-          options={CREDIT_TYPES}
+          label={t('form.consignment.field.credittype')}
+          options={traducir(t, CREDIT_TYPES)}
         />
       </div>
 
@@ -886,10 +958,14 @@ function MoneyStep({ form }: { form: Form }) {
           <Field
             form={form}
             name="creditInstitution"
-            label="Entidad"
-            placeholder="Banco o entidad"
+            label={t('form.consignment.field.institution')}
+            placeholder={t('form.consignment.institution.placeholder')}
           />
-          <MoneyField form={form} name="debtAmount" label="Valor de la deuda" />
+          <MoneyField
+            form={form}
+            name="debtAmount"
+            label={t('form.consignment.field.debtamount')}
+          />
         </>
       )}
 
@@ -897,18 +973,22 @@ function MoneyStep({ form }: { form: Form }) {
         <Choice
           form={form}
           name="occupancy"
-          label="Disponibilidad"
-          options={OCCUPANCIES}
+          label={t('form.consignment.field.occupancy')}
+          options={traducir(t, OCCUPANCIES)}
         />
       </div>
 
       {occupancy === 'RENTED' && (
         <>
-          <MoneyField form={form} name="rentAmount" label="Valor del arriendo" />
+          <MoneyField
+            form={form}
+            name="rentAmount"
+            label={t('form.consignment.field.rentamount')}
+          />
           <Field
             form={form}
             name="leaseEndsOn"
-            label="Terminación del contrato"
+            label={t('form.consignment.field.leaseends')}
             type="date"
           />
         </>
@@ -918,42 +998,44 @@ function MoneyStep({ form }: { form: Form }) {
 }
 
 function OwnerStep({ form }: { form: Form }) {
+  const t = useT()
+
   return (
-    <Fieldset legend="Cómo te contactamos">
+    <Fieldset legend={t('form.consignment.legend.owner')}>
       <Field
         form={form}
         name="ownerFirstName"
-        label="Nombre"
+        label={t('form.consignment.field.ownerfirstname')}
         autoComplete="given-name"
       />
       <Field
         form={form}
         name="ownerLastName"
-        label="Apellido"
+        label={t('form.consignment.field.ownerlastname')}
         autoComplete="family-name"
       />
       <Field
         form={form}
         name="ownerEmail"
-        label="Correo electrónico"
+        label={t('form.field.email')}
         type="email"
         autoComplete="email"
       />
       <Field
         form={form}
         name="ownerPhone"
-        label="Teléfono"
+        label={t('form.field.phone')}
         type="tel"
         inputMode="tel"
         autoComplete="tel"
       />
 
       <div className="grid gap-1.5 sm:col-span-2">
-        <Label htmlFor="consignment-notes">Observaciones (opcional)</Label>
+        <Label htmlFor="consignment-notes">{t('form.field.notes')}</Label>
         <Textarea
           id="consignment-notes"
           rows={3}
-          placeholder="Lo que quieras contarnos del inmueble."
+          placeholder={t('form.consignment.notes.placeholder')}
           {...form.register('notes')}
         />
       </div>
@@ -976,7 +1058,9 @@ function FilesStep({
   onPhotos: (next: File[]) => void
   error: string | null
 }) {
+  // El nombre del fichero que no cabe, no la frase: la frase se arma al pintar.
   const [tooBig, setTooBig] = useState<string | null>(null)
+  const t = useT()
 
   function pickDocument(field: string, file: File | undefined) {
     if (!file) {
@@ -986,7 +1070,7 @@ function FilesStep({
       return
     }
     if (file.size > MAX_DOCUMENT_BYTES) {
-      setTooBig(`"${file.name}" pesa más de 10 MB.`)
+      setTooBig(file.name)
       return
     }
     setTooBig(null)
@@ -994,31 +1078,36 @@ function FilesStep({
   }
 
   return (
-    <Fieldset legend="Documentos, fotos y visita" columns={1}>
+    <Fieldset legend={t('form.consignment.legend.files')} columns={1}>
       <div>
         <p className="mb-3 text-sm text-muted-foreground">
-          Un PDF por documento, hasta 10 MB cada uno. Si te falta alguno puedes
-          enviarlo después: el asesor te lo pedirá.
+          {t('form.consignment.files.intro')}
         </p>
 
         <div className="grid gap-2">
           {DOCUMENTS.map((document) => (
             <DocumentRow
               key={document.field}
-              label={document.label}
-              hint={'hint' in document ? document.hint : undefined}
+              label={t(document.label)}
+              hint={'hint' in document ? t(document.hint) : undefined}
               file={documents[document.field]}
               onPick={(file) => pickDocument(document.field, file)}
             />
           ))}
         </div>
-        {tooBig && <p className="mt-2 text-xs text-destructive">{tooBig}</p>}
+        {tooBig && (
+          <p className="mt-2 text-xs text-destructive">
+            {t('form.consignment.error.filesize', { name: tooBig })}
+          </p>
+        )}
       </div>
 
       <div>
-        <Label htmlFor="consignment-photos">Fotografías</Label>
+        <Label htmlFor="consignment-photos">
+          {t('form.consignment.photos.label')}
+        </Label>
         <p className="mt-1 mb-2 text-xs text-muted-foreground">
-          Hasta {MAX_PHOTOS}. La primera será la portada del anuncio.
+          {t('form.consignment.photos.hint', { max: MAX_PHOTOS })}
         </p>
         <input
           id="consignment-photos"
@@ -1032,23 +1121,38 @@ function FilesStep({
         />
         {photos.length > 0 && (
           <p className="mt-2 text-xs text-muted-foreground">
-            {photos.length}{' '}
-            {photos.length === 1 ? 'fotografía' : 'fotografías'} seleccionadas.
+            {photos.length === 1
+              ? t('form.consignment.photos.count.one', { count: photos.length })
+              : t('form.consignment.photos.count.other', {
+                  count: photos.length,
+                })}
           </p>
         )}
-        {error && <p className="mt-2 text-xs text-destructive">{error}</p>}
+        {error && <p className="mt-2 text-xs text-destructive">{t(error)}</p>}
       </div>
 
       <div>
         <p className="mb-2 text-sm font-medium">
-          Agendar visita <span className="font-normal">(opcional)</span>
+          {t('form.consignment.visit.title')}{' '}
+          <span className="font-normal">{t('form.optional')}</span>
         </p>
         <p className="mb-3 text-xs text-muted-foreground">
-          Con un día de anticipación. Si prefieres, lo cuadramos por teléfono.
+          {t('form.consignment.visit.hint')}
         </p>
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field form={form} name="visitDate" label="Fecha" type="date" min={tomorrow()} />
-          <Field form={form} name="visitTime" label="Hora" type="time" />
+          <Field
+            form={form}
+            name="visitDate"
+            label={t('form.consignment.field.visitdate')}
+            type="date"
+            min={tomorrow()}
+          />
+          <Field
+            form={form}
+            name="visitTime"
+            label={t('form.consignment.field.visittime')}
+            type="time"
+          />
         </div>
       </div>
     </Fieldset>
@@ -1066,6 +1170,7 @@ function DocumentRow({
   file: File | undefined
   onPick: (file: File | undefined) => void
 }) {
+  const t = useT()
   const id = `doc-${label.replace(/\W+/g, '-').toLowerCase()}`
 
   return (
@@ -1080,7 +1185,7 @@ function DocumentRow({
           {label}
         </label>
         <p className="truncate text-xs text-muted-foreground">
-          {file ? file.name : (hint ?? 'PDF, hasta 10 MB')}
+          {file ? file.name : (hint ?? t('form.consignment.doc.default'))}
         </p>
       </div>
 
@@ -1097,7 +1202,7 @@ function DocumentRow({
           type="button"
           onClick={() => onPick(undefined)}
           className="rounded-md p-1.5 hover:bg-secondary"
-          aria-label={`Quitar ${label}`}
+          aria-label={t('form.consignment.doc.remove', { label })}
         >
           <X className="size-4" />
         </button>
@@ -1105,7 +1210,7 @@ function DocumentRow({
         <Button asChild variant="outline" size="sm">
           <label htmlFor={id} className="cursor-pointer">
             <Upload />
-            Subir
+            {t('form.consignment.doc.upload')}
           </label>
         </Button>
       )}

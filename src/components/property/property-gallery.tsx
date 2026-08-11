@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Lightbox } from '@/components/common/lightbox'
 import { Badge } from '@/components/ui/misc'
 import { AVAILABILITY_COLOR, AVAILABILITY_LABEL } from '@/lib/format'
+import { useT } from '@/lib/i18n'
 import type { Availability, PropertyImage } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
@@ -25,6 +26,7 @@ export function PropertyGallery({
   title: string
   availability: Availability
 }) {
+  const t = useT()
   const [viewport, embla] = useEmblaCarousel({ loop: images.length > 1 })
   const [thumbsViewport, thumbs] = useEmblaCarousel({
     containScroll: 'keepSnaps',
@@ -70,7 +72,7 @@ export function PropertyGallery({
   if (!images.length) {
     return (
       <div className="flex h-[320px] items-center justify-center rounded-lg border bg-secondary text-sm text-muted-foreground sm:h-[480px]">
-        Este inmueble todavía no tiene fotografías.
+        {t('property.gallery.empty')}
       </div>
     )
   }
@@ -109,7 +111,10 @@ export function PropertyGallery({
                   <button
                     type="button"
                     onClick={() => setAmpliada(index)}
-                    aria-label={`Ampliar foto ${index + 1} de ${images.length}`}
+                    aria-label={t('property.gallery.zoom', {
+                      index: index + 1,
+                      total: images.length,
+                    })}
                     className="block w-full cursor-zoom-in"
                   >
                   <img
@@ -123,7 +128,13 @@ export function PropertyGallery({
                       .filter(Boolean)
                       .join(', ')}
                     sizes="(min-width: 1200px) 840px, (min-width: 992px) 60vw, 100vw"
-                    alt={image.description ?? `${title} — foto ${index + 1}`}
+                    alt={
+                      image.description ??
+                      t('property.gallery.photo_alt', {
+                        title,
+                        index: index + 1,
+                      })
+                    }
                     /* La portada entra en el LCP: esa se carga ya, el resto no. */
                     loading={index === 0 ? 'eager' : 'lazy'}
                     fetchPriority={index === 0 ? 'high' : undefined}
@@ -144,7 +155,9 @@ export function PropertyGallery({
               backgroundColor: AVAILABILITY_COLOR[availability] ?? '#767676',
             }}
           >
-            {AVAILABILITY_LABEL[availability] ?? availability}
+            {AVAILABILITY_LABEL[availability]
+              ? t(AVAILABILITY_LABEL[availability])
+              : availability}
           </Badge>
         </div>
 
@@ -174,7 +187,9 @@ export function PropertyGallery({
                 key={image.id}
                 type="button"
                 onClick={() => embla?.scrollTo(index)}
-                aria-label={`Ver foto ${index + 1}`}
+                aria-label={t('property.gallery.go_to_photo', {
+                  index: index + 1,
+                })}
                 aria-current={index === selected}
                 className={cn(
                   'h-16 w-[90px] shrink-0 overflow-hidden rounded-md border-2 transition-opacity',
@@ -206,12 +221,17 @@ function GalleryArrow({
   side: 'left' | 'right'
   onClick: () => void
 }) {
+  const t = useT()
   const Icon = side === 'left' ? ChevronLeft : ChevronRight
   return (
     <button
       type="button"
       onClick={onClick}
-      aria-label={side === 'left' ? 'Foto anterior' : 'Foto siguiente'}
+      aria-label={
+        side === 'left'
+          ? t('property.gallery.previous')
+          : t('property.gallery.next')
+      }
       className={cn(
         'absolute top-1/2 flex size-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/85 text-foreground shadow-md transition-colors hover:bg-white',
         side === 'left' ? 'left-3' : 'right-3',

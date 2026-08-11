@@ -2,7 +2,9 @@ import { Phone, Search } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
 import { CurrencySwitch } from '@/components/layout/currency-switch'
+import { LanguageSwitch } from '@/components/layout/language-switch'
 import { SocialLinks } from '@/components/layout/social-links'
+import { useT } from '@/lib/i18n'
 import { SITE, ROUTES } from '@/lib/site'
 
 /**
@@ -12,6 +14,7 @@ import { SITE, ROUTES } from '@/lib/site'
  */
 export function TopBar() {
   const navigate = useNavigate()
+  const t = useT()
 
   return (
     <section className="border-t-4 border-[#333] bg-[#0d0d0d] text-white">
@@ -29,8 +32,8 @@ export function TopBar() {
             <input
               type="text"
               name="match"
-              aria-label="Realizar búsqueda"
-              placeholder="Realizar búsqueda"
+              aria-label={t('nav.search.placeholder')}
+              placeholder={t('nav.search.placeholder')}
               className="h-8 w-full bg-transparent text-xs text-white outline-none placeholder:text-white/50"
             />
             <button
@@ -38,7 +41,7 @@ export function TopBar() {
               className="flex size-6 shrink-0 items-center justify-center rounded transition-colors hover:bg-white/15"
             >
               <Search className="size-3.5" />
-              <span className="sr-only">Buscar</span>
+              <span className="sr-only">{t('nav.search.submit')}</span>
             </button>
           </div>
         </form>
@@ -48,6 +51,7 @@ export function TopBar() {
         <div className="flex flex-1 items-center justify-center gap-3 md:justify-end">
           {/* El primero de la fila, tambien en movil: es lo unico de esta barra
               que cambia lo que se lee en el resto del sitio. */}
+          <LanguageSwitch />
           <CurrencySwitch />
           <a
             href={SITE.phoneHref}

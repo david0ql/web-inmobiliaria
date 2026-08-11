@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useState } from 'react'
 
 import { searchProperties } from '@/lib/api'
 import { useCuandoOcioso } from '@/lib/cuando-ocioso'
+import { useT } from '@/lib/i18n'
 import type { Property } from '@/lib/types'
 
 const PropertiesMap = lazy(() =>
@@ -70,13 +71,14 @@ export function MapSection() {
  * que es exactamente el problema que se venia a resolver.
  */
 function MapPoster() {
+  const t = useT()
   return (
     <div className="relative h-[300px] w-full overflow-hidden bg-secondary sm:h-[380px] lg:h-[450px]">
       <img
         src="/mapa-santander.webp"
         srcSet="/mapa-santander-sm.webp 760w, /mapa-santander.webp 1280w"
         sizes="100vw"
-        alt="Mapa de Bucaramanga y su área metropolitana"
+        alt={t('property.map.poster_alt')}
         width={1280}
         height={760}
         fetchPriority="high"

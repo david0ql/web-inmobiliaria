@@ -24,6 +24,7 @@ import {
   type Filters,
 } from '@/lib/search-params'
 import { getFacets, type FacetOption, type Facets } from '@/lib/api'
+import { useT } from '@/lib/i18n'
 import { ROUTES } from '@/lib/site'
 import { useSiteData } from '@/lib/site-data'
 
@@ -90,6 +91,7 @@ function SearchFormSkeleton() {
 }
 
 function AdvancedSearchForm({ initial }: { initial?: Filters }) {
+  const t = useT()
   const navigate = useNavigate()
   const { pathname } = useLocation()
   const { catalogs } = useSiteData()
@@ -153,8 +155,12 @@ function AdvancedSearchForm({ initial }: { initial?: Filters }) {
   }
 
   return (
-    <form onSubmit={submit} className={REJILLA} aria-label="Búsqueda avanzada">
-      <FieldShell label="País" className={CELDA}>
+    <form
+      onSubmit={submit}
+      className={REJILLA}
+      aria-label={t('search.form.aria')}
+    >
+      <FieldShell label={t('search.field.country')} className={CELDA}>
         <Select
           value={filters.countryId || ANY}
           onValueChange={(value) => {
@@ -168,17 +174,17 @@ function AdvancedSearchForm({ initial }: { initial?: Filters }) {
             }))
           }}
         >
-          <SelectTrigger className={CONTROL} aria-label="País">
-            <SelectValue placeholder="Todos" />
+          <SelectTrigger className={CONTROL} aria-label={t('search.field.country')}>
+            <SelectValue placeholder={t('search.option.all.m')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value={ANY}>Todos</SelectItem>
+            <SelectItem value={ANY}>{t('search.option.all.m')}</SelectItem>
             <Opciones lista={opciones.countries} />
           </SelectContent>
         </Select>
       </FieldShell>
 
-      <FieldShell label="Departamento" className={CELDA}>
+      <FieldShell label={t('search.field.region')} className={CELDA}>
         <Select
           value={filters.regionId || ANY}
           onValueChange={(value) => {
@@ -190,17 +196,17 @@ function AdvancedSearchForm({ initial }: { initial?: Filters }) {
             }))
           }}
         >
-          <SelectTrigger className={CONTROL} aria-label="Departamento">
-            <SelectValue placeholder="Todos" />
+          <SelectTrigger className={CONTROL} aria-label={t('search.field.region')}>
+            <SelectValue placeholder={t('search.option.all.m')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value={ANY}>Todos</SelectItem>
+            <SelectItem value={ANY}>{t('search.option.all.m')}</SelectItem>
             <Opciones lista={opciones.regions} />
           </SelectContent>
         </Select>
       </FieldShell>
 
-      <FieldShell label="Ciudad" className={CELDA}>
+      <FieldShell label={t('search.field.city')} className={CELDA}>
         <Select
           value={filters.cityId || ANY}
           onValueChange={(value) => {
@@ -212,17 +218,17 @@ function AdvancedSearchForm({ initial }: { initial?: Filters }) {
             }))
           }}
         >
-          <SelectTrigger className={CONTROL} aria-label="Ciudad">
-            <SelectValue placeholder="Todas" />
+          <SelectTrigger className={CONTROL} aria-label={t('search.field.city')}>
+            <SelectValue placeholder={t('search.option.all.f')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value={ANY}>Todas</SelectItem>
+            <SelectItem value={ANY}>{t('search.option.all.f')}</SelectItem>
             <Opciones lista={opciones.cities} />
           </SelectContent>
         </Select>
       </FieldShell>
 
-      <FieldShell label="Zona / barrio" className={CELDA}>
+      <FieldShell label={t('search.field.zone')} className={CELDA}>
         <Select
           value={filters.zoneId || ANY}
           onValueChange={(value) => set('zoneId', value === ANY ? '' : value)}
@@ -234,7 +240,7 @@ function AdvancedSearchForm({ initial }: { initial?: Filters }) {
           */
           disabled={!filters.cityId || opciones.zones.length === 0}
         >
-          <SelectTrigger className={CONTROL} aria-label="Zona / barrio">
+          <SelectTrigger className={CONTROL} aria-label={t('search.field.zone')}>
             {/*
               El aviso va en el propio disparador y no como `placeholder`: el
               valor nunca esta vacio —"Todos" es una opcion de verdad, porque
@@ -242,84 +248,94 @@ function AdvancedSearchForm({ initial }: { initial?: Filters }) {
               llegaba a pintarse nunca y el campo solo se veia gris, sin decir
               por que.
             */}
-            {filters.cityId ? <SelectValue /> : <span>Elige ciudad</span>}
+            {filters.cityId ? (
+              <SelectValue />
+            ) : (
+              <span>{t('search.zone.needsCity')}</span>
+            )}
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value={ANY}>Todos</SelectItem>
+            <SelectItem value={ANY}>{t('search.option.all.m')}</SelectItem>
             <Opciones lista={opciones.zones} />
           </SelectContent>
         </Select>
       </FieldShell>
 
-      <FieldShell label="Tipo de inmueble" className={CELDA}>
+      <FieldShell label={t('search.field.propertyType')} className={CELDA}>
         <Select
           value={filters.propertyTypeId || ANY}
           onValueChange={(value) =>
             set('propertyTypeId', value === ANY ? '' : value)
           }
         >
-          <SelectTrigger className={CONTROL} aria-label="Tipo de inmueble">
-            <SelectValue placeholder="Todos" />
+          <SelectTrigger
+            className={CONTROL}
+            aria-label={t('search.field.propertyType')}
+          >
+            <SelectValue placeholder={t('search.option.all.m')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value={ANY}>Todos</SelectItem>
+            <SelectItem value={ANY}>{t('search.option.all.m')}</SelectItem>
             <Opciones lista={opciones.propertyTypes} />
           </SelectContent>
         </Select>
       </FieldShell>
 
-      <FieldShell label="Estado" className={CELDA}>
+      <FieldShell label={t('search.field.condition')} className={CELDA}>
         <Select
           value={filters.condition || ANY}
           onValueChange={(value) => set('condition', value === ANY ? '' : value)}
         >
-          <SelectTrigger className={CONTROL} aria-label="Estado">
-            <SelectValue placeholder="Todos" />
+          <SelectTrigger
+            className={CONTROL}
+            aria-label={t('search.field.condition')}
+          >
+            <SelectValue placeholder={t('search.option.all.m')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value={ANY}>Todos</SelectItem>
+            <SelectItem value={ANY}>{t('search.option.all.m')}</SelectItem>
             {CONDITIONS.map((condition) => (
               <SelectItem key={condition.value} value={condition.value}>
-                {condition.label}
+                {t(condition.label)}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
       </FieldShell>
 
-      <FieldShell label="Alcobas" className={ESTRECHA}>
+      <FieldShell label={t('search.field.bedrooms')} className={ESTRECHA}>
         <RoomSelect
-          label="Alcobas"
+          label={t('search.field.bedrooms')}
           value={filters.bedrooms}
           onChange={(value) => set('bedrooms', value)}
         />
       </FieldShell>
 
-      <FieldShell label="Baños" className={ESTRECHA}>
+      <FieldShell label={t('search.field.bathrooms')} className={ESTRECHA}>
         <RoomSelect
-          label="Baños"
+          label={t('search.field.bathrooms')}
           value={filters.bathrooms}
           onChange={(value) => set('bathrooms', value)}
         />
       </FieldShell>
 
-      <FieldShell label="Precio desde" className={CELDA}>
+      <FieldShell label={t('search.field.minPrice')} className={CELDA}>
         <Input
           className={CONTROL}
-          aria-label="Precio desde"
+          aria-label={t('search.field.minPrice')}
           inputMode="numeric"
-          placeholder="Desde"
+          placeholder={t('search.price.from')}
           value={filters.minPrice}
           onChange={(event) => set('minPrice', digits(event.target.value))}
         />
       </FieldShell>
 
-      <FieldShell label="Precio hasta" className={CELDA}>
+      <FieldShell label={t('search.field.maxPrice')} className={CELDA}>
         <Input
           className={CONTROL}
-          aria-label="Precio hasta"
+          aria-label={t('search.field.maxPrice')}
           inputMode="numeric"
-          placeholder="Hasta"
+          placeholder={t('search.price.to')}
           value={filters.maxPrice}
           onChange={(event) => set('maxPrice', digits(event.target.value))}
         />
@@ -337,7 +353,7 @@ function AdvancedSearchForm({ initial }: { initial?: Filters }) {
       <div className="flex min-w-0 items-end gap-2 sm:col-span-2 xl:col-span-2">
         <Button type="submit" className="h-9 flex-1 font-bold tracking-widest">
           <Search />
-          BUSCAR
+          {t('search.submit')}
         </Button>
         {/*
           Limpiar comparte celda con Buscar en vez de tener la suya: una casilla
@@ -349,8 +365,12 @@ function AdvancedSearchForm({ initial }: { initial?: Filters }) {
           <Button
             type="button"
             variant="outline"
-            aria-label={`Limpiar ${activos} filtro${activos > 1 ? 's' : ''}`}
-            title="Limpiar todos los filtros"
+            aria-label={
+              activos > 1
+                ? t('search.clear.other', { count: activos })
+                : t('search.clear.one', { count: activos })
+            }
+            title={t('search.clear.title')}
             className="size-9 shrink-0 p-0"
             onClick={() => {
               // Se conserva lo que impone la ruta —en `/venta`, la venta— y se
@@ -404,19 +424,20 @@ function RoomSelect({
   value: string
   onChange: (value: string) => void
 }) {
+  const t = useT()
   return (
     <Select
       value={value || ANY}
       onValueChange={(next) => onChange(next === ANY ? '' : next)}
     >
       <SelectTrigger className={CONTROL} aria-label={label}>
-        <SelectValue placeholder="Todos" />
+        <SelectValue placeholder={t('search.option.all.m')} />
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value={ANY}>Todos</SelectItem>
+        <SelectItem value={ANY}>{t('search.option.all.m')}</SelectItem>
         {ROOM_OPTIONS.map((option) => (
           <SelectItem key={option.value} value={option.value}>
-            {option.label}
+            {t('search.rooms.option', { count: option.value })}
           </SelectItem>
         ))}
       </SelectContent>

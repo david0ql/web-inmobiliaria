@@ -18,6 +18,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/misc'
 import { menuTypes, typePath, useSiteData } from '@/lib/site-data'
+import { useT } from '@/lib/i18n'
 import { ROUTES, SITE } from '@/lib/site'
 import { cn } from '@/lib/utils'
 
@@ -48,6 +49,7 @@ export function SiteHeader() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const navigate = useNavigate()
+  const t = useT()
 
   return (
     <header
@@ -87,7 +89,7 @@ export function SiteHeader() {
               <NavigationMenuItem>
                 <NavigationMenuLink asChild>
                   <NavLink to={ROUTES.projects} className={linkClass}>
-                    Proyectos
+                    {t('nav.projects')}
                   </NavLink>
                 </NavigationMenuLink>
               </NavigationMenuItem>
@@ -115,7 +117,7 @@ export function SiteHeader() {
                 <NavigationMenuTrigger
                   onClick={() => navigate(ROUTES.sales)}
                 >
-                  Ventas
+                  {t('nav.sales')}
                 </NavigationMenuTrigger>
                 <NavigationMenuContent>
                   <ul className="w-64 p-1">
@@ -146,7 +148,7 @@ export function SiteHeader() {
           <Button
             variant="ghost"
             size="icon"
-            aria-label="Buscar"
+            aria-label={t('nav.search.toggle')}
             aria-expanded={searchOpen}
             onClick={() => setSearchOpen((open) => !open)}
           >
@@ -155,7 +157,7 @@ export function SiteHeader() {
           <Button
             variant="ghost"
             size="icon"
-            aria-label="Abrir menú"
+            aria-label={t('nav.menu.open')}
             onPointerEnter={() => void import('@/components/layout/mobile-nav')}
             onClick={() => setMobileOpen(true)}
           >
@@ -218,6 +220,7 @@ function TypesFallback() {
  */
 function SlidingSearch({ onDone }: { onDone: () => void }) {
   const navigate = useNavigate()
+  const t = useT()
 
   return (
     <div className="border-t bg-secondary/60 lg:hidden">
@@ -237,11 +240,11 @@ function SlidingSearch({ onDone }: { onDone: () => void }) {
           autoFocus
           type="text"
           name="match"
-          aria-label="Realizar búsqueda"
-          placeholder="Realizar búsqueda"
+          aria-label={t('nav.search.placeholder')}
+          placeholder={t('nav.search.placeholder')}
           className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/15"
         />
-        <Button type="submit">Buscar</Button>
+        <Button type="submit">{t('nav.search.submit')}</Button>
       </form>
     </div>
   )

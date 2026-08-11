@@ -19,6 +19,7 @@ import { portadaInyectada } from '@/lib/ficha-inyectada'
 import { registerVisit } from '@/lib/api'
 import { breadcrumbJsonLd, propertyJsonLd } from '@/lib/seo'
 import { ROUTES, SITE } from '@/lib/site'
+import { useT } from '@/lib/i18n'
 import { useCurrency } from '@/lib/currency'
 import { propertyPath } from '@/lib/slug'
 import { useSeo } from '@/lib/use-seo'
@@ -82,6 +83,7 @@ function PropertySkeleton({ code }: { code?: string }) {
 
 function Detail({ data }: { data: PropertyData }) {
   const { precio, moneda } = useCurrency()
+  const t = useT()
   const property = use(data.property)
   const siblings = data.siblings
   const amount = property.salePrice ?? property.rentPrice
@@ -105,27 +107,32 @@ function Detail({ data }: { data: PropertyData }) {
     {
       // El titulo repite lo que la gente teclea: tipo, operacion y barrio.
       title: `${property.title} · ${SITE.name}`,
-      description:
-        `${property.propertyType?.name ?? 'Inmueble'} en ${place || 'Santander'}` +
-        [
+      description: t('page.property.seo.description', {
+        type: property.propertyType?.name ?? t('property.fallback.type'),
+        place: place || t('page.property.seo.place'),
+        specs: [
           property.area ? `${property.area} m²` : '',
-          property.bedrooms ? `${property.bedrooms} alcobas` : '',
-          property.bathrooms ? `${property.bathrooms} baños` : '',
+          property.bedrooms
+            ? t('property.spec.bedrooms.count', { count: property.bedrooms })
+            : '',
+          property.bathrooms
+            ? t('property.spec.bathrooms.count', { count: property.bathrooms })
+            : '',
           amount ? money(amount) : '',
         ]
           .filter(Boolean)
           .map((part) => ` · ${part}`)
-          .join('') +
-        '. Agenda tu visita en línea.',
+          .join(''),
+      }),
       canonical,
       image: cover?.urlLarge ?? cover?.url,
       type: 'article',
     },
     {
-      property: propertyJsonLd(property, canonical),
+      property: propertyJsonLd(property, canonical, t),
       crumbs: breadcrumbJsonLd([
-        { name: 'Inicio', url: '/' },
-        { name: 'Ventas', url: ROUTES.sales },
+        { name: t('nav.home'), url: '/' },
+        { name: t('nav.sales'), url: ROUTES.sales },
         { name: property.title, url: propertyPath(property) },
       ]),
     },
@@ -135,7 +142,7 @@ function Detail({ data }: { data: PropertyData }) {
     <div className="container-site py-8">
       <header className="mb-6">
         <p className="mb-2 text-xs tracking-widest text-muted-foreground uppercase">
-          {property.propertyType?.name} · {businessType(property)}
+          {property.propertyType?.name} · {businessType(property, t)}
         </p>
         <h1 className="tt-square text-xl leading-tight font-semibold uppercase sm:text-2xl">
           {property.title}
@@ -171,7 +178,7 @@ function Detail({ data }: { data: PropertyData }) {
                     rel="noreferrer noopener"
                   >
                     <MapPin />
-                    Google Street View
+                    {t('property.action.streetView')}
                   </a>
                 </Button>
               )}
@@ -180,14 +187,14 @@ function Detail({ data }: { data: PropertyData }) {
               <Button asChild variant="outline" size="sm">
                 <a href={property.tourUrl} target="_blank" rel="noreferrer noopener">
                   <Video />
-                  Recorrido 360°
+                  {t('property.action.tour')}
                 </a>
               </Button>
             )}
 
-            <Button variant="outline" size="sm" onClick={share}>
+            <Button variant="outline" size="sm" onClick={() => void share(t)}>
               <Share2 />
-              Compartir
+              {t('property.action.share')}
             </Button>
           </div>
 
@@ -196,13 +203,15 @@ function Detail({ data }: { data: PropertyData }) {
           <div className="flex flex-wrap items-end justify-between gap-4 rounded-lg border bg-secondary/40 px-5 py-4">
             <div>
               <p className="text-xs tracking-widest text-muted-foreground uppercase">
-                Código
+                {t('property.code')}
               </p>
               <p className="tabular text-lg font-semibold">{property.code}</p>
             </div>
             <div className="text-right">
               <p className="text-xs tracking-widest text-muted-foreground uppercase">
-                {property.forSale ? 'Precio de venta' : 'Canon de arriendo'}
+                {property.forSale
+                  ? t('property.price.sale')
+                  : t('property.price.rent')}
               </p>
               <p className="tabular text-2xl leading-tight font-normal tracking-tight">
                 {precio(amount)}{' '}
@@ -220,7 +229,7 @@ function Detail({ data }: { data: PropertyData }) {
             >
               <span className="min-w-0">
                 <span className="block text-xs tracking-widest text-muted-foreground uppercase">
-                  Proyecto
+                  {t('property.project.label')}
                 </span>
                 <span className="block truncate font-medium">
                   {property.family.name}
@@ -228,7 +237,7 @@ function Detail({ data }: { data: PropertyData }) {
                 </span>
               </span>
               <span className="flex shrink-0 items-center gap-1 text-sm">
-                Ver el proyecto
+                {t('property.project.action')}
                 <ArrowRight className="size-4" />
               </span>
             </Link>
@@ -244,10 +253,10 @@ function Detail({ data }: { data: PropertyData }) {
           */}
           <section>
             <h2 className="mb-3 text-xs font-bold tracking-widest uppercase">
-              Descripción
+              {t('property.section.description')}
             </h2>
             <p className="text-sm leading-relaxed text-muted-foreground">
-              {autoDescription(property)}
+              {autoDescription(property, t)}
             </p>
             {property.observations?.trim() && (
               <p className="mt-3 text-sm leading-relaxed whitespace-pre-line">
@@ -258,7 +267,7 @@ function Detail({ data }: { data: PropertyData }) {
 
           <section>
             <h2 className="mb-3 text-xs font-bold tracking-widest uppercase">
-              Detalles del inmueble
+              {t('property.section.details')}
             </h2>
             <SpecTable property={property} />
           </section>
@@ -300,8 +309,14 @@ function Detail({ data }: { data: PropertyData }) {
             units.length > 0 && (
               <section className="mt-16">
                 <SectionHeading
-                  light="Otras unidades"
-                  strong={property.family ? `de ${property.family.name}` : 'del proyecto'}
+                  light={t('property.siblings.light')}
+                  strong={
+                    property.family
+                      ? t('property.siblings.strong.family', {
+                          name: property.family.name,
+                        })
+                      : t('property.siblings.strong')
+                  }
                 />
                 <PropertyGrid properties={units} />
               </section>
@@ -313,7 +328,9 @@ function Detail({ data }: { data: PropertyData }) {
   )
 }
 
-async function share() {
+async function share(
+  t: (key: string, vars?: Record<string, string | number>) => string,
+) {
   const url = window.location.href
   if (navigator.share) {
     try {
@@ -325,5 +342,5 @@ async function share() {
     }
   }
   await navigator.clipboard.writeText(url)
-  toast.success('Enlace copiado')
+  toast.success(t('property.share.copied'))
 }

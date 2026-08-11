@@ -1,4 +1,9 @@
-import { area as fmtArea, price as fmtPrice, stratumLabel } from './format'
+import {
+  area as fmtArea,
+  price as fmtPrice,
+  stratumText,
+  type Traducir,
+} from './format'
 import type { Property } from './types'
 
 /**
@@ -12,9 +17,12 @@ import type { Property } from './types'
  * No sustituye a la del asesor: va primero la automática —completa y
  * comprobable— y debajo la suya, que es donde caben las cosas que no están en
  * ningún campo ("la terraza da al parque").
+ *
+ * Se arma frase a frase con `t` porque cada idioma ordena distinto: la clave
+ * lleva la frase entera y los datos entran por sus marcadores.
  */
-export function autoDescription(property: Property): string {
-  const tipo = property.propertyType?.name ?? 'Inmueble'
+export function autoDescription(property: Property, t: Traducir): string {
+  const tipo = property.propertyType?.name ?? t('catalog.property.default_type')
   const lugar = [property.zone?.name, property.city?.name]
     .filter(Boolean)
     .join(', ')
@@ -22,25 +30,31 @@ export function autoDescription(property: Property): string {
   const frases: string[] = []
 
   frases.push(
-    `${tipo} en venta${lugar ? ` en ${lugar}` : ''}` +
-      (property.area ? ` de ${fmtArea(property.area)}` : '') +
-      '.',
+    t('catalog.autodesc.headline', {
+      tipo,
+      lugar: lugar ? t('catalog.autodesc.headline.place', { lugar }) : '',
+      area: property.area
+        ? t('catalog.autodesc.headline.area', { area: fmtArea(property.area) })
+        : '',
+    }),
   )
 
   // Lo que la gente compara primero, en una sola frase.
   const partes: string[] = []
-  if (property.bedrooms) partes.push(frase(property.bedrooms, 'alcoba', 'alcobas'))
-  if (property.bathrooms) partes.push(frase(property.bathrooms, 'baño', 'baños'))
-  if (property.garages) partes.push(frase(property.garages, 'garaje', 'garajes'))
-  if (partes.length) frases.push(`Cuenta con ${enumerar(partes)}.`)
+  if (property.bedrooms) partes.push(frase(t, 'catalog.autodesc.bedrooms', property.bedrooms))
+  if (property.bathrooms) partes.push(frase(t, 'catalog.autodesc.bathrooms', property.bathrooms))
+  if (property.garages) partes.push(frase(t, 'catalog.autodesc.garages', property.garages))
+  if (partes.length)
+    frases.push(t('catalog.autodesc.has', { lista: enumerar(partes, t) }))
 
   const contexto: string[] = []
-  const estrato = stratumLabel(property.stratum).replace(' · ', '')
-  if (estrato) contexto.push(estrato.startsWith('Estrato') ? estrato.toLowerCase() : estrato.toLowerCase())
-  if (property.buildingYear) contexto.push(`construido en ${property.buildingYear}`)
-  if (property.floor) contexto.push(`piso ${property.floor}`)
+  const estrato = stratumText(property.stratum, t)
+  if (estrato) contexto.push(estrato.toLowerCase())
+  if (property.buildingYear)
+    contexto.push(t('catalog.autodesc.built_year', { year: property.buildingYear }))
+  if (property.floor) contexto.push(t('catalog.autodesc.floor', { floor: property.floor }))
   if (contexto.length) {
-    frases.push(`${capitalizar(enumerar(contexto))}.`)
+    frases.push(`${capitalizar(enumerar(contexto, t))}.`)
   }
 
   // Como mucho seis: la lista entera de una casa con cuarenta caracteristicas
@@ -49,31 +63,36 @@ export function autoDescription(property: Property): string {
     .map((f) => f.name)
     .slice(0, 6)
   if (caracteristicas.length) {
-    frases.push(`Incluye ${enumerar(caracteristicas).toLowerCase()}.`)
+    frases.push(
+      t('catalog.autodesc.includes', {
+        lista: enumerar(caracteristicas, t).toLowerCase(),
+      }),
+    )
   }
 
   const precio = property.salePrice ?? property.rentPrice
   if (precio) {
     frases.push(
-      `Precio: ${fmtPrice(precio)} ${property.currency?.iso ?? 'COP'}.`,
+      t('catalog.autodesc.price', {
+        precio: fmtPrice(precio),
+        moneda: property.currency?.iso ?? 'COP',
+      }),
     )
   }
 
-  frases.push(
-    `Código ${property.code}. Agenda tu visita en línea o escríbenos y un asesor te acompaña.`,
-  )
+  frases.push(t('catalog.autodesc.closing', { code: property.code }))
 
   return frases.join(' ')
 }
 
-function frase(n: number, singular: string, plural: string): string {
-  return `${n} ${n === 1 ? singular : plural}`
+function frase(t: Traducir, base: string, n: number): string {
+  return t(`${base}.${n === 1 ? 'one' : 'other'}`, { n })
 }
 
 /** "a, b y c" — con la y final, que es como se lee en voz alta. */
-function enumerar(partes: string[]): string {
+function enumerar(partes: string[], t: Traducir): string {
   if (partes.length <= 1) return partes[0] ?? ''
-  return `${partes.slice(0, -1).join(', ')} y ${partes.at(-1)}`
+  return `${partes.slice(0, -1).join(', ')} ${t('catalog.list.and')} ${partes.at(-1)}`
 }
 
 function capitalizar(texto: string): string {

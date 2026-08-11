@@ -15,6 +15,7 @@ import { ChangePasswordForm } from '@/components/account/change-password-form'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/misc'
 import { area, money } from '@/lib/format'
+import { useT } from '@/lib/i18n'
 import { logout, portal, type PortalProfile } from '@/lib/portal'
 import { usePortalData, usePortalSession } from '@/lib/use-portal'
 import { cn } from '@/lib/utils'
@@ -29,6 +30,7 @@ import { cn } from '@/lib/utils'
  */
 export function Account() {
   const { client, ready } = usePortalSession()
+  const t = useT()
 
   if (!ready) {
     return (
@@ -45,10 +47,13 @@ export function Account() {
   if (client.mustChangePassword) {
     return (
       <div className="container-site max-w-md py-12">
-        <SectionHeading as="h1" light="Cambia tu" strong="contraseña" />
+        <SectionHeading
+          as="h1"
+          light={t('account.password.title.light')}
+          strong={t('account.password.title.strong')}
+        />
         <p className="mb-6 text-sm text-muted-foreground">
-          Entraste con la clave que te dio tu asesor. Elige una que solo sepas
-          tú antes de continuar.
+          {t('account.password.intro')}
         </p>
         <ChangePasswordForm />
       </div>
@@ -58,16 +63,18 @@ export function Account() {
   return <Portal />
 }
 
+/* Las etiquetas guardan la clave: la pestaña se traduce al pintarla. */
 const TABS = [
-  { id: 'properties', label: 'Mis inmuebles', icon: Building2 },
-  { id: 'requests', label: 'Mis solicitudes', icon: FileText },
-  { id: 'visits', label: 'Visitas', icon: CalendarClock },
-  { id: 'account', label: 'Mi cuenta', icon: UserRound },
+  { id: 'properties', label: 'account.tab.properties', icon: Building2 },
+  { id: 'requests', label: 'account.tab.requests', icon: FileText },
+  { id: 'visits', label: 'account.tab.visits', icon: CalendarClock },
+  { id: 'account', label: 'account.tab.account', icon: UserRound },
 ] as const
 
 function Portal() {
   const [tab, setTab] = useState<(typeof TABS)[number]['id']>('properties')
   const profile = usePortalData(portal.profile)
+  const t = useT()
 
   return (
     <div className="container-site py-10">
@@ -75,12 +82,12 @@ function Portal() {
         <div className="min-w-0">
           <SectionHeading
             as="h1"
-            light="Hola,"
+            light={t('account.greeting')}
             strong={profile.data?.firstName ?? ''}
             className="mb-1"
           />
           <p className="text-sm text-muted-foreground">
-            Aquí ves tus inmuebles, sus visitas y en qué van tus solicitudes.
+            {t('account.subtitle')}
           </p>
         </div>
 
@@ -88,13 +95,13 @@ function Portal() {
           <ConsignmentDialog>
             <Button>
               <Plus />
-              Publicar inmueble
+              {t('account.action.publish')}
             </Button>
           </ConsignmentDialog>
           <Button
             variant="outline"
             onClick={() => void logout()}
-            aria-label="Cerrar sesión"
+            aria-label={t('account.action.logout')}
           >
             <LogOut />
           </Button>
@@ -103,7 +110,7 @@ function Portal() {
 
       <nav
         className="mb-8 flex gap-1 overflow-x-auto border-b"
-        aria-label="Secciones de mi cuenta"
+        aria-label={t('account.tabs.aria')}
       >
         {TABS.map((item) => (
           <button
@@ -119,7 +126,7 @@ function Portal() {
             )}
           >
             <item.icon className="size-4" />
-            {item.label}
+            {t(item.label)}
           </button>
         ))}
       </nav>
@@ -136,13 +143,14 @@ function Portal() {
 
 function PropertiesTab() {
   const { data, loading } = usePortalData(portal.properties)
+  const t = useT()
 
   if (loading) return <ListSkeleton />
   if (!data?.length) {
     return (
       <EmptyBlock
-        title="Todavía no tienes inmuebles publicados"
-        detail="Cuando aceptemos una de tus solicitudes, el inmueble aparecerá aquí con sus fotos y su ficha."
+        title={t('account.properties.empty.title')}
+        detail={t('account.properties.empty.detail')}
       />
     )
   }
@@ -182,8 +190,16 @@ function PropertiesTab() {
             <p className="mt-1 text-xs text-muted-foreground">
               {[
                 property.area ? area(property.area) : null,
-                property.bedrooms ? `${property.bedrooms} alcobas` : null,
-                property.bathrooms ? `${property.bathrooms} baños` : null,
+                property.bedrooms
+                  ? t('property.spec.bedrooms.count', {
+                      count: property.bedrooms,
+                    })
+                  : null,
+                property.bathrooms
+                  ? t('property.spec.bathrooms.count', {
+                      count: property.bathrooms,
+                    })
+                  : null,
               ]
                 .filter(Boolean)
                 .join(' · ')}
@@ -195,23 +211,37 @@ function PropertiesTab() {
   )
 }
 
+/* La etiqueta guarda la clave: se traduce al pintar la solicitud. */
 const REQUEST_STATUS: Record<string, { label: string; tone: string }> = {
-  NEW: { label: 'Recibida', tone: 'bg-amber-100 text-amber-900' },
-  REVIEWING: { label: 'En revisión', tone: 'bg-blue-100 text-blue-900' },
-  VISIT_SCHEDULED: { label: 'Visita agendada', tone: 'bg-blue-100 text-blue-900' },
-  ACCEPTED: { label: 'Publicado', tone: 'bg-green-100 text-green-900' },
-  REJECTED: { label: 'No continuamos', tone: 'bg-red-100 text-red-900' },
+  NEW: { label: 'account.request.status.NEW', tone: 'bg-amber-100 text-amber-900' },
+  REVIEWING: {
+    label: 'account.request.status.REVIEWING',
+    tone: 'bg-blue-100 text-blue-900',
+  },
+  VISIT_SCHEDULED: {
+    label: 'account.request.status.VISIT_SCHEDULED',
+    tone: 'bg-blue-100 text-blue-900',
+  },
+  ACCEPTED: {
+    label: 'account.request.status.ACCEPTED',
+    tone: 'bg-green-100 text-green-900',
+  },
+  REJECTED: {
+    label: 'account.request.status.REJECTED',
+    tone: 'bg-red-100 text-red-900',
+  },
 }
 
 function RequestsTab() {
   const { data, loading } = usePortalData(portal.requests)
+  const t = useT()
 
   if (loading) return <ListSkeleton />
   if (!data?.length) {
     return (
       <EmptyBlock
-        title="Aún no has enviado solicitudes"
-        detail="Pulsa «Publicar inmueble» y cuéntanos del tuyo. Un asesor lo revisa y te contacta."
+        title={t('account.requests.empty.title')}
+        detail={t('account.requests.empty.detail')}
       />
     )
   }
@@ -238,11 +268,14 @@ function RequestsTab() {
                   status.tone,
                 )}
               >
-                {status.label}
+                {t(status.label)}
               </span>
             </div>
             <h3 className="text-sm font-semibold">
-              {request.propertyTypeName} en {request.complexName}
+              {t('account.request.title', {
+                type: request.propertyTypeName,
+                complex: request.complexName,
+              })}
             </h3>
             <p className="text-xs text-muted-foreground">
               {request.address} {request.unitNumber} · {request.neighborhood},{' '}
@@ -252,8 +285,15 @@ function RequestsTab() {
               {money(request.salePrice)}
             </p>
             <p className="mt-2 text-xs text-muted-foreground">
-              {request.photos} {request.photos === 1 ? 'foto' : 'fotos'} ·{' '}
-              {request.documents.length} de 5 documentos
+              {t(
+                request.photos === 1
+                  ? 'account.request.files.one'
+                  : 'account.request.files.other',
+                {
+                  photos: request.photos,
+                  documents: request.documents.length,
+                },
+              )}
             </p>
           </article>
         )
@@ -262,23 +302,25 @@ function RequestsTab() {
   )
 }
 
+/* Guarda la clave: la etiqueta se traduce al pintar la visita. */
 const VISIT_STATUS: Record<string, string> = {
-  SCHEDULED: 'Agendada',
-  CONFIRMED: 'Confirmada',
-  DONE: 'Realizada',
-  CANCELLED: 'Cancelada',
-  NO_SHOW: 'No asistió',
+  SCHEDULED: 'account.visit.status.SCHEDULED',
+  CONFIRMED: 'account.visit.status.CONFIRMED',
+  DONE: 'account.visit.status.DONE',
+  CANCELLED: 'account.visit.status.CANCELLED',
+  NO_SHOW: 'account.visit.status.NO_SHOW',
 }
 
 function VisitsTab() {
   const { data, loading } = usePortalData(portal.visits)
+  const t = useT()
 
   if (loading) return <ListSkeleton />
   if (!data?.length) {
     return (
       <EmptyBlock
-        title="Todavía no hay visitas"
-        detail="Cuando alguien agende una visita a uno de tus inmuebles, la verás aquí."
+        title={t('account.visits.empty.title')}
+        detail={t('account.visits.empty.detail')}
       />
     )
   }
@@ -298,11 +340,11 @@ function VisitsTab() {
               })}
             </p>
             <p className="truncate text-xs text-muted-foreground">
-              {visit.property?.title ?? 'Inmueble retirado'}
+              {visit.property?.title ?? t('account.visit.removed')}
             </p>
           </div>
           <span className="rounded-full bg-secondary px-2.5 py-0.5 text-xs">
-            {VISIT_STATUS[visit.status] ?? visit.status}
+            {t(VISIT_STATUS[visit.status] ?? visit.status)}
           </span>
         </article>
       ))}
@@ -311,29 +353,40 @@ function VisitsTab() {
 }
 
 function AccountTab({ profile }: { profile: PortalProfile | null }) {
+  const t = useT()
+
   if (!profile) return <ListSkeleton />
 
   return (
     <div className="grid gap-6 lg:grid-cols-2">
       <section className="rounded-lg border bg-card p-6 shadow-sm">
         <h2 className="mb-4 text-xs font-bold tracking-widest uppercase">
-          Tus datos
+          {t('account.profile.title')}
         </h2>
         <dl className="grid gap-2 text-sm">
-          <Row label="Nombre" value={profile.fullName} />
-          <Row label="Correo" value={profile.email ?? '—'} />
-          <Row label="Teléfono" value={profile.cellPhone ?? '—'} />
-          <Row label="Documento" value={profile.identification ?? '—'} />
-          <Row label="Ciudad" value={profile.city?.name ?? '—'} />
+          <Row label={t('account.profile.name')} value={profile.fullName} />
+          <Row label={t('account.profile.email')} value={profile.email ?? '—'} />
+          <Row
+            label={t('account.profile.phone')}
+            value={profile.cellPhone ?? '—'}
+          />
+          <Row
+            label={t('account.profile.document')}
+            value={profile.identification ?? '—'}
+          />
+          <Row
+            label={t('account.profile.city')}
+            value={profile.city?.name ?? '—'}
+          />
         </dl>
         <p className="mt-4 text-xs text-muted-foreground">
-          ¿Algo mal? Escríbele a tu asesor y lo corrige.
+          {t('account.profile.help')}
         </p>
       </section>
 
       <section className="rounded-lg border bg-card p-6 shadow-sm">
         <h2 className="mb-4 text-xs font-bold tracking-widest uppercase">
-          Tu asesor
+          {t('account.agent.title')}
         </h2>
         {profile.agent ? (
           <div className="flex items-center gap-4">
@@ -361,15 +414,14 @@ function AccountTab({ profile }: { profile: PortalProfile | null }) {
           </div>
         ) : (
           <p className="text-sm text-muted-foreground">
-            Todavía no tienes asesor asignado. En cuanto revisemos tu primera
-            solicitud, alguien se hará cargo y aparecerá aquí.
+            {t('account.agent.empty')}
           </p>
         )}
       </section>
 
       <section className="rounded-lg border bg-card p-6 shadow-sm lg:col-span-2">
         <h2 className="mb-4 text-xs font-bold tracking-widest uppercase">
-          Cambiar contraseña
+          {t('account.password.section')}
         </h2>
         <ChangePasswordForm />
       </section>
@@ -389,11 +441,24 @@ function Row({ label, value }: { label: string; value: string }) {
 }
 
 function StatusPill({ status }: { status: string }) {
+  const t = useT()
   const map: Record<string, { label: string; tone: string }> = {
-    DRAFT: { label: 'En revisión', tone: 'bg-amber-100 text-amber-900' },
-    ACTIVE: { label: 'Publicado', tone: 'bg-green-100 text-green-900' },
-    OUTSTANDING: { label: 'Destacado', tone: 'bg-green-100 text-green-900' },
-    INACTIVE: { label: 'Retirado', tone: 'bg-secondary' },
+    DRAFT: {
+      label: t('account.property.status.DRAFT'),
+      tone: 'bg-amber-100 text-amber-900',
+    },
+    ACTIVE: {
+      label: t('account.property.status.ACTIVE'),
+      tone: 'bg-green-100 text-green-900',
+    },
+    OUTSTANDING: {
+      label: t('account.property.status.OUTSTANDING'),
+      tone: 'bg-green-100 text-green-900',
+    },
+    INACTIVE: {
+      label: t('account.property.status.INACTIVE'),
+      tone: 'bg-secondary',
+    },
   }
   const value = map[status] ?? { label: status, tone: 'bg-secondary' }
   return (

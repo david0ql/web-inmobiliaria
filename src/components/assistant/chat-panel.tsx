@@ -4,6 +4,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { ChatCard } from '@/components/assistant/chat-cards'
 import { ChatIdentify } from '@/components/assistant/chat-identify'
 import { Button } from '@/components/ui/button'
+import { useT } from '@/lib/i18n'
 import { SITE } from '@/lib/site'
 import type { ChatItem, UseAssistant } from '@/lib/use-assistant'
 import { cn } from '@/lib/utils'
@@ -24,6 +25,7 @@ export function ChatPanel({
   assistant: UseAssistant
   onClose: () => void
 }) {
+  const t = useT()
   const {
     items,
     streaming,
@@ -64,18 +66,18 @@ export function ChatPanel({
         </span>
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm leading-tight font-semibold">
-            Asistente {SITE.name.split(' ')[0]}
+            {t('chat.header.title', { brand: SITE.name.split(' ')[0] })}
           </p>
           <p className="truncate text-[0.6875rem] text-primary-foreground/70">
             {scope.kind === 'PROPERTY'
-              ? `Hablando del inmueble ${scope.code}`
-              : 'Te ayudo a encontrar tu inmueble'}
+              ? t('chat.header.property', { code: scope.code })
+              : t('chat.header.general')}
           </p>
         </div>
         <button
           type="button"
           onClick={onClose}
-          aria-label="Cerrar chat"
+          aria-label={t('chat.close')}
           className="rounded-sm p-1 opacity-80 transition-opacity hover:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-foreground"
         >
           <X className="size-5" />
@@ -96,7 +98,7 @@ export function ChatPanel({
             className="animate-in fade-in-0 slide-in-from-bottom-1 space-y-3 duration-300"
           >
             <Bubble role="assistant">
-              {`Hola ${visitor.firstName} 👋 `}
+              {t('chat.greeting.hello', { name: visitor.firstName })}{' '}
               {greeting}
             </Bubble>
             {items.map((item) => (
@@ -131,8 +133,8 @@ export function ChatPanel({
               maxLength={3900}
               placeholder={
                 scope.kind === 'PROPERTY'
-                  ? 'Pregunta por este inmueble…'
-                  : 'Escribe qué buscas…'
+                  ? t('chat.input.placeholder.property')
+                  : t('chat.input.placeholder.general')
               }
               className="max-h-32 min-h-9 flex-1 resize-none bg-transparent px-2 py-1.5 text-sm outline-none placeholder:text-muted-foreground"
             />
@@ -140,15 +142,14 @@ export function ChatPanel({
               type="submit"
               size="icon"
               disabled={!draft.trim() || streaming}
-              aria-label="Enviar"
+              aria-label={t('chat.send')}
               className="shrink-0"
             >
               <SendHorizonal className="size-4" />
             </Button>
           </form>
           <p className="mt-1.5 px-1 text-center text-[0.625rem] text-muted-foreground">
-            Respuestas con la información publicada. Un asesor confirma lo
-            importante.
+            {t('chat.disclaimer')}
           </p>
         </div>
       )}

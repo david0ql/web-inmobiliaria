@@ -1,5 +1,6 @@
 import { Check } from 'lucide-react'
 
+import { useT } from '@/lib/i18n'
 import type { Feature } from '@/lib/types'
 
 /**
@@ -7,6 +8,7 @@ import type { Feature } from '@/lib/types'
  * `scope`, y la ficha las separa en dos bloques igual que el sitio actual.
  */
 export function FeatureList({ features }: { features: Feature[] }) {
+  const t = useT()
   const internal = features.filter((feature) => feature.scope === 'INTERNAL')
   const external = features.filter((feature) => feature.scope === 'EXTERNAL')
 
@@ -14,8 +16,8 @@ export function FeatureList({ features }: { features: Feature[] }) {
 
   return (
     <div className="grid gap-8 sm:grid-cols-2">
-      <Block title="Características internas" features={internal} />
-      <Block title="Características externas" features={external} />
+      <Block title={t('property.features.internal')} features={internal} />
+      <Block title={t('property.features.external')} features={external} />
     </div>
   )
 }

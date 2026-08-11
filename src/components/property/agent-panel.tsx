@@ -1,6 +1,7 @@
 import { Mail, MessageCircle, Phone } from 'lucide-react'
 
 import { initials } from '@/lib/format'
+import { useT } from '@/lib/i18n'
 import { SITE } from '@/lib/site'
 import type { Property } from '@/lib/types'
 
@@ -13,6 +14,7 @@ import type { Property } from '@/lib/types'
  * la agencia, que es lo que un visitante necesita de todas formas.
  */
 export function AgentPanel({ property }: { property: Property }) {
+  const t = useT()
   const agent = property.agent
   const name = agent?.fullName ?? SITE.name
   const phone = agent?.cellPhone ?? SITE.phone
@@ -40,7 +42,9 @@ export function AgentPanel({ property }: { property: Property }) {
         <div className="min-w-0">
           <p className="truncate font-semibold">{name}</p>
           <p className="text-xs text-muted-foreground">
-            {agent ? 'Asesor a cargo' : 'Atención al cliente'}
+            {agent
+              ? t('property.agent.role')
+              : t('property.agent.customer_service')}
           </p>
         </div>
       </div>
@@ -57,7 +61,9 @@ export function AgentPanel({ property }: { property: Property }) {
         {/* `truncate` y no `break-all`: partir "serrano-inmobiliaria.com" a mitad
             de palabra se lee peor que cortarlo con puntos suspensivos. */}
         <a
-          href={`mailto:${email}?subject=${encodeURIComponent(`Inmueble ${property.code}`)}`}
+          href={`mailto:${email}?subject=${encodeURIComponent(
+            t('property.agent.email_subject', { code: property.code }),
+          )}`}
           title={email}
           className="flex min-w-0 items-center gap-2 hover:underline"
         >
@@ -73,14 +79,17 @@ export function AgentPanel({ property }: { property: Property }) {
         {(!agent || agent.hasWhatsapp) && (
           <a
             href={`https://wa.me/${whatsapp}?text=${encodeURIComponent(
-              `Hola, me interesa el inmueble ${property.code}: ${property.title}`,
+              t('property.agent.whatsapp_text', {
+                code: property.code,
+                title: property.title,
+              }),
             )}`}
             target="_blank"
             rel="noreferrer noopener"
             className="flex items-center gap-2 hover:underline"
           >
             <MessageCircle className="size-4 shrink-0 text-muted-foreground" />
-            Escribir por WhatsApp
+            {t('property.agent.whatsapp')}
           </a>
         )}
       </div>

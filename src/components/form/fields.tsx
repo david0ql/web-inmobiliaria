@@ -5,6 +5,7 @@ import type { FieldValues, Path, UseFormReturn } from 'react-hook-form'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { price } from '@/lib/format'
+import { useT } from '@/lib/i18n'
 import { digits } from '@/lib/search-params'
 import { cn } from '@/lib/utils'
 
@@ -53,10 +54,17 @@ export function ErrorText<T extends FieldValues>({
   name: Path<T>
 }) {
   const message = useMessage(form, name)
+  const t = useT()
   if (!message) return null
+  /*
+   * Los esquemas de zod viven en el modulo, fuera de todo componente, asi que
+   * guardan la CLAVE del mensaje y no el mensaje. Aqui, que es donde se pinta,
+   * ya hay contexto para traducirla. Lo que no sea una clave conocida —un
+   * mensaje que venga de la API— sale tal cual.
+   */
   return (
     <p role="alert" className="text-xs text-destructive">
-      {message}
+      {t(message)}
     </p>
   )
 }
@@ -309,6 +317,7 @@ export function Toggle<T extends FieldValues>({
 
 export interface Step<T extends FieldValues> {
   id: string
+  /** La clave del titulo: los pasos se declaran en el modulo, sin contexto. */
   title: string
   fields: Path<T>[]
 }
@@ -320,8 +329,10 @@ export function Progress<T extends FieldValues>({
   steps: Step<T>[]
   current: number
 }) {
+  const t = useT()
+
   return (
-    <ol className="flex gap-2" aria-label="Progreso del formulario">
+    <ol className="flex gap-2" aria-label={t('form.progress.label')}>
       {steps.map((step, i) => (
         <li key={step.id} className="flex-1">
           <div
@@ -339,7 +350,7 @@ export function Progress<T extends FieldValues>({
             )}
             aria-current={i === current ? 'step' : undefined}
           >
-            {step.title}
+            {t(step.title)}
           </span>
         </li>
       ))}

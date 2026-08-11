@@ -27,6 +27,7 @@ import {
   PROJECTS_PATH,
   type ProjectDetail,
 } from '@/lib/projects'
+import { useT } from '@/lib/i18n'
 import { ROUTES } from '@/lib/site'
 import type { Property } from '@/lib/types'
 
@@ -54,6 +55,7 @@ export function ProjectPage() {
   const [selectedId, setSelectedId] = useState(properties[0]?.id ?? '')
   const [portadaAbierta, setPortadaAbierta] = useState(false)
   const { precio, moneda } = useCurrency()
+  const t = useT()
 
   const selected = useMemo(
     () => properties.find((p) => p.id === selectedId) ?? properties[0],
@@ -90,14 +92,14 @@ export function ProjectPage() {
       <header className="mb-6">
         <p className="mb-2 flex flex-wrap items-center gap-2 text-xs tracking-widest text-muted-foreground uppercase">
           <Link to={PROJECTS_PATH} className="hover:underline">
-            Proyectos
+            {t('nav.projects')}
           </Link>
           <span aria-hidden="true">·</span>
           <Badge
             variant="tag"
             style={{ backgroundColor: FAMILY_STATUS_COLOR[family.status] }}
           >
-            {FAMILY_STATUS_LABEL[family.status] ?? family.status}
+            {t(FAMILY_STATUS_LABEL[family.status] ?? family.status)}
           </Badge>
         </p>
 
@@ -116,7 +118,8 @@ export function ProjectPage() {
 
         {family.developer && (
           <p className="mt-1 text-sm text-muted-foreground">
-            Promotor: <span className="font-medium">{family.developer}</span>
+            {t('project.developer')}{' '}
+            <span className="font-medium">{family.developer}</span>
           </p>
         )}
       </header>
@@ -130,7 +133,7 @@ export function ProjectPage() {
               <button
                 type="button"
                 onClick={() => setPortadaAbierta(true)}
-                aria-label={`Ampliar la foto de ${family.name}`}
+                aria-label={t('project.cover.zoom', { name: family.name })}
                 className="block cursor-zoom-in overflow-hidden rounded-lg border bg-secondary"
               >
                 <img
@@ -173,20 +176,20 @@ export function ProjectPage() {
                   htmlFor="unidad"
                   className="mb-1.5 block text-xs tracking-widest text-muted-foreground uppercase"
                 >
-                  Tipologías
+                  {t('project.units.label')}
                 </label>
                 <Select
                   value={selected.id}
                   onValueChange={setSelectedId}
                   disabled={properties.length === 1}
                 >
-                  <SelectTrigger id="unidad" aria-label="Unidad del proyecto">
+                  <SelectTrigger id="unidad" aria-label={t('project.units.aria')}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     {properties.map((property) => (
                       <SelectItem key={property.id} value={property.id}>
-                        {etiqueta(property, precio)}
+                        {etiqueta(property, precio, t)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -207,7 +210,7 @@ export function ProjectPage() {
               <div className="flex flex-wrap items-end justify-between gap-4 rounded-lg border bg-secondary/40 px-5 py-4">
                 <div>
                   <p className="text-xs tracking-widest text-muted-foreground uppercase">
-                    Código
+                    {t('property.code')}
                   </p>
                   <p className="tabular text-lg font-semibold">
                     {selected.code}
@@ -215,7 +218,7 @@ export function ProjectPage() {
                 </div>
                 <div className="text-right">
                   <p className="text-xs tracking-widest text-muted-foreground uppercase">
-                    Precio de venta
+                    {t('property.price.sale')}
                   </p>
                   <p className="tabular text-2xl leading-tight font-normal tracking-tight">
                     {precio(selected.salePrice)}{' '}
@@ -229,7 +232,7 @@ export function ProjectPage() {
               {family.description && (
                 <section>
                   <h2 className="mb-3 text-xs font-bold tracking-widest uppercase">
-                    Descripción
+                    {t('property.section.description')}
                   </h2>
                   <p className="text-sm leading-relaxed whitespace-pre-line text-muted-foreground">
                     {family.description}
@@ -239,7 +242,7 @@ export function ProjectPage() {
 
               <section>
                 <h2 className="mb-3 text-xs font-bold tracking-widest uppercase">
-                  Detalles de la unidad
+                  {t('project.section.unitDetails')}
                 </h2>
                 <SpecTable property={selected} />
               </section>
@@ -247,10 +250,10 @@ export function ProjectPage() {
           ) : (
             <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed px-5 py-16 text-center">
               <p className="text-sm text-muted-foreground">
-                Ahora mismo no hay unidades disponibles en este proyecto.
+                {t('project.units.empty')}
               </p>
               <Button asChild variant="outline" size="sm">
-                <Link to={ROUTES.sales}>Ver otros inmuebles</Link>
+                <Link to={ROUTES.sales}>{t('project.units.empty.action')}</Link>
               </Button>
             </div>
           )}
@@ -263,7 +266,7 @@ export function ProjectPage() {
           {amenities.length > 0 && (
             <section>
               <h2 className="mb-3 text-xs font-bold tracking-widest uppercase">
-                Zonas comunes
+                {t('project.section.amenities')}
               </h2>
               <ul className="grid grid-cols-2 gap-x-4 gap-y-2.5 text-sm sm:grid-cols-3">
                 {amenities.map((amenity) => (
@@ -317,12 +320,15 @@ export function ProjectPage() {
 function etiqueta(
   property: Property,
   precio: (v: number | string | null | undefined) => string,
+  t: (key: string, vars?: Record<string, string | number>) => string,
 ): string {
   const built = property.builtArea ?? property.area
   return [
     property.propertyType?.name,
     built ? fmtArea(built) : null,
-    property.bedrooms ? `${property.bedrooms} alcobas` : null,
+    property.bedrooms
+      ? t('property.spec.bedrooms.count', { count: property.bedrooms })
+      : null,
     property.salePrice ? precio(property.salePrice) : null,
   ]
     .filter(Boolean)

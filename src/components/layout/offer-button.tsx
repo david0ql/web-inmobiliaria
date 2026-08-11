@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
+import { useT } from '@/lib/i18n'
 import { usePortalClient } from '@/lib/use-portal'
 
 /*
@@ -44,7 +45,7 @@ const preload = () => {
  */
 export function OfferButton({
   className,
-  label = 'Publicar inmueble',
+  label,
   variant,
   size,
 }: {
@@ -54,8 +55,13 @@ export function OfferButton({
   size?: React.ComponentProps<typeof Button>['size']
 }) {
   const client = usePortalClient()
+  const t = useT()
   const [open, setOpen] = useState(false)
   const [asking, setAsking] = useState(false)
+
+  // El rotulo por defecto no puede ir en la firma: `useT` es un hook y solo
+  // vive dentro del componente.
+  const texto = label ?? t('nav.offer')
 
   // Al entrar se sigue donde se estaba: se cierra la entrada y se abre el
   // formulario, sin volver a pulsar nada.
@@ -68,7 +74,7 @@ export function OfferButton({
 
   const trigger = (
     <Button className={className} variant={variant} size={size}>
-      {label}
+      {texto}
     </Button>
   )
 
@@ -99,7 +105,7 @@ export function OfferButton({
           setOpen(true)
         }}
       >
-        {label}
+        {texto}
       </Button>
 
       {asking && (

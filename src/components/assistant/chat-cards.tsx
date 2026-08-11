@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import type { AssistantCard, PropertyCardView } from '@/lib/assistant'
 import { useCurrency } from '@/lib/currency'
 import { area as fmtArea } from '@/lib/format'
+import { useT } from '@/lib/i18n'
 
 /**
  * Las tarjetas que el asistente inserta en la conversación.
@@ -50,6 +51,7 @@ function PropertyRow({
   item: PropertyCardView
   onNavigate?: () => void
 }) {
+  const t = useT()
   const { precio, moneda } = useCurrency()
   const amount = item.salePrice ?? item.rentPrice
   return (
@@ -68,7 +70,7 @@ function PropertyRow({
           />
         ) : (
           <div className="flex size-full items-center justify-center text-[0.625rem] text-muted-foreground">
-            Sin foto
+            {t('property.photo.none')}
           </div>
         )}
       </div>
@@ -78,7 +80,8 @@ function PropertyRow({
             {item.title}
           </p>
           <p className="truncate text-xs text-muted-foreground">
-            {[item.zone, item.city].filter(Boolean).join(' · ') || `Cód. ${item.code}`}
+            {[item.zone, item.city].filter(Boolean).join(' · ') ||
+              t('property.code', { code: item.code })}
           </p>
         </div>
         <div className="flex items-center gap-3 text-[0.6875rem] text-muted-foreground">
@@ -115,6 +118,7 @@ function Gallery({
 }: {
   card: Extract<AssistantCard, { type: 'gallery' }>
 }) {
+  const t = useT()
   return (
     <div className="-mx-1 flex snap-x gap-2 overflow-x-auto px-1 pb-1">
       {card.images.map((image, index) => (
@@ -127,7 +131,13 @@ function Gallery({
         >
           <img
             src={image.url}
-            alt={image.description ?? `${card.title} — foto ${index + 1}`}
+            alt={
+              image.description ??
+              t('chat.gallery.photo.alt', {
+                title: card.title,
+                index: index + 1,
+              })
+            }
             loading="lazy"
             className="h-28 w-40 shrink-0 rounded-md border object-cover"
           />
@@ -165,11 +175,12 @@ function Slots({ card }: { card: Extract<AssistantCard, { type: 'slots' }> }) {
 
 /** Confirmación de visita agendada. */
 function Booked({ card }: { card: Extract<AssistantCard, { type: 'booked' }> }) {
+  const t = useT()
   return (
     <div className="flex items-center gap-3 rounded-md border border-tag-available/40 bg-tag-available/10 p-3">
       <CalendarCheck className="size-5 shrink-0 text-tag-available" />
       <div className="text-xs">
-        <p className="font-semibold">Visita agendada</p>
+        <p className="font-semibold">{t('chat.visit.booked')}</p>
         <p className="text-muted-foreground">
           {longDate(card.startsAt.slice(0, 10))} · {shortTime(card.startsAt)}
         </p>

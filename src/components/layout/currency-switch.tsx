@@ -1,4 +1,5 @@
 import { useCurrency, type Moneda } from '@/lib/currency'
+import { useT } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 
 const OPCIONES: { value: Moneda; label: string }[] = [
@@ -19,6 +20,7 @@ const OPCIONES: { value: Moneda; label: string }[] = [
  */
 export function CurrencySwitch({ className }: { className?: string }) {
   const { moneda, tasa, disponible, cambiar } = useCurrency()
+  const t = useT()
 
   if (!disponible) return null
 
@@ -27,14 +29,22 @@ export function CurrencySwitch({ className }: { className?: string }) {
       className={cn('flex items-center gap-1.5', className)}
       title={
         tasa
-          ? `US$1 = $${new Intl.NumberFormat('es-CO', { maximumFractionDigits: 2 }).format(tasa.rate)} · ${
-              tasa.source === 'TRM' ? 'TRM oficial' : 'tasa de mercado'
-            } del ${tasa.date}`
+          ? t('switch.currency.rate', {
+              rate: new Intl.NumberFormat('es-CO', {
+                maximumFractionDigits: 2,
+              }).format(tasa.rate),
+              source: t(
+                tasa.source === 'TRM'
+                  ? 'switch.currency.source.trm'
+                  : 'switch.currency.source.market',
+              ),
+              date: tasa.date,
+            })
           : undefined
       }
     >
       <span className="sr-only" id="moneda-label">
-        Moneda en la que se ven los precios
+        {t('switch.currency.aria')}
       </span>
       <div
         role="group"

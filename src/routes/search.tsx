@@ -12,6 +12,7 @@ import { ResultsPager } from '@/components/search/results-pager'
 import { Skeleton } from '@/components/ui/misc'
 import { breadcrumbJsonLd } from '@/lib/seo'
 import { ROUTES, SITE } from '@/lib/site'
+import { useT } from '@/lib/i18n'
 import { useSeo } from '@/lib/use-seo'
 import { SORTS, writeFilters, type Filters } from '@/lib/search-params'
 import { useListAnchor } from '@/lib/scroll'
@@ -22,6 +23,7 @@ import { cn } from '@/lib/utils'
 export function SearchResults() {
   const data = useLoaderData() as SearchData
   const [params] = useSearchParams()
+  const t = useT()
 
   // Una pagina 2 con los mismos inmuebles que la 1 es contenido duplicado: se
   // apunta la canonica al listado limpio y solo se indexa la primera.
@@ -30,18 +32,15 @@ export function SearchResults() {
   useSeo({
     title:
       page > 1
-        ? `Inmuebles en venta · página ${page} · ${SITE.name}`
-        : `Inmuebles en venta en Bucaramanga y su área metropolitana · ${SITE.name}`,
-    description:
-      'Busca entre más de 600 apartamentos, casas y lotes en venta en ' +
-      'Bucaramanga, Floridablanca, Girón y Piedecuesta. Filtra por barrio, ' +
-      'precio, alcobas y baños.',
+        ? t('page.search.seo.title.paged', { page, site: SITE.name })
+        : t('page.search.seo.title', { site: SITE.name }),
+    description: t('page.search.seo.description'),
     canonical: SITE.url + ROUTES.sales,
     noindex: page > 1,
   }, {
     crumbs: breadcrumbJsonLd([
-      { name: 'Inicio', url: '/' },
-      { name: 'Ventas', url: ROUTES.sales },
+      { name: t('nav.home'), url: '/' },
+      { name: t('nav.sales'), url: ROUTES.sales },
     ]),
   })
   // El ancla vive fuera del `Suspense`: mientras carga la pagina nueva el
@@ -51,7 +50,12 @@ export function SearchResults() {
   return (
     <div className="container-site py-10">
       <div className="mb-10 rounded-lg border bg-card p-5 shadow-sm lg:p-6">
-        <SectionHeading as="h2" size="sm" light="Búsqueda" strong="avanzada" />
+        <SectionHeading
+          as="h2"
+          size="sm"
+          light={t('search.heading.light')}
+          strong={t('search.heading.strong')}
+        />
         <AdvancedSearch initial={data.initialFilters} />
       </div>
 
@@ -59,8 +63,8 @@ export function SearchResults() {
         <SectionHeading
           as="h1"
           size="sm"
-          light="Resultados de la"
-          strong="búsqueda"
+          light={t('page.search.results.light')}
+          strong={t('page.search.results.strong')}
           className="mb-2"
         />
 
@@ -81,6 +85,7 @@ function Results({
 }) {
   const { filters, results } = use(promise)
   const [, setSearchParams] = useSearchParams()
+  const t = useT()
 
   /*
    * Ordenar y paginar rehacen la lista entera, asi que en ambos casos se sube
@@ -98,9 +103,16 @@ function Results({
     <>
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <p className="tabular text-sm text-muted-foreground">
-          {results.meta.total.toLocaleString('es-CO')}{' '}
-          {results.meta.total === 1 ? 'inmueble' : 'inmuebles'} · página{' '}
-          {results.meta.page} de {Math.max(results.meta.pages, 1)}
+          {t(
+            results.meta.total === 1
+              ? 'search.count.one'
+              : 'search.count.other',
+            {
+              total: results.meta.total.toLocaleString('es-CO'),
+              page: results.meta.page,
+              pages: Math.max(results.meta.pages, 1),
+            },
+          )}
         </p>
 
         <div className="flex flex-wrap gap-1.5">
@@ -117,7 +129,7 @@ function Results({
                   : 'bg-background hover:bg-secondary',
               )}
             >
-              {sort.label}
+              {t(sort.label)}
             </button>
           ))}
         </div>
@@ -126,10 +138,9 @@ function Results({
       {results.data.length === 0 ? (
         <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed py-20 text-center">
           <SearchX className="size-8 text-muted-foreground" />
-          <p className="font-medium">Ningún inmueble coincide</p>
+          <p className="font-medium">{t('search.empty.title')}</p>
           <p className="max-w-sm text-sm text-muted-foreground">
-            Prueba con un rango de precio más amplio, otra ciudad, o quita algún
-            filtro.
+            {t('search.empty.detail')}
           </p>
         </div>
       ) : (

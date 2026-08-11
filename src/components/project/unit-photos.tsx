@@ -2,6 +2,7 @@ import { Expand } from 'lucide-react'
 import { useState } from 'react'
 
 import { Lightbox } from '@/components/common/lightbox'
+import { useT } from '@/lib/i18n'
 import type { PropertyImage } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
@@ -23,6 +24,7 @@ export function UnitPhotos({
   images: PropertyImage[]
   title: string
 }) {
+  const t = useT()
   const [abierta, setAbierta] = useState<number | null>(null)
 
   if (!images.length) return null
@@ -74,7 +76,7 @@ export function UnitPhotos({
         necesita que le digan que son fotos. El titulo queda para quien navega
         con lector de pantalla, que si necesita saber donde empieza el bloque.
       */}
-      <h2 className="sr-only">Fotos de la unidad</h2>
+      <h2 className="sr-only">{t('project.unit.photos.title')}</h2>
 
       <div className={cn('grid gap-2', rejilla)}>
         {mosaico.map((image, index) => {
@@ -85,7 +87,10 @@ export function UnitPhotos({
               key={image.id}
               type="button"
               onClick={() => setAbierta(index)}
-              aria-label={`Ampliar foto ${index + 1} de ${total}`}
+              aria-label={t('gallery.photo.zoom', {
+                index: index + 1,
+                total,
+              })}
               className={cn(
                 'group relative min-h-0 cursor-zoom-in overflow-hidden rounded-md border',
                 tramo(index),
@@ -108,7 +113,7 @@ export function UnitPhotos({
                 /* El total va sobre la primera y no en la ultima casilla: la
                    ultima cambia con el ancho de la pantalla, el numero no. */
                 <span className="tabular absolute bottom-3 left-3 rounded-full bg-black/70 px-3 py-1 text-xs text-white">
-                  {total} fotos
+                  {t('gallery.photo.count', { total })}
                 </span>
               )}
             </button>

@@ -6,6 +6,7 @@ import { use, useCallback, useEffect, useState } from 'react'
 
 import { PropertyCard } from '@/components/property/property-card'
 import type { Showcase } from '@/lib/api'
+import { useT } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 
 /**
@@ -21,6 +22,7 @@ import { cn } from '@/lib/utils'
  * pagaría por seis fotos que nadie ha visto.
  */
 export function RecentCarousel({ promise }: { promise: Promise<Showcase> }) {
+  const t = useT()
   const { enabled, properties, autoplay, delayMs, effect } = use(promise)
   const fade = effect === 'FADE'
 
@@ -123,7 +125,7 @@ export function RecentCarousel({ promise }: { promise: Promise<Showcase> }) {
                 key={i}
                 type="button"
                 onClick={() => embla?.scrollTo(i)}
-                aria-label={`Ir al grupo ${i + 1}`}
+                aria-label={t('property.carousel.go_to_group', { index: i + 1 })}
                 aria-current={i === selected}
                 className="group flex size-6 items-center justify-center"
               >
@@ -153,13 +155,18 @@ function Arrow({
   disabled: boolean
   onClick: () => void
 }) {
+  const t = useT()
   const Icon = side === 'left' ? ChevronLeft : ChevronRight
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={disabled}
-      aria-label={side === 'left' ? 'Anteriores' : 'Siguientes'}
+      aria-label={
+        side === 'left'
+          ? t('property.carousel.previous')
+          : t('property.carousel.next')
+      }
       className={cn(
         // Fuera de la caja en pantallas anchas, encima en las estrechas: en
         // movil no sobra margen para sacarlas.

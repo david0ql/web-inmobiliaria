@@ -1,40 +1,42 @@
 import { SectionHeading } from '@/components/common/section-heading'
 import { SITE } from '@/lib/site'
+import { useT } from '@/lib/i18n'
 
 /** `/privacidad`. Pagina de texto, enlazada desde el pie de todo el sitio. */
 export function Privacy() {
+  const t = useT()
+
   return (
     <div className="container-site py-12">
-      <SectionHeading as="h1" light="Políticas de" strong="privacidad" />
+      <SectionHeading
+        as="h1"
+        light={t('page.privacy.title.light')}
+        strong={t('page.privacy.title.strong')}
+      />
 
       <div className="max-w-3xl space-y-6 text-sm leading-relaxed text-muted-foreground">
-        <Block title="Responsable del tratamiento">
-          {SITE.name}, con domicilio en {SITE.address}, {SITE.city}, es
-          responsable del tratamiento de los datos personales que recoge a través
-          de este sitio web.
+        <Block title={t('page.privacy.controller.title')}>
+          {t('page.privacy.controller.body', {
+            name: SITE.name,
+            address: SITE.address,
+            city: SITE.city,
+          })}
         </Block>
 
-        <Block title="Datos que recogemos">
-          Únicamente los que el visitante nos facilita: nombre, teléfono, correo
-          electrónico y el mensaje o los datos del inmueble que decide
-          compartirnos al solicitar una visita o al ofertar una propiedad.
+        <Block title={t('page.privacy.data.title')}>
+          {t('page.privacy.data.body')}
         </Block>
 
-        <Block title="Finalidad">
-          Atender la solicitud recibida, contactar al interesado, agendar visitas
-          y gestionar la relación comercial. No cedemos los datos a terceros ni
-          los usamos con fines distintos a los indicados.
+        <Block title={t('page.privacy.purpose.title')}>
+          {t('page.privacy.purpose.body')}
         </Block>
 
-        <Block title="Conservación">
-          Conservamos los datos mientras dure la relación comercial y, después,
-          durante los plazos exigidos por la ley colombiana.
+        <Block title={t('page.privacy.retention.title')}>
+          {t('page.privacy.retention.body')}
         </Block>
 
-        <Block title="Derechos del titular">
-          Conforme a la Ley 1581 de 2012 y sus decretos reglamentarios, el titular
-          puede conocer, actualizar, rectificar y suprimir sus datos, así como
-          revocar la autorización otorgada, escribiendo a{' '}
+        <Block title={t('page.privacy.rights.title')}>
+          {t('page.privacy.rights.body')}{' '}
           <a
             href={`mailto:${SITE.email}`}
             className="font-medium text-foreground hover:underline"
@@ -44,15 +46,15 @@ export function Privacy() {
           .
         </Block>
 
-        <Block title="Contacto">
-          Para cualquier duda sobre esta política puedes escribirnos a{' '}
+        <Block title={t('page.privacy.contact.title')}>
+          {t('page.privacy.contact.body')}{' '}
           <a
             href={`mailto:${SITE.email}`}
             className="font-medium text-foreground hover:underline"
           >
             {SITE.email}
           </a>{' '}
-          o llamarnos al{' '}
+          {t('page.privacy.contact.phone')}{' '}
           <a
             href={SITE.phoneHref}
             className="font-medium text-foreground hover:underline"
