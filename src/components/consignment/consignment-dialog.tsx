@@ -769,7 +769,10 @@ function PropertyStep({ form }: { form: Form }) {
         placeholder={t('form.consignment.type.placeholder')}
         options={[...catalogs.propertyTypes]
           .sort((a, b) => a.name.localeCompare(b.name, 'es'))
-          .map((type) => ({ value: String(type.id), label: type.name }))}
+          .map((type) => ({
+            value: String(type.id),
+            label: t(`catalog.propertyType.${type.id}`, undefined, type.name),
+          }))}
       />
       <Field
         form={form}

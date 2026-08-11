@@ -22,7 +22,19 @@ import type { Property } from './types'
  * lleva la frase entera y los datos entran por sus marcadores.
  */
 export function autoDescription(property: Property, t: Traducir): string {
-  const tipo = property.propertyType?.name ?? t('catalog.property.default_type')
+  /*
+    El tipo y las caracteristicas se traducen por identificador: sus nombres
+    viven en la base y no en el codigo, asi que aqui se pide la traduccion y se
+    cae al nombre guardado si todavia no la hay. Sin esto, la descripcion salia
+    en ingles con "Casa Campestre" y "vigilancia" dentro.
+  */
+  const tipo = property.propertyType
+    ? t(
+        `catalog.propertyType.${property.propertyType.id}`,
+        undefined,
+        property.propertyType.name,
+      )
+    : t('catalog.property.default_type')
   const lugar = [property.zone?.name, property.city?.name]
     .filter(Boolean)
     .join(', ')
@@ -60,7 +72,7 @@ export function autoDescription(property: Property, t: Traducir): string {
   // Como mucho seis: la lista entera de una casa con cuarenta caracteristicas
   // deja de leerse y pasa a ser ruido para el buscador.
   const caracteristicas = (property.features ?? [])
-    .map((f) => f.name)
+    .map((f) => t(`catalog.feature.${f.id}`, undefined, f.name))
     .slice(0, 6)
   if (caracteristicas.length) {
     frases.push(

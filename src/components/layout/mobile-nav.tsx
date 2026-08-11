@@ -85,7 +85,9 @@ export function MobileNav({
                     onClick={close}
                     className="flex items-center justify-between rounded-md px-2 py-2 hover:bg-secondary"
                   >
-                    <span>{type.name}</span>
+                    <span>
+                      {t(`catalog.propertyType.${type.id}`, undefined, type.name)}
+                    </span>
                     {type.count !== null && (
                       <span className="tabular text-xs text-muted-foreground">
                         ({type.count})

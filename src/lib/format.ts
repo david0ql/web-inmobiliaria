@@ -74,6 +74,8 @@ export function initials(name: string): string {
 export type Traducir = (
   key: string,
   vars?: Record<string, string | number>,
+  /** Qué pintar si la clave no existe: lo usan los nombres de catálogo. */
+  fallback?: string,
 ) => string
 
 export const AVAILABILITY_LABEL: Record<string, string> = {

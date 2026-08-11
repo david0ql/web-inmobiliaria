@@ -276,7 +276,7 @@ function AdvancedSearchForm({ initial }: { initial?: Filters }) {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value={ANY}>{t('search.option.all.m')}</SelectItem>
-            <Opciones lista={opciones.propertyTypes} />
+            <Opciones lista={opciones.propertyTypes} prefijo="catalog.propertyType" />
           </SelectContent>
         </Select>
       </FieldShell>
@@ -396,12 +396,25 @@ function AdvancedSearchForm({ initial }: { initial?: Filters }) {
  * solo devuelve lo que existe—, asi que la lista se acorta sola conforme se
  * afina la busqueda.
  */
-function Opciones({ lista }: { lista: FacetOption[] }) {
+function Opciones({
+  lista,
+  prefijo,
+}: {
+  lista: FacetOption[]
+  /*
+    Si se pasa, cada opcion se traduce por su identificador. Lo usan los tipos
+    de inmueble: sus nombres salen de la base y en ingles seguian diciendo
+    "Casa" y "Bodega". Las ciudades y los barrios no lo llevan, porque son
+    nombres propios y no se traducen.
+  */
+  prefijo?: string
+}) {
+  const t = useT()
   return (
     <>
       {lista.map((opcion) => (
         <SelectItem key={opcion.id} value={String(opcion.id)}>
-          {opcion.name}{' '}
+          {prefijo ? t(`${prefijo}.${opcion.id}`, undefined, opcion.name) : opcion.name}{' '}
           <span className="text-muted-foreground">({opcion.count})</span>
         </SelectItem>
       ))}
