@@ -40,7 +40,17 @@ interface Traduccion {
    * `home.hero.title` y se sabe al instante qué falta, en vez de un hueco en
    * blanco que nadie relaciona con nada.
    */
-  t: (key: string, vars?: Record<string, string | number>) => string
+  t: (
+    key: string,
+    vars?: Record<string, string | number>,
+    /**
+     * Qué pintar si la clave no existe. Lo usan los catálogos: sus nombres
+     * vienen de la base, así que si la agencia da de alta un tipo nuevo se ve
+     * en español —que es mejor que ver `catalog.propertyType.41`— hasta que
+     * alguien lo traduzca desde el panel.
+     */
+    fallback?: string,
+  ) => string
 }
 
 const I18nContext = createContext<Traduccion | null>(null)
@@ -79,7 +89,11 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
 
   const valor = useMemo<Traduccion>(() => {
     const diccionario = { ...BASE[idioma], ...(remoto[idioma] ?? {}) }
-    return { idioma, cambiar, t: (key, vars) => resolver(diccionario, key, vars) }
+    return {
+      idioma,
+      cambiar,
+      t: (key, vars, fallback) => resolver(diccionario, key, vars, fallback),
+    }
   }, [idioma, remoto, cambiar])
 
   return <I18nContext.Provider value={valor}>{children}</I18nContext.Provider>
@@ -94,7 +108,10 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
  */
 export function useT(): Traduccion['t'] {
   const contexto = useContext(I18nContext)
-  return contexto?.t ?? ((key, vars) => resolver(BASE.es, key, vars))
+  return (
+    contexto?.t ??
+    ((key, vars, fallback) => resolver(BASE.es, key, vars, fallback))
+  )
 }
 
 export function useIdioma(): {
@@ -112,8 +129,9 @@ function resolver(
   diccionario: Diccionario,
   key: string,
   vars?: Record<string, string | number>,
+  fallback?: string,
 ): string {
-  const texto = diccionario[key] ?? BASE.es[key] ?? key
+  const texto = diccionario[key] ?? BASE.es[key] ?? fallback ?? key
   if (!vars) return texto
   return texto.replace(/\{(\w+)\}/g, (bruto, nombre: string) =>
     nombre in vars ? String(vars[nombre]) : bruto,

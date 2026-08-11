@@ -6,6 +6,7 @@ import {
   number,
   stratumShort,
 } from '@/lib/format'
+import { useCatalogo } from '@/lib/catalog-i18n'
 import { useT } from '@/lib/i18n'
 import type { Property } from '@/lib/types'
 
@@ -19,6 +20,7 @@ import type { Property } from '@/lib/types'
  */
 export function SpecTable({ property }: { property: Property }) {
   const t = useT()
+  const { tipo } = useCatalogo()
 
   // Cuatro booleanos que pueden darse a la vez: se nombran y se unen.
   const negocio = businessType(property, t)
@@ -67,7 +69,7 @@ export function SpecTable({ property }: { property: Property }) {
       t('property.spec.building_year'),
       property.buildingYear ? String(property.buildingYear) : null,
     ],
-    [t('property.spec.property_type'), property.propertyType?.name ?? null],
+    [t('property.spec.property_type'), tipo(property.propertyType)],
     [t('property.spec.business_type'), negocio],
     [
       t('property.spec.maintenance_fee'),

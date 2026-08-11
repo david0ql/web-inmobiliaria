@@ -1,5 +1,6 @@
 import { Check } from 'lucide-react'
 
+import { useCatalogo } from '@/lib/catalog-i18n'
 import { useT } from '@/lib/i18n'
 import type { Feature } from '@/lib/types'
 
@@ -23,6 +24,7 @@ export function FeatureList({ features }: { features: Feature[] }) {
 }
 
 function Block({ title, features }: { title: string; features: Feature[] }) {
+  const { rasgo } = useCatalogo()
   if (!features.length) return null
   return (
     <section>
@@ -33,7 +35,7 @@ function Block({ title, features }: { title: string; features: Feature[] }) {
         {features.map((feature) => (
           <li key={feature.id} className="flex items-start gap-2 text-sm">
             <Check className="mt-0.5 size-3.5 shrink-0 text-[#6aa84f]" />
-            {feature.name}
+            {rasgo(feature)}
           </li>
         ))}
       </ul>

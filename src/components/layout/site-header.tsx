@@ -178,6 +178,7 @@ export function SiteHeader() {
 }
 
 function TypeLinks() {
+  const t = useT()
   const types = menuTypes(useSiteData())
   return (
     <>
@@ -188,7 +189,7 @@ function TypeLinks() {
               to={typePath(type)}
               className="flex-row items-center justify-between"
             >
-              <span>{type.name}</span>
+              <span>{t(`catalog.propertyType.${type.id}`, undefined, type.name)}</span>
               {type.count !== null && (
                 <span className="tabular text-xs text-muted-foreground">
                   ({type.count})

@@ -19,6 +19,7 @@ import { portadaInyectada } from '@/lib/ficha-inyectada'
 import { registerVisit } from '@/lib/api'
 import { breadcrumbJsonLd, propertyJsonLd } from '@/lib/seo'
 import { ROUTES, SITE } from '@/lib/site'
+import { useCatalogo } from '@/lib/catalog-i18n'
 import { useT } from '@/lib/i18n'
 import { useCurrency } from '@/lib/currency'
 import { propertyPath } from '@/lib/slug'
@@ -83,6 +84,7 @@ function PropertySkeleton({ code }: { code?: string }) {
 
 function Detail({ data }: { data: PropertyData }) {
   const { precio, moneda } = useCurrency()
+  const { tipo, titulo } = useCatalogo()
   const t = useT()
   const property = use(data.property)
   const siblings = data.siblings
@@ -106,9 +108,9 @@ function Detail({ data }: { data: PropertyData }) {
   useSeo(
     {
       // El titulo repite lo que la gente teclea: tipo, operacion y barrio.
-      title: `${property.title} · ${SITE.name}`,
+      title: `${titulo(property)} · ${SITE.name}`,
       description: t('page.property.seo.description', {
-        type: property.propertyType?.name ?? t('property.fallback.type'),
+        type: tipo(property.propertyType) ?? t('property.fallback.type'),
         place: place || t('page.property.seo.place'),
         specs: [
           property.area ? `${property.area} m²` : '',
@@ -133,7 +135,7 @@ function Detail({ data }: { data: PropertyData }) {
       crumbs: breadcrumbJsonLd([
         { name: t('nav.home'), url: '/' },
         { name: t('nav.sales'), url: ROUTES.sales },
-        { name: property.title, url: propertyPath(property) },
+        { name: titulo(property), url: propertyPath(property) },
       ]),
     },
   )
@@ -142,10 +144,10 @@ function Detail({ data }: { data: PropertyData }) {
     <div className="container-site py-8">
       <header className="mb-6">
         <p className="mb-2 text-xs tracking-widest text-muted-foreground uppercase">
-          {property.propertyType?.name} · {businessType(property, t)}
+          {tipo(property.propertyType)} · {businessType(property, t)}
         </p>
         <h1 className="tt-square text-xl leading-tight font-semibold uppercase sm:text-2xl">
-          {property.title}
+          {titulo(property)}
         </h1>
         {(property.zone || property.city) && (
           <p className="mt-3 flex items-center gap-1.5 text-sm text-muted-foreground">
@@ -163,7 +165,7 @@ function Detail({ data }: { data: PropertyData }) {
         <div className="flex min-w-0 flex-col gap-8 lg:col-span-8 xl:col-span-9">
           <PropertyGallery
             images={property.images ?? []}
-            title={property.title}
+            title={titulo(property)}
             availability={property.availability}
           />
 

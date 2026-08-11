@@ -6,6 +6,7 @@ import { prefetchProperty } from '@/lib/api'
 import { Badge } from '@/components/ui/misc'
 import {AVAILABILITY_COLOR, AVAILABILITY_LABEL, area as fmtArea, stratumLabel} from '@/lib/format'
 import { useCurrency } from '@/lib/currency'
+import { useCatalogo } from '@/lib/catalog-i18n'
 import { useT } from '@/lib/i18n'
 import { propertyPath } from '@/lib/slug'
 import type { Property } from '@/lib/types'
@@ -28,6 +29,7 @@ export function PropertyCard({
 }) {
   const t = useT()
   const { precio, moneda } = useCurrency()
+  const { tipo, titulo } = useCatalogo()
   const to = propertyPath(property)
   const cover = property.images?.[0]
   const built = property.builtArea ?? property.area
@@ -67,7 +69,7 @@ export function PropertyCard({
                   .filter(Boolean)
                   .join(', ')}
                 sizes="(min-width: 992px) 360px, (min-width: 576px) 50vw, 100vw"
-                alt={cover.description ?? property.title}
+                alt={cover.description ?? titulo(property)}
                 width={560}
                 height={280}
                 loading={priority ? 'eager' : 'lazy'}
@@ -137,11 +139,11 @@ export function PropertyCard({
 
       <div className="flex flex-1 flex-col gap-2 p-4">
         <p className="text-xs tracking-wide text-muted-foreground uppercase">
-          {property.propertyType?.name ?? t('property.card.fallback_type')}
+          {tipo(property.propertyType) ?? t('property.card.fallback_type')}
         </p>
         <h2 className="line-clamp-2-title text-sm leading-snug font-semibold uppercase">
           <Link to={to} className="hover:underline">
-            {property.title}
+            {titulo(property)}
           </Link>
         </h2>
         <p className="line-clamp-2-title text-xs text-muted-foreground">
