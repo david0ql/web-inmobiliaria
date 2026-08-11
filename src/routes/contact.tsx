@@ -1,14 +1,24 @@
+import { useLocation } from 'react-router-dom'
 import { Mail, MapPin, MessageCircle, Phone } from 'lucide-react'
 
 import { SectionHeading } from '@/components/common/section-heading'
 import { OfferButton } from '@/components/layout/offer-button'
 import { SocialLinks } from '@/components/layout/social-links'
 import { SITE } from '@/lib/site'
+import { useSeo } from '@/lib/use-seo'
 import { useT } from '@/lib/i18n'
 
 export function Contact() {
+  const { pathname } = useLocation()
+
   const whatsapp = SITE.phone.replace(/\D/g, '')
   const t = useT()
+
+  useSeo({
+    title: t('page.contact.seo.title', { site: SITE.name }),
+    description: t('page.contact.seo.description'),
+    canonical: SITE.url + pathname,
+  })
 
   return (
     <div className="container-site py-12">

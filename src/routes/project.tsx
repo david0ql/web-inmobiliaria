@@ -1,6 +1,7 @@
 import { Check, MapPin } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import type { LoaderFunctionArgs } from 'react-router-dom'
+import { useLocation } from 'react-router-dom'
 import { useLoaderData } from 'react-router-dom'
 import { Link } from '@/lib/nav'
 
@@ -29,7 +30,8 @@ import {
   type ProjectDetail,
 } from '@/lib/projects'
 import { useT } from '@/lib/i18n'
-import { ROUTES } from '@/lib/site'
+import { useSeo } from '@/lib/use-seo'
+import { ROUTES, SITE } from '@/lib/site'
 import type { Property } from '@/lib/types'
 
 export async function loader({
@@ -56,6 +58,7 @@ export function ProjectPage() {
   const [selectedId, setSelectedId] = useState(properties[0]?.id ?? '')
   const [portadaAbierta, setPortadaAbierta] = useState(false)
   const { precio, moneda } = useCurrency()
+  const { pathname } = useLocation()
   const t = useT()
 
   const selected = useMemo(
@@ -87,6 +90,25 @@ export function ProjectPage() {
   const place = [family.zone?.name, family.city?.name, family.city?.region?.name]
     .filter(Boolean)
     .join(' · ')
+
+  /*
+    El proyecto tambien necesita su cabecera: sin ella heredaba la generica del
+    armazon —en español y hablando de la portada— y las dos versiones no se
+    declaraban hermanas.
+  */
+  useSeo({
+    title: t('page.project.seo.title', {
+      name: family.name,
+      place: family.city?.name ?? '',
+      site: SITE.name,
+    }),
+    description: t('page.project.seo.description', {
+      name: family.name,
+      place: place || SITE.name,
+    }),
+    canonical: SITE.url + pathname,
+    image: portada ?? undefined,
+  })
 
   return (
     <div className="container-site py-8">

@@ -1,10 +1,21 @@
+import { useLocation } from 'react-router-dom'
 import { SectionHeading } from '@/components/common/section-heading'
 import { SITE } from '@/lib/site'
+import { useSeo } from '@/lib/use-seo'
 import { useT } from '@/lib/i18n'
 
 /** `/privacidad`. Pagina de texto, enlazada desde el pie de todo el sitio. */
 export function Privacy() {
+  const { pathname } = useLocation()
+
   const t = useT()
+
+  useSeo({
+    title: t('page.privacy.seo.title', { site: SITE.name }),
+    description: t('page.privacy.seo.description'),
+    canonical: SITE.url + pathname,
+    noindex: false,
+  })
 
   return (
     <div className="container-site py-12">
