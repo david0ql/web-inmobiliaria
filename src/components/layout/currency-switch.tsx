@@ -1,6 +1,13 @@
 import { useCurrency, type Moneda } from '@/lib/currency'
+import { LOCALE } from '@/lib/format'
 import { useT } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
+
+/*
+  La tasa son pesos por dolar, asi que se escribe en formato de pesos —con dos
+  decimales— tambien en la version en ingles: es una cifra colombiana.
+*/
+const TASA = new Intl.NumberFormat(LOCALE.es, { maximumFractionDigits: 2 })
 
 const OPCIONES: { value: Moneda; label: string }[] = [
   { value: 'COP', label: 'COP' },
@@ -30,9 +37,7 @@ export function CurrencySwitch({ className }: { className?: string }) {
       title={
         tasa
           ? t('switch.currency.rate', {
-              rate: new Intl.NumberFormat('es-CO', {
-                maximumFractionDigits: 2,
-              }).format(tasa.rate),
+              rate: TASA.format(tasa.rate),
               source: t(
                 tasa.source === 'TRM'
                   ? 'switch.currency.source.trm'

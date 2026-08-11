@@ -3,8 +3,8 @@ import { Link } from '@/lib/nav'
 
 import type { AssistantCard, PropertyCardView } from '@/lib/assistant'
 import { useCurrency } from '@/lib/currency'
-import { area as fmtArea } from '@/lib/format'
-import { useT } from '@/lib/i18n'
+import { area as fmtArea, diaDe, fechaFormat } from '@/lib/format'
+import { useIdioma, useT, type Idioma } from '@/lib/i18n'
 
 /**
  * Las tarjetas que el asistente inserta en la conversación.
@@ -52,6 +52,7 @@ function PropertyRow({
   onNavigate?: () => void
 }) {
   const t = useT()
+  const { idioma } = useIdioma()
   const { precio, moneda } = useCurrency()
   const amount = item.salePrice ?? item.rentPrice
   return (
@@ -86,7 +87,7 @@ function PropertyRow({
         </div>
         <div className="flex items-center gap-3 text-[0.6875rem] text-muted-foreground">
           {item.area != null && (
-            <Spec icon={Ruler} text={fmtArea(item.area)} />
+            <Spec icon={Ruler} text={fmtArea(item.area, idioma)} />
           )}
           {item.bedrooms != null && <Spec icon={BedDouble} text={String(item.bedrooms)} />}
           {item.bathrooms != null && <Spec icon={Bath} text={String(item.bathrooms)} />}
@@ -150,12 +151,13 @@ function Gallery({
 /** El selector de horas: cada día con sus franjas. Solo lectura; el visitante
     le dice al asistente cuál quiere y este agenda. */
 function Slots({ card }: { card: Extract<AssistantCard, { type: 'slots' }> }) {
+  const { idioma } = useIdioma()
   return (
     <div className="flex flex-col gap-2 rounded-md border bg-card p-3">
       {card.days.map((day) => (
         <div key={day.date} className="flex flex-col gap-1.5">
           <p className="text-[0.6875rem] font-semibold tracking-wide uppercase">
-            {longDate(day.date)}
+            {longDate(day.date, idioma)}
           </p>
           <div className="flex flex-wrap gap-1.5">
             {day.slots.map((slot) => (
@@ -163,7 +165,7 @@ function Slots({ card }: { card: Extract<AssistantCard, { type: 'slots' }> }) {
                 key={slot.startsAt}
                 className="tabular rounded-full border bg-secondary/60 px-2.5 py-1 text-xs"
               >
-                {shortTime(slot.startsAt)}
+                {shortTime(slot.startsAt, idioma)}
               </span>
             ))}
           </div>
@@ -176,35 +178,38 @@ function Slots({ card }: { card: Extract<AssistantCard, { type: 'slots' }> }) {
 /** Confirmación de visita agendada. */
 function Booked({ card }: { card: Extract<AssistantCard, { type: 'booked' }> }) {
   const t = useT()
+  const { idioma } = useIdioma()
   return (
     <div className="flex items-center gap-3 rounded-md border border-tag-available/40 bg-tag-available/10 p-3">
       <CalendarCheck className="size-5 shrink-0 text-tag-available" />
       <div className="text-xs">
         <p className="font-semibold">{t('chat.visit.booked')}</p>
         <p className="text-muted-foreground">
-          {longDate(card.startsAt.slice(0, 10))} · {shortTime(card.startsAt)}
+          {longDate(card.startsAt.slice(0, 10), idioma)} ·{' '}
+          {shortTime(card.startsAt, idioma)}
         </p>
       </div>
     </div>
   )
 }
 
-const LONG_DATE = new Intl.DateTimeFormat('es-CO', {
+const LONG_DATE: Intl.DateTimeFormatOptions = {
   weekday: 'long',
   day: '2-digit',
   month: 'long',
-})
-const SHORT_TIME = new Intl.DateTimeFormat('es-CO', {
+}
+const SHORT_TIME: Intl.DateTimeFormatOptions = {
   hour: '2-digit',
   minute: '2-digit',
-})
-
-function longDate(value: string): string {
-  const [year, month, day] = value.split('-').map(Number)
-  if (!year) return value
-  return LONG_DATE.format(new Date(year, month - 1, day))
 }
 
-function shortTime(iso: string): string {
-  return SHORT_TIME.format(new Date(iso))
+function longDate(value: string, idioma: Idioma): string {
+  const [year] = value.split('-').map(Number)
+  if (!year) return value
+  return fechaFormat(idioma, LONG_DATE).format(diaDe(value))
+}
+
+/* La hora es la de la oficina: `fechaFormat` la fija en Bogotá. */
+function shortTime(iso: string, idioma: Idioma): string {
+  return fechaFormat(idioma, SHORT_TIME).format(new Date(iso))
 }

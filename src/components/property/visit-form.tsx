@@ -15,8 +15,10 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { ApiError, api, bookVisit } from '@/lib/api'
-import { useT } from '@/lib/i18n'
+import { api, bookVisit } from '@/lib/api'
+import { mensajeDeError } from '@/lib/api-error'
+import { diaDe, fechaFormat } from '@/lib/format'
+import { useIdioma, useT, type Idioma } from '@/lib/i18n'
 import type { Property } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
@@ -63,6 +65,7 @@ type VisitValues = z.infer<typeof schema>
  */
 export function VisitForm({ property }: { property: Property }) {
   const t = useT()
+  const { idioma } = useIdioma()
   const [days, setDays] = useState<DayAvailability[]>([])
   const [date, setDate] = useState('')
   const [mes, setMes] = useState<string>(() => mesDe(hoy()))
@@ -158,9 +161,7 @@ export function VisitForm({ property }: { property: Property }) {
       setDate('')
     } catch (error) {
       toast.error(
-        error instanceof ApiError
-          ? error.message
-          : t('property.visit.toast.error'),
+        mensajeDeError(error, idioma, t('property.visit.toast.error')),
       )
     }
   })
@@ -194,7 +195,9 @@ export function VisitForm({ property }: { property: Property }) {
             {/* Sin `truncate`: en la columna del asesor son 280 px y "lunes,
                 10 de agosto, 8:00 a.m." se cortaba en "lunes, 10 de ag…", que
                 es justo esconder el dato que se quiere confirmar. */}
-            <span className="block text-sm font-medium">{cuando(startsAt)}</span>
+            <span className="block text-sm font-medium">
+              {cuando(startsAt, idioma)}
+            </span>
           </span>
           <span className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
             <Pencil className="size-3.5" aria-hidden="true" />
@@ -215,7 +218,7 @@ export function VisitForm({ property }: { property: Property }) {
           {date && (
             <div>
               <p className="mb-2 text-xs text-muted-foreground">
-                {t('property.visit.free_hours', { date: largo(date) })}
+                {t('property.visit.free_hours', { date: largo(date, idioma) })}
               </p>
               <div className="grid grid-cols-3 gap-2">
                 {slots.map((slot) => (
@@ -229,7 +232,7 @@ export function VisitForm({ property }: { property: Property }) {
                     }
                     className="rounded-md border px-1 py-2 text-sm whitespace-nowrap transition-colors hover:border-foreground hover:bg-secondary"
                   >
-                    {hora(slot.startsAt)}
+                    {hora(slot.startsAt, idioma)}
                   </button>
                 ))}
               </div>
@@ -334,10 +337,18 @@ function Calendario({
   onDia: (date: string) => void
 }) {
   const t = useT()
+  const { idioma } = useIdioma()
   const [year, month] = mes.split('-').map(Number)
-  const primero = new Date(year, month - 1, 1)
-  const dias = new Date(year, month, 0).getDate()
-  const hueco = primero.getDay()
+  /*
+    Todo el calendario se calcula en UTC: `new Date(year, month - 1, 1)` es el
+    1 a medianoche del reloj de quien mira, y al escribirlo en hora de Bogotá
+    se iba al 31 del mes anterior en toda Europa —el rotulo decia "julio" en la
+    rejilla de agosto—. `diaDe` da el mediodia UTC, que es el mismo dia en
+    cualquier huso.
+  */
+  const primero = diaDe(`${mes}-01`)
+  const dias = new Date(Date.UTC(year, month, 0)).getUTCDate()
+  const hueco = primero.getUTCDay()
 
   const indice = meses.indexOf(mes)
   const anterior = indice > 0 ? meses[indice - 1] : null
@@ -354,7 +365,7 @@ function Calendario({
         />
         {/* `capitalize` pondria "Agosto De 2026": solo la primera letra. */}
         <p className="text-sm font-medium first-letter:uppercase">
-          {MES.format(primero)}
+          {fechaFormat(idioma, MES).format(primero)}
         </p>
         <Paso
           lado="right"
@@ -391,7 +402,7 @@ function Calendario({
               type="button"
               disabled={!libre}
               onClick={() => onDia(value)}
-              aria-label={largo(value)}
+              aria-label={largo(value, idioma)}
               aria-current={activo ? 'date' : undefined}
               className={cn(
                 'flex aspect-square items-center justify-center rounded-md text-sm transition-colors',
@@ -490,57 +501,57 @@ function mesDe(date: string): string {
 }
 
 /*
-  La agenda es la de la oficina de Bucaramanga: las horas se pintan en GMT-5
-  pase lo que pase con el reloj de quien mira.
+  El IDIOMA de estas fechas es el del sitio; la ZONA, no: `fechaFormat` las fija
+  todas en la hora de Bucaramanga, pase lo que pase con el reloj de quien mira.
+  Aqui solo viven las opciones — el formateador lo da `format.ts`, que tiene uno
+  por idioma.
 */
-const COLOMBIA = 'America/Bogota'
-
-const MES = new Intl.DateTimeFormat('es-CO', {
+const MES: Intl.DateTimeFormatOptions = {
   month: 'long',
   year: 'numeric',
-})
+}
 
-const LARGO = new Intl.DateTimeFormat('es-CO', {
+const LARGO: Intl.DateTimeFormatOptions = {
   weekday: 'long',
   day: 'numeric',
   month: 'long',
-})
+}
 
-const HORA = new Intl.DateTimeFormat('es-CO', {
-  timeZone: COLOMBIA,
+const HORA: Intl.DateTimeFormatOptions = {
   hour: 'numeric',
   minute: '2-digit',
-})
+}
 
-const CUANDO = new Intl.DateTimeFormat('es-CO', {
-  timeZone: COLOMBIA,
+const CUANDO: Intl.DateTimeFormatOptions = {
   weekday: 'short',
   day: 'numeric',
   month: 'short',
   hour: 'numeric',
   minute: '2-digit',
-})
+}
 
-/** La fecha viene como `YYYY-MM-DD`; sin la hora, `new Date` la lee como UTC. */
-function largo(value: string): string {
-  const [year, month, day] = value.split('-').map(Number)
-  return LARGO.format(new Date(year, month - 1, day))
+/** La fecha viene como `YYYY-MM-DD`: es un dia del calendario, no un instante. */
+function largo(value: string, idioma: Idioma): string {
+  return fechaFormat(idioma, LARGO).format(diaDe(value))
 }
 
 /*
   "08:00 a. m." con espacios finos partia el boton en dos lineas dentro de una
   columna de 70 px. Se compacta a "8:00 a.m.", que es como se escribe una hora
-  en un cartel de horarios.
+  en un cartel de horarios. En ingles no hay nada que compactar: en-US escribe
+  "8:00 AM" y los reemplazos no encuentran nada.
 */
-function hora(iso: string): string {
-  return HORA.format(new Date(iso))
+function hora(iso: string, idioma: Idioma): string {
+  return fechaFormat(idioma, HORA)
+    .format(new Date(iso))
     .replace(/\s?a\.\s?m\./i, ' a.m.')
     .replace(/\s?p\.\s?m\./i, ' p.m.')
     .replace(/^0/, '')
 }
 
-function cuando(iso: string): string {
-  return CUANDO.format(new Date(iso))
+function cuando(iso: string, idioma: Idioma): string {
+  return fechaFormat(idioma, CUANDO)
+    .format(new Date(iso))
     .replace(/\s?a\.\s?m\./i, ' a.m.')
     .replace(/\s?p\.\s?m\./i, ' p.m.')
 }

@@ -2,9 +2,9 @@ import { useState } from 'react'
 import { Loader2 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
-import { ApiError } from '@/lib/api'
+import { mensajeDeError } from '@/lib/api-error'
 import { identify, type ChatScope } from '@/lib/assistant'
-import { useT } from '@/lib/i18n'
+import { useIdioma, useT } from '@/lib/i18n'
 
 /**
  * Los países desde los que escribe la gente, con Colombia primero.
@@ -61,6 +61,7 @@ export function ChatIdentify({
   onReady: (visitor: Visitor) => void
 }) {
   const t = useT()
+  const { idioma } = useIdioma()
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [dial, setDial] = useState('+57')
@@ -96,11 +97,7 @@ export function ChatIdentify({
         email: email.trim(),
       })
     } catch (err) {
-      setError(
-        err instanceof ApiError
-          ? err.message
-          : t('chat.identify.error'),
-      )
+      setError(mensajeDeError(err, idioma, t('chat.identify.error')))
       setEnviando(false)
     }
   }

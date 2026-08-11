@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/misc'
 import {AVAILABILITY_COLOR, AVAILABILITY_LABEL, area as fmtArea, stratumLabel} from '@/lib/format'
 import { useCurrency } from '@/lib/currency'
 import { useCatalogo } from '@/lib/catalog-i18n'
-import { useT } from '@/lib/i18n'
+import { useIdioma, useT } from '@/lib/i18n'
 import { propertyPath } from '@/lib/slug'
 import type { Property } from '@/lib/types'
 
@@ -28,6 +28,7 @@ export function PropertyCard({
   priority?: boolean
 }) {
   const t = useT()
+  const { idioma } = useIdioma()
   const { precio, moneda } = useCurrency()
   const { tipo, titulo } = useCatalogo()
   const to = propertyPath(property)
@@ -109,7 +110,7 @@ export function PropertyCard({
 
       <SpecRow
         specs={[
-          { icon: Ruler, value: built ? fmtArea(built) : null },
+          { icon: Ruler, value: built ? fmtArea(built, idioma) : null },
           {
             icon: BedDouble,
             value: property.bedrooms,

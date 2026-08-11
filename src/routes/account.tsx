@@ -14,8 +14,8 @@ import { AccountGate } from '@/components/account/account-gate'
 import { ChangePasswordForm } from '@/components/account/change-password-form'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/misc'
-import { area, money } from '@/lib/format'
-import { useT } from '@/lib/i18n'
+import { area, fechaFormat, money } from '@/lib/format'
+import { useIdioma, useT } from '@/lib/i18n'
 import { logout, portal, type PortalProfile } from '@/lib/portal'
 import { usePortalData, usePortalSession } from '@/lib/use-portal'
 import { cn } from '@/lib/utils'
@@ -144,6 +144,7 @@ function Portal() {
 function PropertiesTab() {
   const { data, loading } = usePortalData(portal.properties)
   const t = useT()
+  const { idioma } = useIdioma()
 
   if (loading) return <ListSkeleton />
   if (!data?.length) {
@@ -189,7 +190,7 @@ function PropertiesTab() {
             </p>
             <p className="mt-1 text-xs text-muted-foreground">
               {[
-                property.area ? area(property.area) : null,
+                property.area ? area(property.area, idioma) : null,
                 property.bedrooms
                   ? t('property.spec.bedrooms.count', {
                       count: property.bedrooms,
@@ -311,9 +312,20 @@ const VISIT_STATUS: Record<string, string> = {
   NO_SHOW: 'account.visit.status.NO_SHOW',
 }
 
+/*
+  La cita, entera: "lunes, 10 de agosto de 2026, 8:00 a. m.". La hora es la de
+  la oficina de Bucaramanga —`fechaFormat` fija la zona—, asi que dice lo mismo
+  se mire desde donde se mire.
+*/
+const CITA: Intl.DateTimeFormatOptions = {
+  dateStyle: 'full',
+  timeStyle: 'short',
+}
+
 function VisitsTab() {
   const { data, loading } = usePortalData(portal.visits)
   const t = useT()
+  const { idioma } = useIdioma()
 
   if (loading) return <ListSkeleton />
   if (!data?.length) {
@@ -334,10 +346,7 @@ function VisitsTab() {
         >
           <div className="min-w-0">
             <p className="text-sm font-semibold">
-              {new Date(visit.startsAt).toLocaleString('es-CO', {
-                dateStyle: 'full',
-                timeStyle: 'short',
-              })}
+              {fechaFormat(idioma, CITA).format(new Date(visit.startsAt))}
             </p>
             <p className="truncate text-xs text-muted-foreground">
               {visit.property?.title ?? t('account.visit.removed')}

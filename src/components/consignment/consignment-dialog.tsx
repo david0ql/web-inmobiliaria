@@ -26,8 +26,9 @@ import {
 } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { ApiError, getZones } from '@/lib/api'
-import { useT } from '@/lib/i18n'
+import { getZones } from '@/lib/api'
+import { mensajeDeError } from '@/lib/api-error'
+import { useIdioma, useT } from '@/lib/i18n'
 import { portal } from '@/lib/portal'
 import { digits } from '@/lib/search-params'
 import { useSiteData } from '@/lib/site-data'
@@ -364,6 +365,7 @@ export function ConsignmentDialog({
   const [filesError, setFilesError] = useState<string | null>(null)
   const { catalogs } = useSiteData()
   const t = useT()
+  const { idioma } = useIdioma()
 
   const form = useForm<Values>({
     resolver: zodResolver(schema),
@@ -511,9 +513,7 @@ export function ConsignmentDialog({
       change(false)
     } catch (error) {
       toast.error(
-        error instanceof ApiError
-          ? error.message
-          : t('form.consignment.toast.error'),
+        mensajeDeError(error, idioma, t('form.consignment.toast.error')),
       )
     }
   })

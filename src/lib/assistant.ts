@@ -12,8 +12,41 @@
  */
 
 import { ApiError } from './api'
+import type { Idioma } from './i18n'
 
 const BASE = '/api/v1'
+
+/**
+ * Los avisos que escribe el propio navegador cuando el chat ni siquiera llega a
+ * abrirse.
+ *
+ * Son tres y no pasan por el servidor ni por el modelo, así que no hay quien
+ * los traduzca por nosotros. Van aquí, en un condicional, y no en el
+ * diccionario: se ven justo cuando la red o la API han fallado, que es mal
+ * momento para depender de un texto que llega por la red.
+ */
+const AVISOS = {
+  sinConexion: {
+    es: 'No pudimos conectar con el asistente.',
+    en: 'We could not reach the assistant.',
+  },
+  apagado: {
+    es: 'El asistente no está disponible en este momento.',
+    en: 'The assistant is not available right now.',
+  },
+  fallo: {
+    es: 'El asistente tuvo un problema. Inténtalo de nuevo.',
+    en: 'The assistant ran into a problem. Please try again.',
+  },
+  cortado: {
+    es: 'Se cortó la conexión con el asistente.',
+    en: 'The connection with the assistant dropped.',
+  },
+} satisfies Record<string, Record<Idioma, string>>
+
+function aviso(clave: keyof typeof AVISOS, idioma: Idioma = 'es'): string {
+  return AVISOS[clave][idioma] ?? AVISOS[clave].es
+}
 
 // --- lo que viaja en cada turno --------------------------------------------
 
@@ -93,6 +126,11 @@ export interface SendPayload {
   conversationId?: string
   /** Para que le hable por su nombre. */
   visitorName?: string
+  /**
+   * En qué idioma está leyendo la web. Lo dice la URL —`/en` es inglés—, y con
+   * él el asistente contesta en inglés a quien está en la versión inglesa.
+   */
+  locale?: Idioma
   signal?: AbortSignal
 }
 
@@ -112,6 +150,7 @@ export async function* streamChat(
     bookedIds,
     conversationId,
     visitorName,
+    locale,
     signal,
   } = payload
 
@@ -136,24 +175,22 @@ export async function* streamChat(
         bookedIds,
         conversationId,
         visitorName,
+        locale,
       }),
       signal,
     })
   } catch (error) {
     if (isAbort(error)) return
-    yield { type: 'error', message: 'No pudimos conectar con el asistente.' }
+    yield { type: 'error', message: aviso('sinConexion', locale) }
     return
   }
 
   if (res.status === 503) {
-    yield {
-      type: 'error',
-      message: 'El asistente no está disponible en este momento.',
-    }
+    yield { type: 'error', message: aviso('apagado', locale) }
     return
   }
   if (!res.ok || !res.body) {
-    yield { type: 'error', message: 'El asistente tuvo un problema. Inténtalo de nuevo.' }
+    yield { type: 'error', message: aviso('fallo', locale) }
     return
   }
 
@@ -177,7 +214,7 @@ export async function* streamChat(
     }
   } catch (error) {
     if (!isAbort(error)) {
-      yield { type: 'error', message: 'Se cortó la conexión con el asistente.' }
+      yield { type: 'error', message: aviso('cortado', locale) }
     }
   } finally {
     reader.releaseLock()

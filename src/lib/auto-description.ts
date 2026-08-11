@@ -4,6 +4,7 @@ import {
   stratumText,
   type Traducir,
 } from './format'
+import type { Idioma } from './i18n'
 import type { Property } from './types'
 
 /**
@@ -21,7 +22,11 @@ import type { Property } from './types'
  * Se arma frase a frase con `t` porque cada idioma ordena distinto: la clave
  * lleva la frase entera y los datos entran por sus marcadores.
  */
-export function autoDescription(property: Property, t: Traducir): string {
+export function autoDescription(
+  property: Property,
+  t: Traducir,
+  idioma: Idioma,
+): string {
   /*
     El tipo y las caracteristicas se traducen por identificador: sus nombres
     viven en la base y no en el codigo, asi que aqui se pide la traduccion y se
@@ -46,7 +51,9 @@ export function autoDescription(property: Property, t: Traducir): string {
       tipo,
       lugar: lugar ? t('catalog.autodesc.headline.place', { lugar }) : '',
       area: property.area
-        ? t('catalog.autodesc.headline.area', { area: fmtArea(property.area) })
+        ? t('catalog.autodesc.headline.area', {
+            area: fmtArea(property.area, idioma),
+          })
         : '',
     }),
   )

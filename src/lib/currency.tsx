@@ -8,6 +8,7 @@ import {
 } from 'react'
 
 import { api } from '@/lib/api'
+import { dolares as enDolares, pesos as enPesos } from '@/lib/format'
 
 export type Moneda = 'COP' | 'USD'
 
@@ -32,8 +33,12 @@ const CambioContext = createContext<Cambio | null>(null)
 
 const CLAVE = 'serrano:moneda'
 
-const PESOS = new Intl.NumberFormat('es-CO', { maximumFractionDigits: 0 })
-const DOLARES = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 })
+/*
+  El formato del precio lo decide la MONEDA, no el idioma del sitio: los pesos
+  se separan con punto de millar y los dolares con coma, aqui y en la version
+  en ingles. `pesos()` y `dolares()` viven en `format.ts`, que es donde esta
+  esa regla escrita.
+*/
 
 /**
  * En qué moneda se leen los precios del sitio.
@@ -85,8 +90,8 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
         if (n === null || n === undefined || !Number.isFinite(n) || n === 0)
           return '—'
         if (efectiva === 'USD' && tasa?.rate)
-          return `US$${DOLARES.format(Math.round(n / tasa.rate))}`
-        return `$${PESOS.format(n)}`
+          return `US$${enDolares(Math.round(n / tasa.rate))}`
+        return `$${enPesos(n)}`
       },
     }
   }, [moneda, tasa, cambiar])
@@ -115,7 +120,7 @@ export function useCurrency(): Cambio {
       const n = typeof pesos === 'string' ? Number(pesos) : pesos
       if (n === null || n === undefined || !Number.isFinite(n) || n === 0)
         return '—'
-      return `$${PESOS.format(n)}`
+      return `$${enPesos(n)}`
     },
   }
 }

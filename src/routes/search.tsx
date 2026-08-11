@@ -12,7 +12,8 @@ import { ResultsPager } from '@/components/search/results-pager'
 import { Skeleton } from '@/components/ui/misc'
 import { breadcrumbJsonLd } from '@/lib/seo'
 import { ROUTES, SITE } from '@/lib/site'
-import { useT } from '@/lib/i18n'
+import { number } from '@/lib/format'
+import { useIdioma, useT } from '@/lib/i18n'
 import { useSeo } from '@/lib/use-seo'
 import { SORTS, writeFilters, type Filters } from '@/lib/search-params'
 import { useListAnchor } from '@/lib/scroll'
@@ -86,6 +87,7 @@ function Results({
   const { filters, results } = use(promise)
   const [, setSearchParams] = useSearchParams()
   const t = useT()
+  const { idioma } = useIdioma()
 
   /*
    * Ordenar y paginar rehacen la lista entera, asi que en ambos casos se sube
@@ -108,7 +110,7 @@ function Results({
               ? 'search.count.one'
               : 'search.count.other',
             {
-              total: results.meta.total.toLocaleString('es-CO'),
+              total: number(results.meta.total, idioma),
               page: results.meta.page,
               pages: Math.max(results.meta.pages, 1),
             },

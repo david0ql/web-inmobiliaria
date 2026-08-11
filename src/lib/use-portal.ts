@@ -1,5 +1,7 @@
 import { useEffect, useState, useSyncExternalStore } from 'react'
 
+import { mensajeDeError } from './api-error'
+import { useIdioma, useT } from './i18n'
 import { getClient, refresh, subscribe, type PortalClient } from './portal'
 
 /**
@@ -62,6 +64,8 @@ export function usePortalData<T>(
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [tick, setTick] = useState(0)
+  const t = useT()
+  const { idioma } = useIdioma()
 
   useEffect(() => {
     const controller = new AbortController()
@@ -73,7 +77,7 @@ export function usePortalData<T>(
       })
       .catch((err: unknown) => {
         if (controller.signal.aborted) return
-        setError(err instanceof Error ? err.message : 'No pudimos cargar esto.')
+        setError(mensajeDeError(err, idioma, t('errors.load')))
       })
       .finally(() => {
         if (!controller.signal.aborted) setLoading(false)

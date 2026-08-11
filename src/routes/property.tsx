@@ -136,7 +136,7 @@ function Detail({ data }: { data: PropertyData }) {
       type: 'article',
     },
     {
-      property: propertyJsonLd(property, canonical, t),
+      property: propertyJsonLd(property, canonical, t, idioma),
       crumbs: breadcrumbJsonLd([
         { name: t('nav.home'), url: '/' },
         { name: t('nav.sales'), url: ROUTES.sales },
@@ -263,7 +263,7 @@ function Detail({ data }: { data: PropertyData }) {
               {t('property.section.description')}
             </h2>
             <p className="text-sm leading-relaxed text-muted-foreground">
-              {autoDescription(property, t)}
+              {autoDescription(property, t, idioma)}
             </p>
             {/*
               La del asesor solo si esta en el idioma que se esta leyendo. En

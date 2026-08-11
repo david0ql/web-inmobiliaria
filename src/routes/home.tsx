@@ -11,7 +11,7 @@ import {
   websiteJsonLd,
 } from '@/lib/seo'
 import { SITE } from '@/lib/site'
-import { useT } from '@/lib/i18n'
+import { useIdioma, useT } from '@/lib/i18n'
 import { useSeo } from '@/lib/use-seo'
 import { ProjectCard } from '@/components/project/project-card'
 import { RecentCarousel } from '@/components/property/recent-carousel'
@@ -22,6 +22,7 @@ import type { HomeData } from '@/routes/loaders'
 export function Home() {
   const data = useLoaderData() as HomeData
   const t = useT()
+  const { idioma } = useIdioma()
 
   useSeo(
     {
@@ -31,7 +32,7 @@ export function Home() {
     },
     {
       org: organizationJsonLd(t),
-      site: websiteJsonLd(),
+      site: websiteJsonLd(idioma),
       crumbs: breadcrumbJsonLd([{ name: t('nav.home'), url: '/' }]),
     },
   )

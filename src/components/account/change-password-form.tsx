@@ -7,8 +7,8 @@ import { zodResolver } from '@hookform/resolvers/zod'
 
 import { Field } from '@/components/form/fields'
 import { Button } from '@/components/ui/button'
-import { ApiError } from '@/lib/api'
-import { useT } from '@/lib/i18n'
+import { mensajeDeError } from '@/lib/api-error'
+import { useIdioma, useT } from '@/lib/i18n'
 import { changePassword } from '@/lib/portal'
 
 const MIN_PASSWORD = 12
@@ -46,6 +46,7 @@ type Values = z.infer<ReturnType<typeof crearSchema>>
  */
 export function ChangePasswordForm() {
   const t = useT()
+  const { idioma } = useIdioma()
   const schema = useMemo(() => crearSchema(t), [t])
   const form = useForm<Values>({
     resolver: zodResolver(schema),
@@ -60,9 +61,7 @@ export function ChangePasswordForm() {
       })
       form.reset()
     } catch (error) {
-      toast.error(
-        error instanceof ApiError ? error.message : t('account.password.error'),
-      )
+      toast.error(mensajeDeError(error, idioma, t('account.password.error')))
     }
   })
 

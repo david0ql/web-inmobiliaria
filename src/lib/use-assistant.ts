@@ -3,9 +3,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { identify } from '@/lib/assistant'
 import type { Visitor } from '@/components/assistant/chat-identify'
 
-import { useMatches, useNavigate } from 'react-router-dom'
+import { useMatches } from 'react-router-dom'
+// El `navigate` del sitio, no el de React Router: `ir_al_buscador` mandaba a
+// `/` en seco, así que a quien leía en inglés lo devolvía al español justo
+// cuando el asistente le acababa de decir que lo llevaba al buscador.
+import { useNavigate } from '@/lib/nav'
 
 import { ROUTES } from '@/lib/site'
+import { useIdioma, useT } from '@/lib/i18n'
 import {
   streamChat,
   type AssistantAction,
@@ -67,6 +72,8 @@ export interface UseAssistant {
 export function useAssistant(): UseAssistant {
   const matches = useMatches()
   const navigate = useNavigate()
+  const t = useT()
+  const { idioma } = useIdioma()
 
   const scope = useMemo(() => deriveScope(matches), [matches])
   const scopeKey = scope.kind === 'PROPERTY' ? `P:${scope.code}` : 'G'
@@ -97,6 +104,15 @@ export function useAssistant(): UseAssistant {
   const setVisitor = useCallback((value: Visitor) => setVisitorState(value), [])
   const scopeRef = useRef<ChatScope>(scope)
   scopeRef.current = scope
+  /*
+    El idioma se lee en el momento de enviar, no en el de montar.
+
+    Cambiar de idioma es cambiar de dirección (`/venta` ↔ `/en/venta`) pero NO
+    cambia el scope, así que el hilo sigue abierto: quien lo cambie a mitad de
+    conversación tiene que ver la siguiente respuesta ya en el otro idioma.
+  */
+  const idiomaRef = useRef(idioma)
+  idiomaRef.current = idioma
   /** Lo que debe sembrar el hilo tras un reinicio provocado por el asistente. */
   const seedRef = useRef<ChatItem[] | null>(null)
 
@@ -151,18 +167,26 @@ export function useAssistant(): UseAssistant {
           {
             id: newId(),
             kind: 'notice',
-            text: 'Te llevé al inicio para ayudarte con todo el inventario.',
+            text: t(
+              'chat.search.notice',
+              undefined,
+              'Te llevé al inicio para ayudarte con todo el inventario.',
+            ),
           },
           {
             id: newId(),
             kind: 'assistant',
-            text: 'Listo 🙌 Ahora sí, dime de cuál te hablo: ¿qué zona, precio o cuántas alcobas buscas?',
+            text: t(
+              'chat.search.resumed',
+              undefined,
+              'Listo 🙌 Ahora sí, dime de cuál te hablo: ¿qué zona, precio o cuántas alcobas buscas?',
+            ),
           },
         ]
         navigate(ROUTES.home)
       }
     },
-    [navigate],
+    [navigate, t],
   )
 
   const send = useCallback(
@@ -191,6 +215,7 @@ export function useAssistant(): UseAssistant {
             bookedIds: citasPedidas(itemsRef.current),
             conversationId: visitorRef.current?.conversationId,
             visitorName: visitorRef.current?.firstName,
+            locale: idiomaRef.current,
             signal: ac.signal,
           })) {
             if (event.type === 'text') {
@@ -230,10 +255,21 @@ export function useAssistant(): UseAssistant {
     setStreaming(false)
   }, [])
 
+  // La primera frase del hilo la escribe la web, no el modelo: si se queda en
+  // español, quien lee en inglés se encuentra el chat abriéndose en el idioma
+  // que no es antes siquiera de preguntar nada.
   const greeting =
     scope.kind === 'PROPERTY'
-      ? 'Hola 👋 Puedo contarte todo de este inmueble: precio, área, qué incluye, más fotos o agendarte una visita. ¿Qué quieres saber?'
-      : 'Hola 👋 Soy el asistente de Serrano Inmobiliaria. Dime qué buscas —zona, precio, alcobas— y te muestro opciones al instante.'
+      ? t(
+          'chat.greeting.property',
+          undefined,
+          'Hola 👋 Puedo contarte todo de este inmueble: precio, área, qué incluye, más fotos o agendarte una visita. ¿Qué quieres saber?',
+        )
+      : t(
+          'chat.greeting.general',
+          undefined,
+          'Hola 👋 Soy el asistente de Serrano Inmobiliaria. Dime qué buscas —zona, precio, alcobas— y te muestro opciones al instante.',
+        )
 
   return {
     scope,

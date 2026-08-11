@@ -8,8 +8,8 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { SectionHeading } from '@/components/common/section-heading'
 import { Field, Fieldset, Toggle } from '@/components/form/fields'
 import { Button } from '@/components/ui/button'
-import { ApiError } from '@/lib/api'
-import { useT } from '@/lib/i18n'
+import { mensajeDeError } from '@/lib/api-error'
+import { useIdioma, useT } from '@/lib/i18n'
 import { login, register } from '@/lib/portal'
 import { cn } from '@/lib/utils'
 
@@ -124,6 +124,7 @@ export function AccountGate({ compact = false }: { compact?: boolean } = {}) {
 
 function LoginForm({ defaultEmail }: { defaultEmail: string }) {
   const t = useT()
+  const { idioma } = useIdioma()
   const schema = useMemo(() => crearLoginSchema(t), [t])
   const form = useForm<LoginValues>({
     resolver: zodResolver(schema),
@@ -134,11 +135,7 @@ function LoginForm({ defaultEmail }: { defaultEmail: string }) {
     try {
       await login(values.email, values.password)
     } catch (error) {
-      toast.error(
-        error instanceof ApiError
-          ? error.message
-          : t('account.login.error'),
-      )
+      toast.error(mensajeDeError(error, idioma, t('account.login.error')))
     }
   })
 
@@ -179,6 +176,7 @@ function LoginForm({ defaultEmail }: { defaultEmail: string }) {
 
 function RegisterForm({ onDone }: { onDone: (email: string) => void }) {
   const t = useT()
+  const { idioma } = useIdioma()
   const schema = useMemo(() => crearRegisterSchema(t), [t])
   const form = useForm<RegisterValues>({
     resolver: zodResolver(schema),
@@ -208,11 +206,7 @@ function RegisterForm({ onDone }: { onDone: (email: string) => void }) {
       toast.success(t('account.register.done'), { description: result.message })
       onDone(values.email)
     } catch (error) {
-      toast.error(
-        error instanceof ApiError
-          ? error.message
-          : t('account.register.error'),
-      )
+      toast.error(mensajeDeError(error, idioma, t('account.register.error')))
     }
   })
 

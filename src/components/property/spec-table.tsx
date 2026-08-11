@@ -7,7 +7,7 @@ import {
   stratumShort,
 } from '@/lib/format'
 import { useCatalogo } from '@/lib/catalog-i18n'
-import { useT } from '@/lib/i18n'
+import { useIdioma, useT } from '@/lib/i18n'
 import type { Property } from '@/lib/types'
 
 /**
@@ -20,6 +20,7 @@ import type { Property } from '@/lib/types'
  */
 export function SpecTable({ property }: { property: Property }) {
   const t = useT()
+  const { idioma } = useIdioma()
   const { tipo } = useCatalogo()
 
   // Cuatro booleanos que pueden darse a la vez: se nombran y se unen.
@@ -39,24 +40,27 @@ export function SpecTable({ property }: { property: Property }) {
     ],
     [
       t('property.spec.built_area'),
-      property.builtArea ? fmtArea(property.builtArea) : null,
+      property.builtArea ? fmtArea(property.builtArea, idioma) : null,
     ],
-    [t('property.spec.lot_area'), property.area ? fmtArea(property.area) : null],
+    [
+      t('property.spec.lot_area'),
+      property.area ? fmtArea(property.area, idioma) : null,
+    ],
     [
       t('property.spec.private_area'),
-      property.privateArea ? fmtArea(property.privateArea) : null,
+      property.privateArea ? fmtArea(property.privateArea, idioma) : null,
     ],
     [
       t('property.spec.bedrooms'),
-      property.bedrooms ? number(property.bedrooms) : null,
+      property.bedrooms ? number(property.bedrooms, idioma) : null,
     ],
     [
       t('property.spec.bathrooms'),
-      property.bathrooms ? number(property.bathrooms) : null,
+      property.bathrooms ? number(property.bathrooms, idioma) : null,
     ],
     [
       t('property.spec.garages'),
-      property.garages ? number(property.garages) : null,
+      property.garages ? number(property.garages, idioma) : null,
     ],
     // 7 y 8 no son estratos: son las categorias que WASI metia en el mismo
     // campo. Se dicen por su nombre.
@@ -64,7 +68,10 @@ export function SpecTable({ property }: { property: Property }) {
       t('property.spec.stratum'),
       property.stratum ? stratumShort(property.stratum, t) : null,
     ],
-    [t('property.spec.floors'), property.floor ? number(property.floor) : null],
+    [
+      t('property.spec.floors'),
+      property.floor ? number(property.floor, idioma) : null,
+    ],
     [
       t('property.spec.building_year'),
       property.buildingYear ? String(property.buildingYear) : null,

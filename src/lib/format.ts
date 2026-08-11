@@ -5,15 +5,66 @@
  *
  * Es el mismo modulo que usa el panel (web/src/lib/format.ts), recortado a lo
  * que necesita un sitio publico: aqui no hay bitacoras ni fechas relativas.
+ *
+ * Dos reglas mandan sobre todo lo de aqui:
+ *
+ * 1. El IDIOMA del formato es el del sitio: `/venta` se lee en español y
+ *    `/en/venta` en ingles, asi que las cantidades y las fechas se escriben en
+ *    el idioma que se esta leyendo —"12 de agosto" o "August 12"—.
+ * 2. El DINERO no sigue al idioma: sigue a la MONEDA. Un precio en pesos se
+ *    escribe como se escriben los pesos ($1.750.000.000) lo lea quien lo lea,
+ *    y uno en dolares como se escriben los dolares (US$425,000). Cambiar el
+ *    separador de un precio en pesos porque la pagina esta en ingles no lo
+ *    hace mas claro: lo convierte en otra cifra.
  */
 
-const COP = new Intl.NumberFormat('es-CO', {
+import type { Idioma } from '@/lib/i18n'
+
+/** El idioma del sitio en el identificador que entiende `Intl`. */
+export const LOCALE: Record<Idioma, string> = {
+  es: 'es-CO',
+  en: 'en-US',
+}
+
+/**
+ * La zona horaria de todo lo que se pinta, en cualquier idioma y desde
+ * cualquier pais.
+ *
+ * La agenda es la de la oficina de Bucaramanga: una visita a las 10 esta a las
+ * 10 en la oficina, y eso es lo que tiene que leer quien la reserva, este donde
+ * este su reloj. Traducirle la hora a su huso solo consigue que se presente a
+ * otra hora.
+ */
+export const ZONA = 'America/Bogota'
+
+/*
+  Los pesos, siempre en colombiano; los dolares, siempre en estadounidense.
+  Es la regla 2 de arriba, en dos constantes.
+*/
+const COP = new Intl.NumberFormat(LOCALE.es, {
   style: 'currency',
   currency: 'COP',
   maximumFractionDigits: 0,
 })
 
-const PLAIN = new Intl.NumberFormat('es-CO', { maximumFractionDigits: 0 })
+const PESOS = new Intl.NumberFormat(LOCALE.es, { maximumFractionDigits: 0 })
+const DOLARES = new Intl.NumberFormat(LOCALE.en, { maximumFractionDigits: 0 })
+
+/** Las cantidades que no son dinero —m², alcobas, resultados— sí van al idioma. */
+const CUENTA: Record<Idioma, Intl.NumberFormat> = {
+  es: new Intl.NumberFormat(LOCALE.es, { maximumFractionDigits: 0 }),
+  en: new Intl.NumberFormat(LOCALE.en, { maximumFractionDigits: 0 }),
+}
+
+/** Una cifra en pesos, sin simbolo: `1.750.000.000`. */
+export function pesos(value: number): string {
+  return PESOS.format(value)
+}
+
+/** Una cifra en dolares, sin simbolo: `425,000`. */
+export function dolares(value: number): string {
+  return DOLARES.format(value)
+}
 
 export function money(value: number | string | null | undefined): string {
   const n = typeof value === 'string' ? Number(value) : value
@@ -29,7 +80,7 @@ export function money(value: number | string | null | undefined): string {
 export function price(value: number | string | null | undefined): string {
   const n = typeof value === 'string' ? Number(value) : value
   if (n === null || n === undefined || !Number.isFinite(n) || n === 0) return '—'
-  return `$${PLAIN.format(n)}`
+  return `$${PESOS.format(n)}`
 }
 
 /** Version corta para tarjetas y ejes: 430 M, 1.250 M. */
@@ -38,20 +89,69 @@ export function moneyShort(value: number | string | null | undefined): string {
   if (n === null || n === undefined || !Number.isFinite(n) || n === 0) return '—'
   if (n >= 1_000_000_000)
     return `$${(n / 1_000_000_000).toFixed(n >= 10_000_000_000 ? 0 : 1)} MM`
-  if (n >= 1_000_000) return `$${PLAIN.format(Math.round(n / 1_000_000))} M`
-  if (n >= 1_000) return `$${PLAIN.format(Math.round(n / 1_000))} K`
-  return `$${PLAIN.format(n)}`
+  if (n >= 1_000_000) return `$${PESOS.format(Math.round(n / 1_000_000))} M`
+  if (n >= 1_000) return `$${PESOS.format(Math.round(n / 1_000))} K`
+  return `$${PESOS.format(n)}`
 }
 
-export function number(value: number | string | null | undefined): string {
+export function number(
+  value: number | string | null | undefined,
+  idioma: Idioma,
+): string {
   const n = typeof value === 'string' ? Number(value) : value
   if (n === null || n === undefined || !Number.isFinite(n)) return '—'
-  return PLAIN.format(n)
+  return CUENTA[idioma].format(n)
 }
 
-export function area(value: number | null | undefined): string {
+export function area(value: number | null | undefined, idioma: Idioma): string {
   if (value === null || value === undefined) return '—'
-  return `${PLAIN.format(value)} m²`
+  return `${CUENTA[idioma].format(value)} m²`
+}
+
+// --- fechas ----------------------------------------------------------------
+
+/*
+  Un formateador por idioma y juego de opciones, guardado: montar un
+  `Intl.DateTimeFormat` no es gratis y estas listas repintan cada celda del
+  calendario. Antes eran constantes de modulo, que es lo mismo pero sin poder
+  cambiar de idioma.
+*/
+const FECHAS = new Map<string, Intl.DateTimeFormat>()
+
+/**
+ * El formateador de fechas del idioma pedido, siempre en la hora de Bogotá.
+ *
+ * La zona no es un parametro a proposito: no hay ninguna fecha en este sitio
+ * que deba leerse en otro huso.
+ */
+export function fechaFormat(
+  idioma: Idioma,
+  opciones: Intl.DateTimeFormatOptions,
+): Intl.DateTimeFormat {
+  const clave = `${idioma}|${JSON.stringify(opciones)}`
+  let formato = FECHAS.get(clave)
+  if (!formato) {
+    formato = new Intl.DateTimeFormat(LOCALE[idioma], {
+      timeZone: ZONA,
+      ...opciones,
+    })
+    FECHAS.set(clave, formato)
+  }
+  return formato
+}
+
+/**
+ * Un `YYYY-MM-DD` como el instante que cae a mediodia UTC de ese dia.
+ *
+ * Las fechas de la agenda son dias del calendario, no instantes: `2026-08-12`
+ * es el 12 de agosto en Bucaramanga. Pasarlas por `new Date(y, m, d)` las ata
+ * al reloj de quien mira, y formatearlas luego en Bogotá corre el dia hacia
+ * atras para media Europa. El mediodia UTC cae dentro del mismo dia en
+ * cualquier huso, asi que sale el 12 en todas partes.
+ */
+export function diaDe(value: string): Date {
+  const [year, month, day] = value.split('-').map(Number)
+  return new Date(Date.UTC(year, month - 1, day, 12))
 }
 
 /** Para el hueco de la foto del asesor cuando no la hay. */

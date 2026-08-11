@@ -4,7 +4,8 @@ import { Link } from '@/lib/nav'
 
 import { Button } from '@/components/ui/button'
 import { ApiError } from '@/lib/api'
-import { useT } from '@/lib/i18n'
+import { mensajeDeError } from '@/lib/api-error'
+import { useIdioma, useT } from '@/lib/i18n'
 import { ROUTES } from '@/lib/site'
 
 /**
@@ -22,6 +23,7 @@ import { ROUTES } from '@/lib/site'
  */
 export function ErrorState() {
   const t = useT()
+  const { idioma } = useIdioma()
   const error = useRouteError()
   const notFound = error instanceof ApiError && error.status === 404
 
@@ -36,9 +38,7 @@ export function ErrorState() {
       <p className="max-w-md text-sm text-muted-foreground">
         {notFound
           ? t('errors.state.gone.text')
-          : error instanceof ApiError
-            ? error.message
-            : t('errors.state.text')}
+          : mensajeDeError(error, idioma, t('errors.state.text'))}
       </p>
       <div className="flex gap-2">
         <Button asChild>

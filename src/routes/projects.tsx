@@ -5,7 +5,8 @@ import { useLoaderData, useNavigation, useSearchParams } from 'react-router-dom'
 import { Link } from '@/lib/nav'
 import { breadcrumbJsonLd } from '@/lib/seo'
 import { ROUTES, SITE } from '@/lib/site'
-import { useT } from '@/lib/i18n'
+import { number } from '@/lib/format'
+import { useIdioma, useT } from '@/lib/i18n'
 import { useSeo } from '@/lib/use-seo'
 
 import { SectionHeading } from '@/components/common/section-heading'
@@ -55,6 +56,7 @@ export async function loader({
 
 export function ProjectsList() {
   const t = useT()
+  const { idioma } = useIdioma()
 
   useSeo({
     title: t('page.projects.seo.title', { site: SITE.name }),
@@ -101,7 +103,7 @@ export function ProjectsList() {
               ? t(
                   total === 1 ? 'projects.count.one' : 'projects.count.other',
                   {
-                    total: total.toLocaleString('es-CO'),
+                    total: number(total, idioma),
                     page,
                     pages: Math.max(pages, 1),
                   },

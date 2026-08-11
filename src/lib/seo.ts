@@ -1,5 +1,6 @@
 import { autoDescription } from '@/lib/auto-description'
-import type { Traducir } from '@/lib/format'
+import { LOCALE, type Traducir } from '@/lib/format'
+import type { Idioma } from '@/lib/i18n'
 import { SITE } from '@/lib/site'
 import type { Property } from '@/lib/types'
 
@@ -150,14 +151,15 @@ export function organizationJsonLd(t: Traducir) {
   }
 }
 
-export function websiteJsonLd() {
+export function websiteJsonLd(idioma: Idioma) {
   return {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
     '@id': `${SITE.url}/#website`,
     url: SITE.url,
     name: SITE.name,
-    inLanguage: 'es-CO',
+    // La misma web en dos idiomas: cada version se declara en el suyo.
+    inLanguage: LOCALE[idioma],
     publisher: { '@id': `${SITE.url}/#organization` },
     // Habilita la caja de busqueda dentro del resultado de Google.
     potentialAction: {
@@ -191,7 +193,12 @@ export function breadcrumbJsonLd(trail: { name: string; url: string }[]) {
  * mostrar precio, area y numero de habitaciones en el resultado. `RealEstateListing`
  * envuelve a la pagina en si.
  */
-export function propertyJsonLd(property: Property, url: string, t: Traducir) {
+export function propertyJsonLd(
+  property: Property,
+  url: string,
+  t: Traducir,
+  idioma: Idioma,
+) {
   const images = (property.images ?? [])
     .slice(0, 6)
     .map((image) => new URL(image.urlLarge || image.url, SITE.url).toString())
@@ -206,7 +213,7 @@ export function propertyJsonLd(property: Property, url: string, t: Traducir) {
     name: property.title,
     // La automatica y no `observations`: los datos estructurados los leen los
     // portales, y ahi hace falta que el area y las alcobas aparezcan siempre.
-    description: autoDescription(property, t).slice(0, 400),
+    description: autoDescription(property, t, idioma).slice(0, 400),
     datePosted: property.createdAt,
     image: images.length ? images : undefined,
     provider: { '@id': `${SITE.url}/#organization` },

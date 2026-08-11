@@ -26,8 +26,9 @@ import {
 } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { ApiError, submitCreditRequest } from '@/lib/api'
-import { useT } from '@/lib/i18n'
+import { submitCreditRequest } from '@/lib/api'
+import { mensajeDeError } from '@/lib/api-error'
+import { useIdioma, useT } from '@/lib/i18n'
 import { digits } from '@/lib/search-params'
 import { cn } from '@/lib/utils'
 
@@ -343,6 +344,7 @@ export function CreditDialog({
   const [open, setOpen] = useState(defaultOpen)
   const [index, setIndex] = useState(0)
   const t = useT()
+  const { idioma } = useIdioma()
 
   const change = (next: boolean) => {
     setOpen(next)
@@ -439,9 +441,7 @@ export function CreditDialog({
       change(false)
     } catch (error) {
       toast.error(
-        error instanceof ApiError
-          ? error.message
-          : t('form.credit.toast.error'),
+        mensajeDeError(error, idioma, t('form.credit.toast.error')),
       )
     }
   })

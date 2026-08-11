@@ -29,7 +29,7 @@ import {
   PROJECTS_PATH,
   type ProjectDetail,
 } from '@/lib/projects'
-import { useT } from '@/lib/i18n'
+import { useIdioma, useT, type Idioma } from '@/lib/i18n'
 import { useSeo } from '@/lib/use-seo'
 import { ROUTES, SITE } from '@/lib/site'
 import type { Property } from '@/lib/types'
@@ -60,6 +60,7 @@ export function ProjectPage() {
   const { precio, moneda } = useCurrency()
   const { pathname } = useLocation()
   const t = useT()
+  const { idioma } = useIdioma()
 
   const selected = useMemo(
     () => properties.find((p) => p.id === selectedId) ?? properties[0],
@@ -212,7 +213,7 @@ export function ProjectPage() {
                   <SelectContent>
                     {properties.map((property) => (
                       <SelectItem key={property.id} value={property.id}>
-                        {etiqueta(property, precio, t)}
+                        {etiqueta(property, precio, t, idioma)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -344,11 +345,12 @@ function etiqueta(
   property: Property,
   precio: (v: number | string | null | undefined) => string,
   t: (key: string, vars?: Record<string, string | number>) => string,
+  idioma: Idioma,
 ): string {
   const built = property.builtArea ?? property.area
   return [
     property.propertyType?.name,
-    built ? fmtArea(built) : null,
+    built ? fmtArea(built, idioma) : null,
     property.bedrooms
       ? t('property.spec.bedrooms.count', { count: property.bedrooms })
       : null,
