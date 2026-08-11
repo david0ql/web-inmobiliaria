@@ -18,7 +18,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { area as fmtArea, price } from '@/lib/format'
+import { useCurrency } from '@/lib/currency'
+import { area as fmtArea } from '@/lib/format'
 import {
   FAMILY_STATUS_COLOR,
   FAMILY_STATUS_LABEL,
@@ -52,6 +53,7 @@ export function ProjectPage() {
   const { family, properties, amenities } = useLoaderData() as ProjectDetail
   const [selectedId, setSelectedId] = useState(properties[0]?.id ?? '')
   const [portadaAbierta, setPortadaAbierta] = useState(false)
+  const { precio, moneda } = useCurrency()
 
   const selected = useMemo(
     () => properties.find((p) => p.id === selectedId) ?? properties[0],
@@ -184,7 +186,7 @@ export function ProjectPage() {
                   <SelectContent>
                     {properties.map((property) => (
                       <SelectItem key={property.id} value={property.id}>
-                        {etiqueta(property)}
+                        {etiqueta(property, precio)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -216,9 +218,9 @@ export function ProjectPage() {
                     Precio de venta
                   </p>
                   <p className="tabular text-2xl leading-tight font-normal tracking-tight">
-                    {selected.salePrice ? price(selected.salePrice) : '—'}{' '}
+                    {precio(selected.salePrice)}{' '}
                     <small className="text-xs text-muted-foreground">
-                      {selected.currency?.iso ?? 'COP'}
+                      {moneda}
                     </small>
                   </p>
                 </div>
@@ -312,13 +314,16 @@ export function ProjectPage() {
 }
 
 /** Lo que se lee en el desplegable: por lo que se elige una unidad. */
-function etiqueta(property: Property): string {
+function etiqueta(
+  property: Property,
+  precio: (v: number | string | null | undefined) => string,
+): string {
   const built = property.builtArea ?? property.area
   return [
     property.propertyType?.name,
     built ? fmtArea(built) : null,
     property.bedrooms ? `${property.bedrooms} alcobas` : null,
-    property.salePrice ? price(property.salePrice) : null,
+    property.salePrice ? precio(property.salePrice) : null,
   ]
     .filter(Boolean)
     .join(' · ')

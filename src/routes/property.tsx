@@ -14,11 +14,12 @@ import { SpecTable } from '@/components/property/spec-table'
 import { VisitForm } from '@/components/property/visit-form'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/misc'
-import { businessType, money, price } from '@/lib/format'
+import {businessType, money} from '@/lib/format'
 import { portadaInyectada } from '@/lib/ficha-inyectada'
 import { registerVisit } from '@/lib/api'
 import { breadcrumbJsonLd, propertyJsonLd } from '@/lib/seo'
 import { ROUTES, SITE } from '@/lib/site'
+import { useCurrency } from '@/lib/currency'
 import { propertyPath } from '@/lib/slug'
 import { useSeo } from '@/lib/use-seo'
 import type { PropertyData } from '@/routes/loaders'
@@ -80,6 +81,7 @@ function PropertySkeleton({ code }: { code?: string }) {
 }
 
 function Detail({ data }: { data: PropertyData }) {
+  const { precio, moneda } = useCurrency()
   const property = use(data.property)
   const siblings = data.siblings
   const amount = property.salePrice ?? property.rentPrice
@@ -203,10 +205,8 @@ function Detail({ data }: { data: PropertyData }) {
                 {property.forSale ? 'Precio de venta' : 'Canon de arriendo'}
               </p>
               <p className="tabular text-2xl leading-tight font-normal tracking-tight">
-                {price(amount)}{' '}
-                <small className="text-xs text-muted-foreground">
-                  {property.currency?.iso ?? 'COP'}
-                </small>
+                {precio(amount)}{' '}
+                <small className="text-xs text-muted-foreground">{moneda}</small>
               </p>
             </div>
           </div>

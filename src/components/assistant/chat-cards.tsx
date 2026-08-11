@@ -2,7 +2,8 @@ import { Bath, BedDouble, Car, CalendarCheck, Ruler } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 import type { AssistantCard, PropertyCardView } from '@/lib/assistant'
-import { area as fmtArea, price } from '@/lib/format'
+import { useCurrency } from '@/lib/currency'
+import { area as fmtArea } from '@/lib/format'
 
 /**
  * Las tarjetas que el asistente inserta en la conversación.
@@ -49,6 +50,7 @@ function PropertyRow({
   item: PropertyCardView
   onNavigate?: () => void
 }) {
+  const { precio, moneda } = useCurrency()
   const amount = item.salePrice ?? item.rentPrice
   return (
     <Link
@@ -88,9 +90,9 @@ function PropertyRow({
           {item.garages != null && <Spec icon={Car} text={String(item.garages)} />}
         </div>
         <p className="tabular text-sm font-semibold">
-          {price(amount)}{' '}
+          {precio(amount)}{' '}
           <span className="text-[0.625rem] font-normal tracking-widest text-muted-foreground uppercase">
-            {item.currency}
+            {moneda}
           </span>
         </p>
       </div>

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 
 import { SpecRow } from '@/components/common/spec-row'
 import { Badge } from '@/components/ui/misc'
-import { price } from '@/lib/format'
+import { useCurrency } from '@/lib/currency'
 import {
   FAMILY_STATUS_COLOR,
   FAMILY_STATUS_LABEL,
@@ -20,6 +20,7 @@ import {
  * y no tiene area, tiene tipologias y unidades libres.
  */
 export function ProjectCard({ project }: { project: ProjectSummary }) {
+  const { precio } = useCurrency()
   const to = projectPath(project)
   const place = [project.zone?.name, project.city?.name]
     .filter(Boolean)
@@ -130,7 +131,7 @@ export function ProjectCard({ project }: { project: ProjectSummary }) {
               <small className="mr-1 text-[0.625rem] tracking-widest text-muted-foreground uppercase">
                 Desde
               </small>
-              {price(project.fromPrice)}
+              {precio(project.fromPrice)}
             </span>
           ) : (
             <span className="text-sm leading-none text-muted-foreground">

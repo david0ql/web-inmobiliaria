@@ -1,6 +1,7 @@
 import { Outlet, useNavigation } from 'react-router-dom'
 
 import { useSmoothScrollTop } from '@/lib/scroll'
+import { CurrencyProvider } from '@/lib/currency'
 import { usePortalSession } from '@/lib/use-portal'
 import { ChatFab } from '@/components/assistant/chat-fab'
 import { SiteFooter } from '@/components/layout/site-footer'
@@ -22,7 +23,12 @@ export function Root() {
   const navigation = useNavigation()
 
   return (
-    <div className="flex min-h-screen flex-col">
+    /*
+      La moneda envuelve el sitio entero: se elige una vez en la barra de
+      arriba y manda en las tarjetas, en la ficha y en el buscador.
+    */
+    <CurrencyProvider>
+      <div className="flex min-h-screen flex-col">
       <TopBar />
       <SiteHeader />
 
@@ -48,6 +54,7 @@ export function Root() {
       <ChatFab />
 
       <Toaster />
-    </div>
+      </div>
+    </CurrencyProvider>
   )
 }

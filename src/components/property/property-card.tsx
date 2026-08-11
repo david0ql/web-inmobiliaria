@@ -4,13 +4,8 @@ import { Link } from 'react-router-dom'
 import { SpecRow } from '@/components/common/spec-row'
 import { prefetchProperty } from '@/lib/api'
 import { Badge } from '@/components/ui/misc'
-import {
-  AVAILABILITY_COLOR,
-  AVAILABILITY_LABEL,
-  area as fmtArea,
-  price,
-  stratumLabel,
-} from '@/lib/format'
+import {AVAILABILITY_COLOR, AVAILABILITY_LABEL, area as fmtArea, stratumLabel} from '@/lib/format'
+import { useCurrency } from '@/lib/currency'
 import { propertyPath } from '@/lib/slug'
 import type { Property } from '@/lib/types'
 
@@ -30,6 +25,7 @@ export function PropertyCard({
   /** La portada de las primeras tarjetas suele ser el LCP: esa no se difiere. */
   priority?: boolean
 }) {
+  const { precio, moneda } = useCurrency()
   const to = propertyPath(property)
   const cover = property.images?.[0]
   const built = property.builtArea ?? property.area
@@ -148,9 +144,9 @@ export function PropertyCard({
       */}
       <div className="flex items-stretch border-t">
         <p className="tabular flex-1 px-4 py-3 text-xl leading-none font-normal tracking-tight">
-          {price(property.salePrice ?? property.rentPrice)}{' '}
+          {precio(property.salePrice ?? property.rentPrice)}{' '}
           <small className="text-[0.625rem] tracking-widest text-muted-foreground uppercase">
-            {property.currency?.iso ?? 'COP'}
+            {moneda}
           </small>
         </p>
         <Link
