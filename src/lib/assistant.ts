@@ -64,6 +64,9 @@ export type ChatScope =
 export interface PropertyCardView {
   code: string
   title: string
+  /** Para rehacer el titulo en ingles: ver `useCatalogo().titulo`. */
+  typeId: number | null
+  forRent: boolean
   type: string | null
   city: string | null
   zone: string | null

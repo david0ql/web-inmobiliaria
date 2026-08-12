@@ -55,6 +55,20 @@ function PropertyRow({
   const { idioma } = useIdioma()
   const { precio, moneda } = useCurrency()
   const amount = item.salePrice ?? item.rentPrice
+
+  /*
+    El titulo, rehecho como en el resto del sitio: el guardado esta en español
+    y lleva dentro el nombre del barrio, asi que no se traduce, se arma con sus
+    piezas. Si falta el sitio se deja el guardado, que es mejor que nada.
+  */
+  const lugar = [item.zone, item.city].filter(Boolean).join(', ')
+  const titulo =
+    lugar && item.typeId
+      ? t(item.forRent ? 'property.title.rent' : 'property.title.sale', {
+          type: t(`catalog.propertyType.${item.typeId}`, undefined, item.type ?? ''),
+          place: lugar,
+        })
+      : item.title
   return (
     <Link
       to={item.path}
@@ -65,7 +79,7 @@ function PropertyRow({
         {item.cover ? (
           <img
             src={item.cover}
-            alt={item.title}
+            alt={titulo}
             loading="lazy"
             className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
           />
@@ -78,7 +92,7 @@ function PropertyRow({
       <div className="flex min-w-0 flex-1 flex-col justify-between py-0.5">
         <div className="min-w-0">
           <p className="truncate text-[0.8125rem] leading-tight font-semibold uppercase">
-            {item.title}
+            {titulo}
           </p>
           <p className="truncate text-xs text-muted-foreground">
             {[item.zone, item.city].filter(Boolean).join(' · ') ||
