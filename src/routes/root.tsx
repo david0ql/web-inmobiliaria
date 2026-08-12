@@ -3,6 +3,7 @@ import { Outlet, useLocation, useNavigate, useNavigation } from 'react-router-do
 
 import { useSmoothScrollTop } from '@/lib/scroll'
 import { CurrencyProvider } from '@/lib/currency'
+import { UbicacionProvider } from '@/lib/ubicacion'
 import { I18nProvider, leerPreferencia, otroIdioma } from '@/lib/i18n'
 import { usePortalSession } from '@/lib/use-portal'
 import { ChatFab } from '@/components/assistant/chat-fab'
@@ -32,6 +33,7 @@ export function Root() {
     <I18nProvider>
       <PreferenciaDeIdioma />
       <CurrencyProvider>
+        <UbicacionProvider>
       <div className="flex min-h-screen flex-col">
       <TopBar />
       <SiteHeader />
@@ -59,6 +61,7 @@ export function Root() {
 
       <Toaster />
       </div>
+        </UbicacionProvider>
       </CurrencyProvider>
     </I18nProvider>
   )

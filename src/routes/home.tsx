@@ -3,6 +3,7 @@ import { useLoaderData } from 'react-router-dom'
 
 import { SectionHeading } from '@/components/common/section-heading'
 import { MapSection } from '@/components/property/map-section'
+import { NearbySection } from '@/components/property/nearby-section'
 import { PropertyGridSkeleton } from '@/components/property/property-grid'
 import { AdvancedSearch } from '@/components/search/advanced-search'
 import {
@@ -70,6 +71,8 @@ export function Home() {
 
       {/* El rotulo y el boton viven dentro: apagado el carrusel desde el
           panel, no debe quedarse un titulo sobre un hueco. */}
+      <NearbySection />
+
       <Suspense fallback={<ShowcaseSkeleton />}>
         <ShowcaseSection promise={data.showcase} />
       </Suspense>

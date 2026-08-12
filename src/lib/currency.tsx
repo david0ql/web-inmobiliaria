@@ -1,6 +1,7 @@
 import {
   createContext,
   useCallback,
+  useRef,
   useContext,
   useEffect,
   useMemo,
@@ -8,6 +9,7 @@ import {
 } from 'react'
 
 import { api } from '@/lib/api'
+import { useIdioma } from '@/lib/i18n'
 import { dolares as enDolares, pesos as enPesos } from '@/lib/format'
 
 export type Moneda = 'COP' | 'USD'
@@ -53,6 +55,7 @@ const CLAVE = 'serrano:moneda'
  */
 export function CurrencyProvider({ children }: { children: React.ReactNode }) {
   const [moneda, setMoneda] = useState<Moneda>(() => leerPreferencia())
+  const { idioma } = useIdioma()
   const [tasa, setTasa] = useState<Tasa | null>(null)
 
   useEffect(() => {
@@ -66,7 +69,22 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
     return () => controller.abort()
   }, [])
 
+  /*
+    Al pasar la web a inglés, los precios pasan a dólares.
+
+    Quien lee en inglés casi nunca piensa en pesos colombianos: "$1.750.000.000"
+    no le dice nada y tiene que ir a buscar la tasa. Es una suposición sobre lo
+    que quiere, así que no se impone: en cuanto toque el conmutador de moneda,
+    manda su elección y esto deja de moverse —de ahí `elegidaAMano`—.
+  */
+  const elegidaAMano = useRef(false)
+  useEffect(() => {
+    if (elegidaAMano.current) return
+    setMoneda(idioma === 'en' ? 'USD' : 'COP')
+  }, [idioma])
+
   const cambiar = useCallback((siguiente: Moneda) => {
+    elegidaAMano.current = true
     setMoneda(siguiente)
     try {
       localStorage.setItem(CLAVE, siguiente)
