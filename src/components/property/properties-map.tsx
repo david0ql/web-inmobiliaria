@@ -268,16 +268,6 @@ export function PropertiesMap({
     const centro: L.LatLngExpression = [punto.lat, punto.lng]
     const grupo = L.layerGroup()
 
-    const circulo = L.circle(centro, {
-      radius: radioKm * 1000,
-      color: '#0d0d0d',
-      weight: 2,
-      opacity: 0.55,
-      fillColor: '#0d0d0d',
-      fillOpacity: 0.06,
-      interactive: false,
-    }).addTo(grupo)
-
     // El punto de "estas aqui", latiendo: es lo que distingue tu posicion de
     // una chincheta mas del inventario.
     L.marker(centro, {
@@ -294,7 +284,14 @@ export function PropertiesMap({
     grupo.addTo(map)
     cerca_.current = grupo
 
-    map.flyToBounds(circulo.getBounds(), { padding: [24, 24], duration: 1.8 })
+    /*
+      Sin geocerca dibujada: el circulo enmarcaba, pero tambien decia "esto es
+      lo que hay" sobre un mapa que sigue teniendo el resto de la ciudad
+      detras. El radio se sigue usando —es lo que fija cuanto se acerca— pero
+      no se pinta.
+    */
+    const marco = L.latLng(centro).toBounds(radioKm * 2000)
+    map.flyToBounds(marco, { padding: [24, 24], duration: 1.8 })
     /*
       `properties` esta en las dependencias aunque no se use: al llegar los
       inmuebles del radio, el efecto de arriba rehace el mapa entero, y sin
