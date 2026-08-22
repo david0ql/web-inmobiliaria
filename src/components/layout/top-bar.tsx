@@ -1,7 +1,6 @@
 import { Phone, Search } from 'lucide-react'
 import { useNavigate } from '@/lib/nav'
 
-import { CurrencySwitch } from '@/components/layout/currency-switch'
 import { LanguageSwitch } from '@/components/layout/language-switch'
 import { SocialLinks } from '@/components/layout/social-links'
 import { useT } from '@/lib/i18n'
@@ -49,10 +48,9 @@ export function TopBar() {
         {/* Por debajo de md el buscador se oculta y el telefono se queda solo:
             centrado se lee como una barra, pegado a la derecha como un descuido. */}
         <div className="flex flex-1 items-center justify-center gap-3 md:justify-end">
-          {/* El primero de la fila, tambien en movil: es lo unico de esta barra
-              que cambia lo que se lee en el resto del sitio. */}
+          {/* Lo unico de esta barra que cambia lo que se lee en el resto del
+              sitio: el idioma, que arrastra tambien la moneda. */}
           <LanguageSwitch />
-          <CurrencySwitch />
           <a
             href={SITE.phoneHref}
             className="flex items-center gap-1.5 text-xs font-medium tracking-wide transition-opacity hover:opacity-80"

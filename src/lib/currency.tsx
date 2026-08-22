@@ -1,12 +1,4 @@
-import {
-  createContext,
-  useCallback,
-  useRef,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react'
+import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 
 import { api } from '@/lib/api'
 import { useIdioma } from '@/lib/i18n'
@@ -24,16 +16,11 @@ interface Cambio {
   moneda: Moneda
   /** `null` mientras no se sabe el valor del dólar, o si no se pudo saber. */
   tasa: Tasa | null
-  /** Hay dólar disponible: sin esto no se enseña el conmutador. */
-  disponible: boolean
-  cambiar: (moneda: Moneda) => void
-  /** Un precio en pesos, en la moneda que esté elegida. */
+  /** Un precio en pesos, en la moneda que corresponde al idioma. */
   precio: (pesos: number | string | null | undefined) => string
 }
 
 const CambioContext = createContext<Cambio | null>(null)
-
-const CLAVE = 'serrano:moneda'
 
 /*
   El formato del precio lo decide la MONEDA, no el idioma del sitio: los pesos
@@ -43,18 +30,18 @@ const CLAVE = 'serrano:moneda'
 */
 
 /**
- * En qué moneda se leen los precios del sitio.
+ * En qué moneda se leen los precios: la que corresponde al idioma.
  *
- * Una sola decisión para toda la web: quien la toma en una tarjeta espera
- * encontrarla igual en la ficha y en el buscador, y volver mañana y que siga
- * puesta —de ahí el `localStorage`—.
+ * Español, pesos. Inglés, dólares. No hay elección de moneda y por eso no hay
+ * conmutador: dos interruptores al lado que casi siempre se mueven juntos son
+ * dos decisiones donde el visitante solo tiene una —"en qué idioma leo esto"—,
+ * y la segunda solo sirve para dejarlos descuadrados: la web en inglés
+ * hablando de "$1.750.000.000".
  *
- * El valor del dólar lo da la API, que lo saca de la TRM oficial. No se guarda
- * junto a la preferencia: una tasa vieja convierte mal, y es justo el dato que
- * tiene que estar fresco.
+ * Si la API no supo el valor del dólar, el inglés se lee en pesos. Convertir
+ * con una cifra inventada, enseñando precios de casas, sería peor.
  */
 export function CurrencyProvider({ children }: { children: React.ReactNode }) {
-  const [moneda, setMoneda] = useState<Moneda>(() => leerPreferencia())
   const { idioma } = useIdioma()
   const [tasa, setTasa] = useState<Tasa | null>(null)
 
@@ -69,50 +56,22 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
     return () => controller.abort()
   }, [])
 
-  /*
-    Al pasar la web a inglés, los precios pasan a dólares.
-
-    Quien lee en inglés casi nunca piensa en pesos colombianos: "$1.750.000.000"
-    no le dice nada y tiene que ir a buscar la tasa. Es una suposición sobre lo
-    que quiere, así que no se impone: en cuanto toque el conmutador de moneda,
-    manda su elección y esto deja de moverse —de ahí `elegidaAMano`—.
-  */
-  const elegidaAMano = useRef(false)
-  useEffect(() => {
-    if (elegidaAMano.current) return
-    setMoneda(idioma === 'en' ? 'USD' : 'COP')
-  }, [idioma])
-
-  const cambiar = useCallback((siguiente: Moneda) => {
-    elegidaAMano.current = true
-    setMoneda(siguiente)
-    try {
-      localStorage.setItem(CLAVE, siguiente)
-    } catch {
-      /* Navegación privada: la preferencia dura lo que la pestaña. */
-    }
-  }, [])
-
   const valor = useMemo<Cambio>(() => {
-    const disponible = Boolean(tasa?.rate)
-    // Sin tasa no hay dólares que enseñar, aunque estuviera elegido de antes.
-    const efectiva: Moneda = disponible ? moneda : 'COP'
+    const moneda: Moneda = idioma === 'en' && tasa?.rate ? 'USD' : 'COP'
 
     return {
-      moneda: efectiva,
+      moneda,
       tasa,
-      disponible,
-      cambiar,
       precio: (pesos) => {
         const n = typeof pesos === 'string' ? Number(pesos) : pesos
         if (n === null || n === undefined || !Number.isFinite(n) || n === 0)
           return '—'
-        if (efectiva === 'USD' && tasa?.rate)
+        if (moneda === 'USD' && tasa?.rate)
           return `US$${enDolares(Math.round(n / tasa.rate))}`
         return `$${enPesos(n)}`
       },
     }
-  }, [moneda, tasa, cambiar])
+  }, [idioma, tasa])
 
   return (
     <CambioContext.Provider value={valor}>{children}</CambioContext.Provider>
@@ -120,11 +79,10 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
 }
 
 /**
- * La moneda elegida y cómo pintar un precio con ella.
+ * La moneda del idioma y cómo pintar un precio con ella.
  *
- * Devuelve algo utilizable aunque no haya proveedor por encima —pesos y sin
- * conmutador—: así una pantalla suelta, o un test, no revientan por no montar
- * el contexto.
+ * Devuelve algo utilizable aunque no haya proveedor por encima —pesos—: así
+ * una pantalla suelta, o un test, no revientan por no montar el contexto.
  */
 export function useCurrency(): Cambio {
   const contexto = useContext(CambioContext)
@@ -132,21 +90,11 @@ export function useCurrency(): Cambio {
   return {
     moneda: 'COP',
     tasa: null,
-    disponible: false,
-    cambiar: () => {},
     precio: (pesos) => {
       const n = typeof pesos === 'string' ? Number(pesos) : pesos
       if (n === null || n === undefined || !Number.isFinite(n) || n === 0)
         return '—'
       return `$${enPesos(n)}`
     },
-  }
-}
-
-function leerPreferencia(): Moneda {
-  try {
-    return localStorage.getItem(CLAVE) === 'USD' ? 'USD' : 'COP'
-  } catch {
-    return 'COP'
   }
 }
