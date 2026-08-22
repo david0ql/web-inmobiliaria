@@ -183,7 +183,13 @@ export function PropertiesMap({
     cerca_.current = grupo
 
     map.flyToBounds(circulo.getBounds(), { padding: [24, 24], duration: 1.8 })
-  }, [punto, radioKm, cerca])
+    /*
+      `properties` esta en las dependencias aunque no se use: al llegar los
+      inmuebles del radio, el efecto de arriba rehace el mapa entero, y sin
+      esto la geocerca se quedaba dibujada sobre el mapa anterior —el que ya
+      no existe— y no se veia nada.
+    */
+  }, [punto, radioKm, cerca, properties])
 
   return (
     <div
