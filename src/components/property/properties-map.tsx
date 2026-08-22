@@ -23,9 +23,24 @@ import type { Property } from '@/lib/types'
  * los APPROXIMATE se dibujan como circulo de 400m en vez de como chincheta,
  * porque su coordenada no es la puerta de la casa.
  */
-export function PropertiesMap({ properties }: { properties: Property[] }) {
+export function PropertiesMap({
+  properties,
+  punto,
+  radioKm = 5,
+  cerca = true,
+}: {
+  properties: Property[]
+  /** Donde esta quien mira, si lo concedio. */
+  punto?: { lat: number; lng: number } | null
+  radioKm?: number
+  /** Con la geocerca puesta o con el mapa entero. */
+  cerca?: boolean
+}) {
   const t = useT()
   const container = useRef<HTMLDivElement>(null)
+  const mapa = useRef<L.Map | null>(null)
+  const cerca_ = useRef<L.LayerGroup | null>(null)
+  const encuadre = useRef<L.LatLngBounds | null>(null)
 
   useEffect(() => {
     if (!container.current) return
@@ -33,8 +48,18 @@ export function PropertiesMap({ properties }: { properties: Property[] }) {
     const map = L.map(container.current, {
       center: MAP_CENTER,
       zoom: MAP_ZOOM,
+      /*
+        La rueda queda apagada de entrada y se enciende al pulsar el mapa: si
+        estuviera siempre viva, bajar la portada con la rueda se convertiria en
+        alejar el mapa a mitad de gesto. Al sacar el raton se vuelve a apagar,
+        asi que el mapa nunca se queda robando el desplazamiento de la pagina.
+      */
       scrollWheelZoom: false,
     })
+    mapa.current = map
+
+    map.on('click', () => map.scrollWheelZoom.enable())
+    map.on('mouseout', () => map.scrollWheelZoom.disable())
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       // En pantallas de alta densidad pide un zoom mas y las dibuja a la mitad:
@@ -87,12 +112,78 @@ export function PropertiesMap({ properties }: { properties: Property[] }) {
     map.addLayer(cluster)
 
     const frame = coreBounds(bounds)
+    encuadre.current = frame
     if (frame) map.fitBounds(frame, { padding: [40, 40], maxZoom: 14 })
 
     return () => {
       map.remove()
+      mapa.current = null
     }
   }, [properties])
+
+  /*
+    El vuelo hasta quien mira, con su geocerca.
+
+    Va en su propio efecto y no en el de arriba porque la ubicacion llega
+    despues —el permiso tarda lo que tarde la persona— y rehacer el mapa entero
+    en ese momento seria tirar las chinchetas y volver a pintarlas.
+
+    `flyToBounds` sobre el circulo y no `setView` con un zoom calculado: asi el
+    encuadre sale del propio radio, se ve entero con su margen, y en cualquier
+    pantalla —un movil estrecho no cabe el mismo zoom que un escritorio.
+  */
+  useEffect(() => {
+    const map = mapa.current
+    if (!map) return
+
+    cerca_.current?.remove()
+    cerca_.current = null
+
+    if (!punto || !cerca) {
+      // Al quitar la geocerca se vuelve al encuadre de siempre, volando: un
+      // salto seco deja sin saber si el mapa cambio de sitio o de escala.
+      if (encuadre.current) {
+        map.flyToBounds(encuadre.current, {
+          padding: [40, 40],
+          maxZoom: 14,
+          duration: 1.2,
+        })
+      }
+      return
+    }
+
+    const centro: L.LatLngExpression = [punto.lat, punto.lng]
+    const grupo = L.layerGroup()
+
+    const circulo = L.circle(centro, {
+      radius: radioKm * 1000,
+      color: '#0d0d0d',
+      weight: 1.5,
+      opacity: 0.5,
+      dashArray: '6 6',
+      fillColor: '#0d0d0d',
+      fillOpacity: 0.06,
+      interactive: false,
+    }).addTo(grupo)
+
+    // El punto de "estas aqui", latiendo: es lo que distingue tu posicion de
+    // una chincheta mas del inventario.
+    L.marker(centro, {
+      icon: L.divIcon({
+        className: '',
+        html: `<span class="mapa-yo"></span>`,
+        iconSize: [18, 18],
+        iconAnchor: [9, 9],
+      }),
+      interactive: false,
+      keyboard: false,
+    }).addTo(grupo)
+
+    grupo.addTo(map)
+    cerca_.current = grupo
+
+    map.flyToBounds(circulo.getBounds(), { padding: [24, 24], duration: 1.8 })
+  }, [punto, radioKm, cerca])
 
   return (
     <div

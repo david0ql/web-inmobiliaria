@@ -285,3 +285,48 @@
     scroll-behavior: auto !important;
   }
 }
+
+/*
+  El punto de "estás aquí" del mapa, latiendo.
+
+  El halo va en un pseudo-elemento y no en un segundo círculo de Leaflet: así
+  el latido es del navegador —una animación de CSS compuesta en la GPU— y no
+  obliga al mapa a redibujar una capa sesenta veces por segundo.
+*/
+.mapa-yo {
+  position: relative;
+  display: block;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #1d4ed8;
+  border: 3px solid #fff;
+  box-shadow: 0 1px 6px rgb(0 0 0 / 0.45);
+}
+
+.mapa-yo::after {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 2px solid #1d4ed8;
+  animation: mapa-latido 2s ease-out infinite;
+}
+
+@keyframes mapa-latido {
+  0% {
+    opacity: 0.55;
+    transform: scale(0.7);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.9);
+  }
+}
+
+/* Quien pidió no ver animaciones tampoco quiere un punto latiendo. */
+@media (prefers-reduced-motion: reduce) {
+  .mapa-yo::after {
+    animation: none;
+  }
+}

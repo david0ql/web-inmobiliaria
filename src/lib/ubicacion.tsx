@@ -42,11 +42,15 @@ const CLAVE = 'serrano:ubicacion'
  * por su país. Las dos son un extra, así que nada de esto bloquea la web: sin
  * permiso, el sitio se comporta exactamente igual que antes.
  *
- * No se pide al entrar. Un navegador que abre el cartel del sistema en el
- * primer segundo, antes de que la persona sepa qué sitio es este, se lleva un
- * "bloquear" casi seguro —y bloqueado no se puede volver a preguntar por
- * código—. Así que se pide cuando alguien lo pulsa, que es cuando la pregunta
- * tiene sentido.
+ * Se pide al entrar, en cuanto la portada ha pintado: la agencia lo quiere así
+ * para que el mapa se centre solo en quien mira. Tiene un coste conocido —un
+ * cartel del sistema antes de que la persona sepa qué sitio es este se lleva
+ * más "bloquear" que uno pedido con contexto, y bloqueado ya no se puede
+ * volver a preguntar por código—, y por eso queda el botón manual: es el único
+ * camino que le queda a quien dijo que no sin mirar.
+ *
+ * No se pide en el primer fotograma sino tras el primer pintado: el cartel
+ * encima de una pantalla en blanco no dice de qué sitio viene.
  */
 export function UbicacionProvider({ children }: { children: React.ReactNode }) {
   const [estado, setEstado] = useState<EstadoUbicacion>('sin-preguntar')
@@ -55,26 +59,6 @@ export function UbicacionProvider({ children }: { children: React.ReactNode }) {
   const [cercanos, setCercanos] = useState<(Property & { distanceKm: number })[]>(
     [],
   )
-
-  // Si ya dio permiso otra vez, el navegador no vuelve a preguntar: se puede
-  // usar directamente y la web aparece ya con sus inmuebles cerca.
-  useEffect(() => {
-    if (!('geolocation' in navigator)) {
-      setEstado('no-disponible')
-      return
-    }
-    if (!navigator.permissions?.query) return
-    navigator.permissions
-      .query({ name: 'geolocation' as PermissionName })
-      .then((permiso) => {
-        if (permiso.state === 'granted') localizar()
-        if (permiso.state === 'denied') setEstado('denegada')
-      })
-      .catch(() => {
-        /* Safari viejo no lo soporta: se queda esperando a que alguien pulse. */
-      })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
 
   const localizar = useCallback(() => {
     if (!('geolocation' in navigator)) {
@@ -112,6 +96,35 @@ export function UbicacionProvider({ children }: { children: React.ReactNode }) {
       { enableHighAccuracy: false, timeout: 10_000, maximumAge: 300_000 },
     )
   }, [])
+
+  useEffect(() => {
+    if (!('geolocation' in navigator)) {
+      setEstado('no-disponible')
+      return
+    }
+
+    // Tras el primer pintado, no en el primer fotograma: el cartel del sistema
+    // sobre una pantalla en blanco no dice de que sitio viene.
+    const t = setTimeout(() => {
+      if (!navigator.permissions?.query) {
+        localizar()
+        return
+      }
+      navigator.permissions
+        .query({ name: 'geolocation' as PermissionName })
+        .then((permiso) => {
+          // Denegado, ni se intenta: el navegador no volveria a preguntar y
+          // solo serviria para dejar el estado en "preguntando" un rato.
+          if (permiso.state === 'denied') setEstado('denegada')
+          else localizar()
+        })
+        .catch(() => localizar())
+    }, 600)
+
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
 
   const valor = useMemo<Ubicacion>(
     () => ({ estado, punto, lugar, cercanos, pedir: localizar }),

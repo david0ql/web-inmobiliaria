@@ -1,6 +1,10 @@
 import { lazy, Suspense, useEffect, useState } from 'react'
 
-import { searchProperties } from '@/lib/api'
+import { LocateFixed } from 'lucide-react'
+
+import { Button } from '@/components/ui/button'
+import { api, searchProperties } from '@/lib/api'
+import { bandera, useUbicacion } from '@/lib/ubicacion'
 import { useCuandoOcioso } from '@/lib/cuando-ocioso'
 import { useT } from '@/lib/i18n'
 import type { Property } from '@/lib/types'
@@ -30,10 +34,41 @@ const PropertiesMap = lazy(() =>
 */
 export function MapSection() {
   const ocioso = useCuandoOcioso()
+  const t = useT()
+  const { punto, lugar, estado, pedir } = useUbicacion()
   const [properties, setProperties] = useState<Property[] | null>(null)
+  const [cerca, setCerca] = useState(true)
+
+  /*
+    Con la ubicacion concedida, el mapa deja de enseñar el inventario entero y
+    pasa a enseñar lo que hay dentro del radio. Se pide a la API en vez de
+    filtrar lo ya cargado: en el mapa hay 96 inmuebles de 642, y filtrar esos
+    96 por distancia daria "no hay nada cerca" en media area metropolitana.
+  */
+  useEffect(() => {
+    if (!punto || !cerca) return
+    const controller = new AbortController()
+    api
+      .get<Property[]>('/public/properties/near', {
+        ...punto,
+        radiusKm: RADIO_KM,
+        limit: 120,
+      }, controller.signal)
+      .then((cercanos) => {
+        // Sin nada dentro del radio no se cambia el mapa: enseñar un circulo
+        // vacio es peor que enseñar el inventario.
+        if (cercanos.length) setProperties(cercanos)
+        else setCerca(false)
+      })
+      .catch(() => {
+        /* Se queda el mapa de siempre. */
+      })
+    return () => controller.abort()
+  }, [punto, cerca])
 
   useEffect(() => {
     if (!ocioso) return
+    if (punto && cerca) return
     const controller = new AbortController()
 
     // Dos paginas: el mapa quiere el inventario entero y la API lo da de 48.
@@ -55,12 +90,72 @@ export function MapSection() {
 
   if (!properties?.length) return <MapPoster />
 
+  const conUbicacion = Boolean(punto)
+
   return (
-    <Suspense fallback={<MapPoster />}>
-      <PropertiesMap properties={properties} />
-    </Suspense>
+    <div className="relative">
+      <Suspense fallback={<MapPoster />}>
+        <PropertiesMap
+          properties={properties}
+          punto={punto}
+          radioKm={RADIO_KM}
+          cerca={cerca}
+        />
+      </Suspense>
+
+      {/*
+        El control va encima del mapa y no debajo: es lo que explica por que el
+        mapa se movio solo, y esa explicacion tiene que estar donde paso.
+
+        `pointer-events-none` en el contenedor y `auto` en la pastilla: si no,
+        una caja transparente de un metro de ancho se traga los gestos del
+        mapa que hay debajo.
+      */}
+      <div className="pointer-events-none absolute inset-x-0 top-3 z-[400] flex justify-center px-3">
+        {conUbicacion ? (
+          <div className="pointer-events-auto flex max-w-full items-center gap-2 rounded-full border bg-background/95 py-1.5 pr-1.5 pl-3 shadow-lg backdrop-blur">
+            <span className="flex min-w-0 items-center gap-1.5 text-xs">
+              {lugar && (
+                <span className="text-sm leading-none" aria-hidden="true">
+                  {bandera(lugar.countryCode)}
+                </span>
+              )}
+              <span className="truncate">
+                {cerca
+                  ? t('map.fence.on', { km: RADIO_KM })
+                  : t('map.fence.off')}
+              </span>
+            </span>
+            <Button
+              size="sm"
+              variant={cerca ? 'outline' : 'default'}
+              className="h-7 shrink-0 rounded-full px-3 text-xs"
+              onClick={() => setCerca((previo) => !previo)}
+            >
+              {cerca ? t('map.fence.remove') : t('map.fence.restore')}
+            </Button>
+          </div>
+        ) : (
+          estado !== 'no-disponible' && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="pointer-events-auto h-8 rounded-full bg-background/95 text-xs shadow-lg backdrop-blur"
+              onClick={pedir}
+              disabled={estado === 'preguntando'}
+            >
+              <LocateFixed className="size-3.5" aria-hidden="true" />
+              {t('map.fence.locate')}
+            </Button>
+          )
+        )}
+      </div>
+    </div>
   )
 }
+
+/** Cinco kilometros: lo que se recorre sin pensarlo en esta ciudad. */
+const RADIO_KM = 5
 
 /**
  * La foto del mapa, con el mismo alto que tendra el mapa real para que nada
