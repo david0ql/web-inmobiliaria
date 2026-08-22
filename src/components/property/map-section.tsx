@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { api, searchProperties } from '@/lib/api'
 import { bandera, useUbicacion } from '@/lib/ubicacion'
 import { useCuandoOcioso } from '@/lib/cuando-ocioso'
-import { number } from '@/lib/format'
+import { decimal } from '@/lib/format'
 import { useIdioma, useT } from '@/lib/i18n'
 import type { Property } from '@/lib/types'
 
@@ -124,7 +124,7 @@ export function MapSection() {
               )}
               <span className="truncate">
                 {cerca
-                  ? t('map.fence.on', { km: number(RADIO_KM, idioma) })
+                  ? t('map.fence.on', { km: decimal(RADIO_KM, idioma) })
                   : t('map.fence.off')}
               </span>
             </span>

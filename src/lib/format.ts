@@ -56,6 +56,22 @@ const CUENTA: Record<Idioma, Intl.NumberFormat> = {
   en: new Intl.NumberFormat(LOCALE.en, { maximumFractionDigits: 0 }),
 }
 
+/**
+ * Una cifra con decimal si lo tiene: `2,5 km` en español, `2.5 km` en ingles.
+ *
+ * `number()` redondea a entero —lo que quiere una cuenta de alcobas o de
+ * resultados— y con el, un radio de 2,5 km se rotulaba "3 km" sobre un circulo
+ * que medía 2,5: el mapa decia una cosa y el numero otra.
+ */
+const DECIMAL: Record<Idioma, Intl.NumberFormat> = {
+  es: new Intl.NumberFormat(LOCALE.es, { maximumFractionDigits: 1 }),
+  en: new Intl.NumberFormat(LOCALE.en, { maximumFractionDigits: 1 }),
+}
+
+export function decimal(value: number, idioma: Idioma): string {
+  return DECIMAL[idioma].format(value)
+}
+
 /** Una cifra en pesos, sin simbolo: `1.750.000.000`. */
 export function pesos(value: number): string {
   return PESOS.format(value)
