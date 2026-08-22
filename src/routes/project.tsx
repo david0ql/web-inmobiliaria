@@ -6,6 +6,7 @@ import { useLoaderData } from 'react-router-dom'
 import { Link } from '@/lib/nav'
 
 import { Lightbox } from '@/components/common/lightbox'
+import { PaymentPlan } from '@/components/property/payment-plan'
 import { UnitPhotos } from '@/components/project/unit-photos'
 import { AgentPanel } from '@/components/property/agent-panel'
 import { PropertyMap } from '@/components/property/property-map'
@@ -191,67 +192,81 @@ export function ProjectPage() {
           {selected ? (
             <>
               {/*
-                El desplegable es la pieza propia de esta pagina, y por eso va
-                pegado a las fotos y antes que el precio: es lo que decide todas
-                las cifras que vienen debajo.
-              */}
-              <div className="rounded-lg border bg-card p-5 shadow-sm">
-                <label
-                  htmlFor="unidad"
-                  className="mb-1.5 block text-xs tracking-widest text-muted-foreground uppercase"
-                >
-                  {t('project.units.label')}
-                </label>
-                <Select
-                  value={selected.id}
-                  onValueChange={setSelectedId}
-                  disabled={properties.length === 1}
-                >
-                  <SelectTrigger id="unidad" aria-label={t('project.units.aria')}>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {properties.map((property) => (
-                      <SelectItem key={property.id} value={property.id}>
-                        {etiqueta(property, precio, t, idioma)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+                Elegir y ver, uno al lado del otro.
 
-              <UnitPhotos
-                images={selected.images ?? []}
-                title={`${family.name} · ${selected.code}`}
-              />
+                Antes iban apilados —desplegable, fotos, precio— y para
+                comparar dos tipologias habia que elegir arriba, bajar a mirar
+                las fotos y seguir bajando hasta el precio: tres pantallas para
+                una sola decision. En rejilla, cambiar de tipologia cambia a la
+                vez lo que se lee y lo que se ve.
+              */}
+              <div className="grid gap-5 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] lg:items-start">
+                <div className="flex flex-col gap-4">
+                  <div className="rounded-lg border bg-card p-5 shadow-sm">
+                    <label
+                      htmlFor="unidad"
+                      className="mb-1.5 block text-xs tracking-widest text-muted-foreground uppercase"
+                    >
+                      {t('project.units.label')}
+                    </label>
+                    <Select
+                      value={selected.id}
+                      onValueChange={setSelectedId}
+                      disabled={properties.length === 1}
+                    >
+                      <SelectTrigger
+                        id="unidad"
+                        aria-label={t('project.units.aria')}
+                      >
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {properties.map((property) => (
+                          <SelectItem key={property.id} value={property.id}>
+                            {etiqueta(property, precio, t, idioma)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="rounded-lg border bg-secondary/40 px-5 py-4">
+                    <p className="text-xs tracking-widest text-muted-foreground uppercase">
+                      {t('property.spec.code')}
+                    </p>
+                    <p className="tabular text-lg font-semibold">
+                      {selected.code}
+                    </p>
+
+                    <p className="mt-4 text-xs tracking-widest text-muted-foreground uppercase">
+                      {t('property.price.sale')}
+                    </p>
+                    <p className="tabular text-2xl leading-tight font-normal tracking-tight">
+                      {precio(selected.salePrice)}{' '}
+                      <small className="text-xs text-muted-foreground">
+                        {moneda}
+                      </small>
+                    </p>
+                  </div>
+                </div>
+
+                <UnitPhotos
+                  images={selected.images ?? []}
+                  title={`${family.name} · ${selected.code}`}
+                />
+              </div>
 
               {/*
-                El codigo y el precio van en su propia caja, la misma que en la
-                ficha de inmueble. Elegir y leer son dos gestos distintos:
-                juntarlos en un solo recuadro hacia que el precio pareciera
-                parte del formulario.
+                Lo que costaria de verdad, antes de hablar con nadie.
+
+                Es la pregunta que sigue al precio —"¿y eso como se paga?"— y
+                hasta ahora habia que llamar para saberlo. Lo que salga aqui
+                viaja con la solicitud de visita, asi que el asesor llega a la
+                cita sabiendo con que numeros venia pensando.
               */}
-              <div className="flex flex-wrap items-end justify-between gap-4 rounded-lg border bg-secondary/40 px-5 py-4">
-                <div>
-                  <p className="text-xs tracking-widest text-muted-foreground uppercase">
-                    {t('property.code')}
-                  </p>
-                  <p className="tabular text-lg font-semibold">
-                    {selected.code}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="text-xs tracking-widest text-muted-foreground uppercase">
-                    {t('property.price.sale')}
-                  </p>
-                  <p className="tabular text-2xl leading-tight font-normal tracking-tight">
-                    {precio(selected.salePrice)}{' '}
-                    <small className="text-xs text-muted-foreground">
-                      {moneda}
-                    </small>
-                  </p>
-                </div>
-              </div>
+              {selected.salePrice ? (
+                <PaymentPlan property={selected} />
+              ) : null}
 
               {family.description && (
                 <section>

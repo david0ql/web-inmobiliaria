@@ -1,6 +1,7 @@
 import { Bath, BedDouble, Car, Ruler } from 'lucide-react'
 import { Link } from '@/lib/nav'
 
+import { CardCarousel } from '@/components/common/card-carousel'
 import { SpecRow } from '@/components/common/spec-row'
 import { prefetchProperty } from '@/lib/api'
 import { Badge } from '@/components/ui/misc'
@@ -9,7 +10,7 @@ import { useCurrency } from '@/lib/currency'
 import { useCatalogo } from '@/lib/catalog-i18n'
 import { useIdioma, useT } from '@/lib/i18n'
 import { propertyPath } from '@/lib/slug'
-import type { Property } from '@/lib/types'
+import type { Property, PropertyImage } from '@/lib/types'
 
 /**
  * La tarjeta del listado, calcada de la del tema: foto con la etiqueta de estado
@@ -32,7 +33,8 @@ export function PropertyCard({
   const { precio, moneda } = useCurrency()
   const { tipo, titulo } = useCatalogo()
   const to = propertyPath(property)
-  const cover = property.images?.[0]
+  const fotos = property.images ?? []
+  const cover = fotos[0]
   const built = property.builtArea ?? property.area
   /* El estrato, con su separador. */
   const estrato = stratumLabel(property.stratum, t)
@@ -44,6 +46,47 @@ export function PropertyCard({
     prefetchProperty(property.code)
   }
 
+  /*
+    Una foto de la tarjeta. Solo la primera puede ser el LCP de la portada, asi
+    que solo esa hereda el `priority`; las demas se montan cuando alguien pasa a
+    ellas y para entonces ya no compiten con el primer pintado.
+  */
+  const foto = (image: PropertyImage, indice: number) => (
+    <img
+      key={image.id}
+      src={image.url}
+      /*
+        El paso intermedio de 1024 px existe por el movil: una
+        tarjeta ocupa 412 px logicos, que a densidad 1,75 son 721 px
+        reales. Sin el, el navegador se saltaba el thumb y bajaba la
+        de 1600 px — 405 kB por tarjeta en vez de 120.
+      */
+      srcSet={[
+        `${image.url} 560w`,
+        image.urlMedium ? `${image.urlMedium} 800w` : '',
+        `${image.urlLarge} 1600w`,
+      ]
+        .filter(Boolean)
+        .join(', ')}
+      sizes="(min-width: 992px) 360px, (min-width: 576px) 50vw, 100vw"
+      alt={
+        image.description ??
+        (indice === 0
+          ? titulo(property)
+          : t('property.card.photo.alt', {
+              title: titulo(property),
+              index: indice + 1,
+            }))
+      }
+      width={560}
+      height={280}
+      loading={priority && indice === 0 ? 'eager' : 'lazy'}
+      fetchPriority={priority && indice === 0 ? 'high' : 'auto'}
+      decoding="async"
+      className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
+    />
+  )
+
   return (
     <article
       onMouseEnter={warm}
@@ -51,49 +94,48 @@ export function PropertyCard({
       className="group flex flex-col overflow-hidden rounded-lg border bg-card shadow-sm transition-shadow hover:shadow-md"
     >
       <figure className="relative m-0">
-        <Link to={to} className="block" onFocus={warm}>
-          <div className="relative h-[280px] overflow-hidden bg-secondary">
-            {cover ? (
-              <img
-                src={cover.url}
-                /*
-                  El paso intermedio de 1024 px existe por el movil: una
-                  tarjeta ocupa 412 px logicos, que a densidad 1,75 son 721 px
-                  reales. Sin el, el navegador se saltaba el thumb y bajaba la
-                  de 1600 px — 405 kB por tarjeta en vez de 120.
-                */
-                srcSet={[
-                  `${cover.url} 560w`,
-                  cover.urlMedium ? `${cover.urlMedium} 800w` : '',
-                  `${cover.urlLarge} 1600w`,
-                ]
-                  .filter(Boolean)
-                  .join(', ')}
-                sizes="(min-width: 992px) 360px, (min-width: 576px) 50vw, 100vw"
-                alt={cover.description ?? titulo(property)}
-                width={560}
-                height={280}
-                loading={priority ? 'eager' : 'lazy'}
-                fetchPriority={priority ? 'high' : 'auto'}
-                decoding="async"
-                className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
-              />
-            ) : (
-              <div className="flex size-full items-center justify-center text-xs text-muted-foreground">
-                {t('property.card.no_photo')}
-              </div>
-            )}
+        <div className="relative h-[280px] overflow-hidden bg-secondary">
+          {fotos.length > 1 ? (
+            <CardCarousel
+              total={fotos.length}
+              renderSlide={(indice, cargada) =>
+                cargada ? (
+                  foto(fotos[indice], indice)
+                ) : (
+                  /* El hueco guarda el sitio de la foto que aun no toca bajar. */
+                  <div className="size-full bg-secondary" aria-hidden="true" />
+                )
+              }
+            />
+          ) : cover ? (
+            foto(cover, 0)
+          ) : (
+            <div className="flex size-full items-center justify-center text-xs text-muted-foreground">
+              {t('property.card.no_photo')}
+            </div>
+          )}
 
+          {/*
+            El enlace se pinta encima de la foto en lugar de envolverla: dentro
+            de un `<a>` no pueden ir los botones del carrusel, y encima puede
+            quedar por debajo de ellos con el `z-index`.
+          */}
+          <Link
+            to={to}
+            className="absolute inset-0 z-10 block"
+            onFocus={warm}
+            aria-label={titulo(property)}
+          >
             {/* La cortina con el boton centrado solo aparece donde hay raton. */}
             <div className="absolute inset-0 hidden items-center justify-center bg-black/70 opacity-0 transition-opacity duration-300 group-hover:opacity-100 lg:flex">
               <span className="rounded-sm border-2 border-white px-3 py-2 text-xs font-bold tracking-wide text-white uppercase">
                 {t('property.card.view_details')}
               </span>
             </div>
-          </div>
-        </Link>
+          </Link>
+        </div>
 
-        <div className="absolute top-2.5 left-2.5">
+        <div className="absolute top-2.5 left-2.5 z-20">
           <Badge
             variant="tag"
             style={{

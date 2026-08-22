@@ -10,7 +10,13 @@
 
 import type { Query } from './api'
 import { api } from './api'
-import type { City, Paginated, Property, Zone } from './types'
+import type {
+  City,
+  Paginated,
+  Property,
+  PropertyImage,
+  Zone,
+} from './types'
 
 export type FamilyKind = 'PROJECT' | 'COMPLEX' | 'BUILDING' | 'STAGE'
 
@@ -37,6 +43,9 @@ export interface ProjectFamily {
   deliveryYear: number | null
   totalUnits: number | null
   coverUrl: string | null
+  /* Opcional a proposito: hoy el listado solo trae `coverUrl`, y la tarjeta
+     monta el carrusel solo si algun dia llegan las fotos. */
+  images?: PropertyImage[]
   children?: ProjectFamily[]
 }
 

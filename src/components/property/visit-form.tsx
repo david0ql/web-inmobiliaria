@@ -19,6 +19,7 @@ import { api, bookVisit } from '@/lib/api'
 import { mensajeDeError } from '@/lib/api-error'
 import { diaDe, fechaFormat } from '@/lib/format'
 import { useIdioma, useT, type Idioma } from '@/lib/i18n'
+import { useNotaVisita } from '@/lib/nota-visita'
 import type { Property } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
@@ -64,6 +65,7 @@ type VisitValues = z.infer<typeof schema>
  * de Bucaramanga, y una visita a las 10 tiene que decir 10 aquí y en Madrid.
  */
 export function VisitForm({ property }: { property: Property }) {
+  const { nota } = useNotaVisita()
   const t = useT()
   const { idioma } = useIdioma()
   const [days, setDays] = useState<DayAvailability[]>([])
@@ -143,6 +145,20 @@ export function VisitForm({ property }: { property: Property }) {
     form.setValue('startsAt', '', { shouldValidate: false })
   }
 
+  /*
+    Lo que el simulador de pagos dejo pensado.
+
+    Aterriza en el campo de mensaje, escrito y editable, en vez de viajar
+    escondido con la solicitud: mandar en nombre de alguien un texto que no ha
+    leido es lo que hace que un formulario deje de ser suyo. Y solo si el campo
+    esta vacio, para no pisar lo que ya haya escrito.
+  */
+  useEffect(() => {
+    if (!nota) return
+    if (form.getValues('message')?.trim()) return
+    form.setValue('message', nota)
+  }, [nota, form])
+
   const onSubmit = form.handleSubmit(async (values) => {
     try {
       const result = await bookVisit({
@@ -167,7 +183,7 @@ export function VisitForm({ property }: { property: Property }) {
   })
 
   return (
-    <form onSubmit={onSubmit} className="flex flex-col gap-4">
+    <form id="agendar" onSubmit={onSubmit} className="flex flex-col gap-4">
       <p className="flex items-center gap-2 text-sm font-medium">
         <CalendarCheck className="size-4" />
         {t('property.visit.title')}

@@ -1,13 +1,9 @@
 import { lazy, Suspense, useEffect, useState } from 'react'
 
-import { LocateFixed } from 'lucide-react'
-
-import { Button } from '@/components/ui/button'
 import { api, searchProperties } from '@/lib/api'
-import { bandera, useUbicacion } from '@/lib/ubicacion'
+import { useUbicacion } from '@/lib/ubicacion'
 import { useCuandoOcioso } from '@/lib/cuando-ocioso'
-import { decimal } from '@/lib/format'
-import { useIdioma, useT } from '@/lib/i18n'
+import { useT } from '@/lib/i18n'
 import type { Property } from '@/lib/types'
 
 const PropertiesMap = lazy(() =>
@@ -35,11 +31,8 @@ const PropertiesMap = lazy(() =>
 */
 export function MapSection() {
   const ocioso = useCuandoOcioso()
-  const t = useT()
-  const { punto, lugar, estado, pedir } = useUbicacion()
-  const { idioma } = useIdioma()
+  const { punto } = useUbicacion()
   const [properties, setProperties] = useState<Property[] | null>(null)
-  const [cerca, setCerca] = useState(true)
 
   /*
     Los del radio se SUMAN al inventario, no lo sustituyen.
@@ -98,67 +91,10 @@ export function MapSection() {
 
   if (!properties?.length) return <MapPoster />
 
-  const conUbicacion = Boolean(punto)
-
   return (
-    <div className="relative">
-      <Suspense fallback={<MapPoster />}>
-        <PropertiesMap
-          properties={properties}
-          punto={punto}
-          radioKm={RADIO_KM}
-          cerca={cerca}
-        />
-      </Suspense>
-
-      {/*
-        El control va encima del mapa y no debajo: es lo que explica por que el
-        mapa se movio solo, y esa explicacion tiene que estar donde paso.
-
-        `pointer-events-none` en el contenedor y `auto` en la pastilla: si no,
-        una caja transparente de un metro de ancho se traga los gestos del
-        mapa que hay debajo.
-      */}
-      <div className="pointer-events-none absolute inset-x-0 top-3 z-[400] flex justify-center px-3">
-        {conUbicacion ? (
-          <div className="pointer-events-auto flex max-w-full items-center gap-2 rounded-full border bg-background/95 py-1.5 pr-1.5 pl-3 shadow-lg backdrop-blur">
-            <span className="flex min-w-0 items-center gap-1.5 text-xs">
-              {lugar && (
-                <span className="text-sm leading-none" aria-hidden="true">
-                  {bandera(lugar.countryCode)}
-                </span>
-              )}
-              <span className="truncate">
-                {cerca
-                  ? t('map.fence.on', { km: decimal(RADIO_KM, idioma) })
-                  : t('map.fence.off')}
-              </span>
-            </span>
-            <Button
-              size="sm"
-              variant={cerca ? 'outline' : 'default'}
-              className="h-7 shrink-0 rounded-full px-3 text-xs"
-              onClick={() => setCerca((previo) => !previo)}
-            >
-              {cerca ? t('map.fence.remove') : t('map.fence.restore')}
-            </Button>
-          </div>
-        ) : (
-          estado !== 'no-disponible' && (
-            <Button
-              size="sm"
-              variant="outline"
-              className="pointer-events-auto h-8 rounded-full bg-background/95 text-xs shadow-lg backdrop-blur"
-              onClick={pedir}
-              disabled={estado === 'preguntando'}
-            >
-              <LocateFixed className="size-3.5" aria-hidden="true" />
-              {t('map.fence.locate')}
-            </Button>
-          )
-        )}
-      </div>
-    </div>
+    <Suspense fallback={<MapPoster />}>
+      <PropertiesMap properties={properties} punto={punto} radioKm={RADIO_KM} />
+    </Suspense>
   )
 }
 

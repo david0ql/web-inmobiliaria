@@ -1,6 +1,7 @@
 import { Building2, CalendarClock, Layers, KeyRound } from 'lucide-react'
 import { Link } from '@/lib/nav'
 
+import { CardCarousel } from '@/components/common/card-carousel'
 import { SpecRow } from '@/components/common/spec-row'
 import { Badge } from '@/components/ui/misc'
 import { useCurrency } from '@/lib/currency'
@@ -11,6 +12,7 @@ import {
   projectPath,
   type ProjectSummary,
 } from '@/lib/projects'
+import type { PropertyImage } from '@/lib/types'
 
 /**
  * La tarjeta del listado de proyectos, con la misma anatomia que la de inmueble
@@ -27,52 +29,105 @@ export function ProjectCard({ project }: { project: ProjectSummary }) {
   const place = [project.zone?.name, project.city?.name]
     .filter(Boolean)
     .join(' · ')
+  /* El listado de proyectos hoy solo trae la portada; si algun dia trae las
+     fotos, la tarjeta pasa a carrusel sin tocar nada mas. */
+  const fotos = project.images ?? []
+
+  /* Una foto del proyecto, con sus tres anchos. */
+  const foto = (image: PropertyImage, indice: number) => (
+    <img
+      key={image.id}
+      src={image.url}
+      srcSet={[
+        `${image.url} 560w`,
+        image.urlMedium ? `${image.urlMedium} 800w` : '',
+        `${image.urlLarge} 1600w`,
+      ]
+        .filter(Boolean)
+        .join(', ')}
+      sizes="(min-width: 1024px) 400px, (min-width: 640px) 50vw, 100vw"
+      alt={
+        image.description ??
+        (indice === 0
+          ? project.name
+          : t('project.card.photo.alt', {
+              name: project.name,
+              index: indice + 1,
+            }))
+      }
+      loading="lazy"
+      decoding="async"
+      className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
+    />
+  )
 
   return (
     <article className="group flex flex-col overflow-hidden rounded-lg border bg-card shadow-sm transition-shadow hover:shadow-md">
       <figure className="relative m-0">
-        <Link to={to} className="block">
-          <div className="relative h-[280px] overflow-hidden bg-secondary">
-            {project.coverUrl ? (
-              /*
-                Las tres variantes, no solo la que venga guardada.
+        <div className="relative h-[280px] overflow-hidden bg-secondary">
+          {fotos.length > 1 ? (
+            <CardCarousel
+              total={fotos.length}
+              renderSlide={(indice, cargada) =>
+                cargada ? (
+                  foto(fotos[indice], indice)
+                ) : (
+                  /* El hueco guarda el sitio de la foto que aun no toca bajar. */
+                  <div className="size-full bg-secondary" aria-hidden="true" />
+                )
+              }
+            />
+          ) : fotos.length === 1 ? (
+            foto(fotos[0], 0)
+          ) : project.coverUrl ? (
+            /*
+              Las tres variantes, no solo la que venga guardada.
 
-                La portada se guarda apuntando a una foto concreta del proyecto,
-                y si esa es la de 1600 px el navegador se la baja entera para
-                una tarjeta de 400: cinco proyectos eran 1,2 MB de portada. Con
-                el `srcset` derivado del propio nombre, el navegador coge la que
-                le sirve — la de 560 en escritorio.
-              */
-              <img
-                src={coverVariant(project.coverUrl, 'm')}
-                srcSet={[
-                  `${coverVariant(project.coverUrl, 't')} 560w`,
-                  `${coverVariant(project.coverUrl, 'm')} 800w`,
-                  `${coverVariant(project.coverUrl, 'l')} 1600w`,
-                ].join(', ')}
-                sizes="(min-width: 1024px) 400px, (min-width: 640px) 50vw, 100vw"
-                alt={project.name}
-                loading="lazy"
-                decoding="async"
-                className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
-              />
-            ) : (
-              <div className="flex size-full flex-col items-center justify-center gap-2 text-muted-foreground">
-                <Building2 className="size-8" />
-                <span className="text-xs">{t('project.cover.none')}</span>
-              </div>
-            )}
+              La portada se guarda apuntando a una foto concreta del proyecto,
+              y si esa es la de 1600 px el navegador se la baja entera para
+              una tarjeta de 400: cinco proyectos eran 1,2 MB de portada. Con
+              el `srcset` derivado del propio nombre, el navegador coge la que
+              le sirve — la de 560 en escritorio.
+            */
+            <img
+              src={coverVariant(project.coverUrl, 'm')}
+              srcSet={[
+                `${coverVariant(project.coverUrl, 't')} 560w`,
+                `${coverVariant(project.coverUrl, 'm')} 800w`,
+                `${coverVariant(project.coverUrl, 'l')} 1600w`,
+              ].join(', ')}
+              sizes="(min-width: 1024px) 400px, (min-width: 640px) 50vw, 100vw"
+              alt={project.name}
+              loading="lazy"
+              decoding="async"
+              className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
+            />
+          ) : (
+            <div className="flex size-full flex-col items-center justify-center gap-2 text-muted-foreground">
+              <Building2 className="size-8" />
+              <span className="text-xs">{t('project.cover.none')}</span>
+            </div>
+          )}
 
+          {/*
+            El enlace va encima de la foto, no envolviendola: dentro de un `<a>`
+            no pueden ir los botones del carrusel.
+          */}
+          <Link
+            to={to}
+            className="absolute inset-0 z-10 block"
+            aria-label={project.name}
+          >
             {/* La cortina con el boton centrado solo aparece donde hay raton. */}
             <div className="absolute inset-0 hidden items-center justify-center bg-black/70 opacity-0 transition-opacity duration-300 group-hover:opacity-100 lg:flex">
               <span className="rounded-sm border-2 border-white px-3 py-2 text-xs font-bold tracking-wide text-white uppercase">
                 {t('project.card.view')}
               </span>
             </div>
-          </div>
-        </Link>
+          </Link>
+        </div>
 
-        <div className="absolute top-2.5 left-2.5">
+        <div className="absolute top-2.5 left-2.5 z-20">
           <Badge
             variant="tag"
             style={{ backgroundColor: FAMILY_STATUS_COLOR[project.status] }}
