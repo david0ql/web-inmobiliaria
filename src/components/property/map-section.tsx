@@ -42,13 +42,19 @@ export function MapSection() {
   const [cerca, setCerca] = useState(true)
 
   /*
-    Con la ubicacion concedida, el mapa deja de enseñar el inventario entero y
-    pasa a enseñar lo que hay dentro del radio. Se pide a la API en vez de
-    filtrar lo ya cargado: en el mapa hay 96 inmuebles de 642, y filtrar esos
-    96 por distancia daria "no hay nada cerca" en media area metropolitana.
+    Los del radio se SUMAN al inventario, no lo sustituyen.
+
+    La geocerca acerca y enmarca; no esconde. Quien mira quiere ver lo que
+    tiene al lado sin perder de vista que la agencia tiene mas cosas un poco
+    mas alla: alejar el mapa y encontrarlo vacio es peor que no haberlo
+    acercado.
+
+    Y hacen falta aparte porque el mapa carga 96 inmuebles de 642: los del
+    radio pueden no estar entre esos 96, y sin pedirlos el circulo saldria
+    medio vacio justo donde mas lleno esta.
   */
   useEffect(() => {
-    if (!punto || !cerca) return
+    if (!punto) return
     const controller = new AbortController()
     api
       .get<Property[]>('/public/properties/near', {
@@ -57,20 +63,17 @@ export function MapSection() {
         limit: 120,
       }, controller.signal)
       .then((cercanos) => {
-        // Sin nada dentro del radio no se cambia el mapa: enseñar un circulo
-        // vacio es peor que enseñar el inventario.
-        if (cercanos.length) setProperties(cercanos)
-        else setCerca(false)
+        if (!cercanos.length) return
+        setProperties((previos) => unir(previos ?? [], cercanos))
       })
       .catch(() => {
         /* Se queda el mapa de siempre. */
       })
     return () => controller.abort()
-  }, [punto, cerca])
+  }, [punto])
 
   useEffect(() => {
     if (!ocioso) return
-    if (punto && cerca) return
     const controller = new AbortController()
 
     // Dos paginas: el mapa quiere el inventario entero y la API lo da de 48.
@@ -79,9 +82,12 @@ export function MapSection() {
       searchProperties({ limit: 48, page: 2 }, controller.signal),
     ])
       .then(([a, b]) =>
-        setProperties(
-          [...a.data, ...b.data].filter(
-            (p) => p.latitude !== null && p.longitude !== null,
+        setProperties((previos) =>
+          unir(
+            previos ?? [],
+            [...a.data, ...b.data].filter(
+              (p) => p.latitude !== null && p.longitude !== null,
+            ),
           ),
         ),
       )
@@ -158,6 +164,19 @@ export function MapSection() {
 
 /** Dos kilometros y medio: el barrio propio y el de al lado, no media ciudad. */
 const RADIO_KM = 2.5
+
+/**
+ * Dos listas de inmuebles en una, sin repetidos.
+ *
+ * Las dos consultas —el inventario del mapa y los del radio— se solapan, y un
+ * mismo inmueble dibujado dos veces cuenta dos veces en el numero del grupo:
+ * el mapa diria que hay cuarenta donde hay treinta.
+ */
+function unir(a: Property[], b: Property[]): Property[] {
+  const porId = new Map(a.map((p) => [p.id, p]))
+  for (const p of b) porId.set(p.id, p)
+  return [...porId.values()]
+}
 
 /**
  * La foto del mapa, con el mismo alto que tendra el mapa real para que nada
