@@ -154,8 +154,8 @@ export function MapSection() {
   )
 }
 
-/** Cinco kilometros: lo que se recorre sin pensarlo en esta ciudad. */
-const RADIO_KM = 5
+/** Dos kilometros y medio: el barrio propio y el de al lado, no media ciudad. */
+const RADIO_KM = 2.5
 
 /**
  * La foto del mapa, con el mismo alto que tendra el mapa real para que nada
