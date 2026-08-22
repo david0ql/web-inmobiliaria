@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button'
 import { api, searchProperties } from '@/lib/api'
 import { bandera, useUbicacion } from '@/lib/ubicacion'
 import { useCuandoOcioso } from '@/lib/cuando-ocioso'
-import { useT } from '@/lib/i18n'
+import { number } from '@/lib/format'
+import { useIdioma, useT } from '@/lib/i18n'
 import type { Property } from '@/lib/types'
 
 const PropertiesMap = lazy(() =>
@@ -36,6 +37,7 @@ export function MapSection() {
   const ocioso = useCuandoOcioso()
   const t = useT()
   const { punto, lugar, estado, pedir } = useUbicacion()
+  const { idioma } = useIdioma()
   const [properties, setProperties] = useState<Property[] | null>(null)
   const [cerca, setCerca] = useState(true)
 
@@ -122,7 +124,7 @@ export function MapSection() {
               )}
               <span className="truncate">
                 {cerca
-                  ? t('map.fence.on', { km: RADIO_KM })
+                  ? t('map.fence.on', { km: number(RADIO_KM, idioma) })
                   : t('map.fence.off')}
               </span>
             </span>

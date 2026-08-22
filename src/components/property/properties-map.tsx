@@ -158,9 +158,8 @@ export function PropertiesMap({
     const circulo = L.circle(centro, {
       radius: radioKm * 1000,
       color: '#0d0d0d',
-      weight: 1.5,
-      opacity: 0.5,
-      dashArray: '6 6',
+      weight: 2,
+      opacity: 0.55,
       fillColor: '#0d0d0d',
       fillOpacity: 0.06,
       interactive: false,
