@@ -58,17 +58,24 @@ export function AgentPanel({ property }: { property: Property }) {
         pulsa y conviene que quede el ultimo en la vista.
       */}
       <div className="flex min-w-0 flex-col gap-2.5 text-sm">
-        {/* `truncate` y no `break-all`: partir "serrano-inmobiliaria.com" a mitad
-            de palabra se lee peor que cortarlo con puntos suspensivos. */}
+        {/*
+          El correo entero, partido por donde se parte un correo.
+
+          Antes se cortaba con puntos suspensivos —"contacto@serrano-inmobi…"—
+          y un correo a medias no sirve para nada: ni se copia, ni se dicta por
+          telefono, ni se reconoce. Cortar por cualquier letra tampoco vale,
+          asi que se marcan los sitios por donde puede saltar de linea: despues
+          de la arroba y de cada punto. Si cabe en una linea, no salta.
+        */}
         <a
           href={`mailto:${email}?subject=${encodeURIComponent(
             t('property.agent.email_subject', { code: property.code }),
           )}`}
           title={email}
-          className="flex min-w-0 items-center gap-2 hover:underline"
+          className="flex min-w-0 items-start gap-2 hover:underline"
         >
-          <Mail className="size-4 shrink-0 text-muted-foreground" />
-          <span className="truncate">{email}</span>
+          <Mail className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+          <span className="min-w-0 leading-snug">{correoPartible(email)}</span>
         </a>
         <a href={`tel:${phone}`} className="flex items-center gap-2 hover:underline">
           <Phone className="size-4 shrink-0 text-muted-foreground" />
@@ -95,4 +102,22 @@ export function AgentPanel({ property }: { property: Property }) {
       </div>
     </div>
   )
+}
+
+/**
+ * El correo con puntos de corte, no partido a la fuerza.
+ *
+ * `<wbr>` marca donde PUEDE saltar de linea sin dibujar nada: el navegador solo
+ * lo usa si hace falta. Asi el correo se lee entero en una linea cuando cabe y
+ * salta por la arroba —o por un punto del dominio— cuando no, en vez de
+ * romperse a mitad de palabra o quedarse en puntos suspensivos.
+ */
+function correoPartible(email: string) {
+  const trozos = email.split(/(?<=[@.])/)
+  return trozos.map((trozo, i) => (
+    <span key={i}>
+      {trozo}
+      {i < trozos.length - 1 && <wbr />}
+    </span>
+  ))
 }
