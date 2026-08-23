@@ -52,12 +52,18 @@ export function UnitPhotos({
   const mosaico = images.slice(0, total === 4 ? 4 : 5)
   const forma = Math.min(total, 5)
 
+  /*
+    El alto es el mismo en todas las formas —y en escritorio, el de la columna
+    de al lado— para que las dos mitades de la rejilla terminen en la misma
+    linea. Con altos distintos, la columna corta dejaba un hueco blanco debajo
+    que se leia como algo sin terminar.
+  */
   const rejilla = {
-    1: 'grid-cols-1 h-[240px] sm:h-[380px]',
-    2: 'grid-cols-2 h-[200px] sm:h-[300px]',
-    3: 'grid-cols-2 grid-rows-2 h-[260px] sm:grid-cols-4 sm:h-[340px]',
-    4: 'grid-cols-2 grid-rows-2 h-[260px] sm:h-[380px]',
-    5: 'grid-cols-2 grid-rows-2 h-[260px] sm:grid-cols-4 sm:h-[340px]',
+    1: 'grid-cols-1 h-[240px] sm:h-[380px] lg:h-full',
+    2: 'grid-cols-2 h-[200px] sm:h-[300px] lg:h-full',
+    3: 'grid-cols-2 grid-rows-2 h-[260px] sm:grid-cols-4 sm:h-[340px] lg:h-full',
+    4: 'grid-cols-2 grid-rows-2 h-[260px] sm:h-[380px] lg:h-full',
+    5: 'grid-cols-2 grid-rows-2 h-[260px] sm:grid-cols-4 sm:h-[340px] lg:h-full',
   }[forma]
 
   /** Cuanto ocupa cada casilla, segun la forma que toque. */
@@ -70,7 +76,7 @@ export function UnitPhotos({
   }
 
   return (
-    <section>
+    <section className="lg:h-full">
       {/*
         Sin rotulo: una rejilla de fotos debajo del desplegable de unidades no
         necesita que le digan que son fotos. El titulo queda para quien navega

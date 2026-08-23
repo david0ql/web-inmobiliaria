@@ -200,8 +200,8 @@ export function ProjectPage() {
                 una sola decision. En rejilla, cambiar de tipologia cambia a la
                 vez lo que se lee y lo que se ve.
               */}
-              <div className="grid gap-5 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] lg:items-start">
-                <div className="flex flex-col gap-4">
+              <div className="grid gap-5 lg:h-[420px] lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
+                <div className="flex flex-col gap-4 lg:h-full">
                   <div className="rounded-lg border bg-card p-5 shadow-sm">
                     <label
                       htmlFor="unidad"
@@ -230,7 +230,12 @@ export function ProjectPage() {
                     </Select>
                   </div>
 
-                  <div className="rounded-lg border bg-secondary/40 px-5 py-4">
+                  {/*
+                    La caja del precio ocupa lo que sobra y centra su contenido:
+                    asi las dos columnas acaban a la misma altura sin que el
+                    texto quede colgando arriba de una caja vacia.
+                  */}
+                  <div className="flex flex-1 flex-col justify-center rounded-lg border bg-secondary/40 px-5 py-4">
                     <p className="text-xs tracking-widest text-muted-foreground uppercase">
                       {t('property.spec.code')}
                     </p>

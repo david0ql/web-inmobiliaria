@@ -21,7 +21,12 @@ function SelectTrigger({
         'data-[placeholder]:text-muted-foreground',
         'focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/15',
         'disabled:cursor-not-allowed disabled:opacity-50',
-        '*:data-[slot=select-value]:truncate',
+        /*
+          `truncate` no basta: dentro de un flex, el hijo tiene `min-width:auto`
+          y no encoge por debajo de su texto, asi que la etiqueta larga pasaba
+          por debajo de la flecha en vez de cortarse.
+        */
+        '*:data-[slot=select-value]:min-w-0 *:data-[slot=select-value]:truncate',
         className,
       )}
       {...props}
