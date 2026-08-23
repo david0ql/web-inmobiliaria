@@ -65,7 +65,7 @@ type VisitValues = z.infer<typeof schema>
  * de Bucaramanga, y una visita a las 10 tiene que decir 10 aquí y en Madrid.
  */
 export function VisitForm({ property }: { property: Property }) {
-  const { nota } = useNotaVisita()
+  const { nota, limpiar, sello } = useNotaVisita()
   const t = useT()
   const { idioma } = useIdioma()
   const [days, setDays] = useState<DayAvailability[]>([])
@@ -188,6 +188,33 @@ export function VisitForm({ property }: { property: Property }) {
         <CalendarCheck className="size-4" />
         {t('property.visit.title')}
       </p>
+
+      {/*
+        El plan que se trajo del simulador, a la vista desde el primer momento.
+
+        Antes se guardaba callado y no aparecia hasta elegir dia y hora: pulsar
+        "agendar con estas cifras" movia la pagina un poco y no pasaba nada
+        mas, asi que el boton parecia roto. Ahora se ve lo que se va a mandar,
+        y se puede quitar.
+      */}
+      {nota && (
+        <div
+          key={sello}
+          className="animate-in fade-in-0 slide-in-from-top-1 rounded-lg border border-primary/40 bg-primary/5 p-3 duration-500"
+        >
+          <p className="flex items-center justify-between gap-2 text-xs font-medium">
+            {t('visit.plan.title')}
+            <button
+              type="button"
+              onClick={limpiar}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              {t('visit.plan.remove')}
+            </button>
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">{nota}</p>
+        </div>
+      )}
 
       {days.length === 0 ? (
         <p className="rounded-md bg-secondary px-3 py-2 text-xs text-muted-foreground">

@@ -4,6 +4,10 @@ interface NotaVisita {
   nota: string
   /** Deja una nota para el formulario de visita y lleva la vista hasta él. */
   proponer: (nota: string) => void
+  /** La quita: quien la puso puede arrepentirse sin borrar texto a mano. */
+  limpiar: () => void
+  /** Sube cada vez que se propone una, para que el formulario pueda avisar. */
+  sello: number
 }
 
 const NotaContext = createContext<NotaVisita | null>(null)
@@ -27,21 +31,44 @@ export function NotaVisitaProvider({
   children: React.ReactNode
 }) {
   const [nota, setNota] = useState('')
+  const [sello, setSello] = useState(0)
 
   const proponer = useCallback((texto: string) => {
     setNota(texto)
-    // El formulario vive arriba a la derecha en escritorio y abajo del todo en
-    // móvil: sin llevar la vista, en móvil no pasa nada visible al pulsar.
-    document
-      .getElementById('agendar')
-      ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    // El sello cambia aunque el texto sea el mismo: pulsar dos veces con las
+    // mismas cifras tiene que volver a avisar, o el boton parece roto.
+    setSello((previo) => previo + 1)
+
+    /*
+      Centrado y no `start`: el formulario vive en una columna pegajosa que ya
+      suele estar a la vista, asi que alinearlo arriba movia la pagina cuatro
+      pixeles y el gesto se sentia como que no habia pasado nada. Centrado, el
+      formulario queda claramente en medio de la pantalla.
+    */
+    requestAnimationFrame(() => {
+      document
+        .getElementById('agendar')
+        ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    })
   }, [])
 
-  const valor = useMemo(() => ({ nota, proponer }), [nota, proponer])
+  const limpiar = useCallback(() => setNota(''), [])
+
+  const valor = useMemo(
+    () => ({ nota, proponer, limpiar, sello }),
+    [nota, proponer, limpiar, sello],
+  )
 
   return <NotaContext.Provider value={valor}>{children}</NotaContext.Provider>
 }
 
 export function useNotaVisita(): NotaVisita {
-  return useContext(NotaContext) ?? { nota: '', proponer: () => {} }
+  return (
+    useContext(NotaContext) ?? {
+      nota: '',
+      proponer: () => {},
+      limpiar: () => {},
+      sello: 0,
+    }
+  )
 }
