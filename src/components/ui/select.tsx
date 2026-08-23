@@ -22,11 +22,17 @@ function SelectTrigger({
         'focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/15',
         'disabled:cursor-not-allowed disabled:opacity-50',
         /*
-          `truncate` no basta: dentro de un flex, el hijo tiene `min-width:auto`
-          y no encoge por debajo de su texto, asi que la etiqueta larga pasaba
-          por debajo de la flecha en vez de cortarse.
+          El valor se corta; la flecha no se mueve.
+
+          Van dos cosas juntas y las dos hacen falta: dentro de un flex el hijo
+          tiene `min-width:auto` y no encoge por debajo de su texto —de ahi el
+          `min-w-0`— y sin `truncate` lo que no cabe se sale en vez de cortarse.
+
+          Se apunta al `span` y no a `[data-slot=select-value]` porque Radix no
+          pone ese atributo: es su propio span el que envuelve el valor, y la
+          regla anterior no llegaba a aplicarse nunca.
         */
-        '*:data-[slot=select-value]:min-w-0 *:data-[slot=select-value]:truncate',
+        '[&>span]:min-w-0 [&>span]:truncate',
         className,
       )}
       {...props}
