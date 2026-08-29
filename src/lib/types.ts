@@ -188,16 +188,19 @@ export interface Property {
   tourUrl: string | null
 
   /*
-    Las dos relaciones del proyecto solo viajan donde se piden.
+    Las relaciones viajan donde la consulta las pidio, y en ningun otro sitio.
 
     La API dejo de contestar `family: null` cuando la consulta no unia la
     relacion: decir "no tiene proyecto" no es lo mismo que "no se pregunto", y
     en los hermanos era ademas falso, porque son del mismo proyecto por
     definicion. Asi que la CLAVE no esta, y por eso van opcionales — como
-    `features` y `agent`, por lo mismo. Estan en la ficha del inmueble y en la
-    del proyecto; no en el listado, ni en los cercanos, ni en los hermanos
-    (estos ultimos si traen `unitType`). Los identificadores —`familyId`,
-    `unitTypeId`— si van siempre.
+    `features` y `agent`, por lo mismo. Los identificadores —`familyId`,
+    `unitTypeId`— si van siempre, en todas.
+
+    La regla es esa y no una lista de rutas: cual llega a donde depende de los
+    `leftJoin` de cada consulta, asi que el dia que alguien añada uno, aparece
+    la clave. Escribir aqui la tabla de hoy solo sirve para que envejezca sin
+    avisar; lo que no cambia es que hay que comprobar antes de leer.
   */
   family?: PropertyFamily | null
   /**
