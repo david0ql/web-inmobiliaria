@@ -187,7 +187,19 @@ export interface Property {
   /** Recorrido 360 (Kuula). */
   tourUrl: string | null
 
-  family: PropertyFamily | null
+  /*
+    Las dos relaciones del proyecto solo viajan donde se piden.
+
+    La API dejo de contestar `family: null` cuando la consulta no unia la
+    relacion: decir "no tiene proyecto" no es lo mismo que "no se pregunto", y
+    en los hermanos era ademas falso, porque son del mismo proyecto por
+    definicion. Asi que la CLAVE no esta, y por eso van opcionales — como
+    `features` y `agent`, por lo mismo. Estan en la ficha del inmueble y en la
+    del proyecto; no en el listado, ni en los cercanos, ni en los hermanos
+    (estos ultimos si traen `unitType`). Los identificadores —`familyId`,
+    `unitTypeId`— si van siempre.
+  */
+  family?: PropertyFamily | null
   /**
    * La tipologia a la que pertenece.
    *
@@ -197,7 +209,7 @@ export interface Property {
    * despliegan a la vez, y porque pintar la union sin comprobarla dejaba un
    * "[object Object]" al lado del nombre del proyecto.
    */
-  unitType: string | PropertyUnitType | null
+  unitType?: string | PropertyUnitType | null
   unitTypeId?: string | null
 
   /** En el listado viene solo la portada; en la ficha, todas. */
