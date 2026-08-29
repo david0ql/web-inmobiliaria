@@ -459,13 +459,20 @@ function completar(grupo: UnitTypeGroup): void {
  * ninguna a la que atarse.
  *
  * No es un camino normal ni una segunda fuente de verdad — es un seguro contra
- * un dato incompleto. Con el inventario migrado no se dispara: no hay un solo
- * inmueble con proyecto y sin tipologia, y desde que la API manda su propia
- * bolsa para lo que no esta clasificado, ni siquiera ese caso llega aqui.
- * Queda para lo que ninguna de las dos cosas cubre: una unidad que la ficha
- * traiga y que no encaje en ninguna fila. Existe para que un inmueble EN VENTA
- * no desaparezca de la web, que es un fallo mucho mas barato de cometer que de
- * detectar.
+ * un dato incompleto, y a estas alturas casi inalcanzable.
+ *
+ * Que haya unidades sin clasificar SI es un caso real y corriente: borrar una
+ * tipologia desde el panel deja sus inmuebles asi. Pero eso ya no llega hasta
+ * aqui, porque la API manda una fila propia para ellas —sin `id`, la ultima— y
+ * es esa la que se usa; ver `bolsa` en `agruparPorTipologia()`. Lo unico que
+ * cae en esta funcion es lo que ni la tabla ni la bolsa cubren: una unidad que
+ * la ficha traiga y que no encaje en ninguna fila. Si alguna vez se ve un grupo
+ * con `derivada: true`, es que algo se rompio aguas arriba.
+ *
+ * Se conserva porque el fallo que evita es caro: un inmueble EN VENTA que
+ * desaparece de la web no lo nota nadie. El precio de tenerla es que el
+ * desplegable enseñaria una opcion mas de las que dice `unitTypeCount` en la
+ * tarjeta; enseñar el inmueble vale mas que cuadrar el numero.
  *
  * Por eso una derivada nunca lleva `code` ni `name`: si se inventara un "Tipo
  * A" competiria con los codigos de verdad de la agencia, y el comprador leeria
