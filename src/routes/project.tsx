@@ -386,6 +386,23 @@ export function ProjectPage() {
               </div>
 
               {/*
+                Lo que la agencia quiso contar de esta tipologia y no cabe en
+                una cifra: "esquinero", "con vista al parque".
+
+                Va aqui abajo y no dentro de la caja del desplegable porque la
+                rejilla de arriba tiene alto fijo —para que las fotos y los
+                datos terminen en la misma linea— y un texto libre la
+                desbordaria. Solo aparece si esta escrita; hoy no lo esta en
+                ninguna, y esa es justamente la razon de que se pintara sola el
+                dia que alguien la escriba.
+              */}
+              {grupo.tipologia.description && (
+                <p className="text-sm leading-relaxed whitespace-pre-line text-muted-foreground">
+                  {grupo.tipologia.description}
+                </p>
+              )}
+
+              {/*
                 Lo que costaria de verdad, antes de hablar con nadie.
 
                 Es la pregunta que sigue al precio —"¿y eso como se paga?"— y

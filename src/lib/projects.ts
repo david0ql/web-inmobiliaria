@@ -90,6 +90,13 @@ export interface UnitTypeSummary {
    * no haya con que componer nada.
    */
   name: string | null
+  /**
+   * Lo que la agencia escribio SOBRE esta tipologia, para que se lea: "esquinero,
+   * con vista al parque". No se compone ni se deduce de nada, asi que si esta,
+   * se pinta tal cual — es lo unico de la tipologia que dice algo que los
+   * numeros no pueden decir.
+   */
+  description: string | null
   kind: UnitTypeKind
   propertyType: string | null
   units: number
@@ -293,17 +300,17 @@ export async function getProject(
  * version de tabla significan lo mismo. Las areas y los precios pueden venir en
  * texto: son `numeric` de Postgres, y `numeric` viaja como cadena.
  *
- * `description`, `propertyId` y `coverUrl` llegan y no se leen a proposito: no
- * hacen falta aqui, porque la ficha ya trae las unidades enteras con todas sus
- * fotos, y `propertyId` ademas no sirve para abrir la tipologia (ver
- * `destacada()` en la pagina de proyecto). Hubo tambien un `unitType`, copia de
- * `name` para no romper a quien lo consumiera; se retiro al quitar el andamio y
- * nunca se leyo.
+ * `propertyId` y `coverUrl` llegan y no se leen a proposito: no hacen falta
+ * aqui, porque la ficha ya trae las unidades enteras con todas sus fotos, y
+ * `propertyId` ademas no sirve para abrir la tipologia (ver `destacada()` en la
+ * pagina de proyecto). Hubo tambien un `unitType`, copia de `name` para no
+ * romper a quien lo consumiera; se retiro al quitar el andamio y nunca se leyo.
  */
 interface RawUnitType {
   id?: string | null
   code?: string | null
   name?: string | null
+  description?: string | null
   kind?: UnitTypeKind
   propertyType?: string | null
   units?: number | null
@@ -330,6 +337,7 @@ function normalizarTipologia(raw: RawUnitType): UnitTypeSummary {
       puerta y el rotulo se compone con lo que la bolsa si sabe de sus unidades.
     */
     name: raw.id ? limpiar(raw.name) : null,
+    description: limpiar(raw.description),
     kind: raw.kind === 'AUTO' ? 'AUTO' : 'FIXED',
     propertyType: limpiar(raw.propertyType),
     units: Number(raw.units ?? 0),
@@ -500,6 +508,8 @@ function derivarTipologias(properties: Property[]): UnitTypeGroup[] {
           // Nunca un codigo: ver la cabecera de esta funcion.
           code: null,
           name: null,
+          // Nadie la escribio, porque nadie escribio la tipologia.
+          description: null,
           // Sin alcobas por las que agrupar, lo unico que distingue una unidad
           // de otra es el area: eso es una tipologia AUTO, la de suelo.
           kind: property.bedrooms ? 'FIXED' : 'AUTO',
