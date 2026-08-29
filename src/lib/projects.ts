@@ -57,20 +57,50 @@ export interface ProjectSummary extends ProjectFamily {
 }
 
 /**
- * Una tipologia: todas las unidades que comparten forma, tipo y numero de
- * alcobas, agrupadas. Es como se compra obra nueva — nadie compara veinte
- * apartamentos casi iguales, compara "Tipo A, 3 alcobas, 78-84 m2".
+ * Quien decide la tipologia.
+ *
+ * `FIXED` la escribe la agencia —"Tipo A, 2 alcobas, 58 m2"— y manda ella.
+ * `AUTO` la pone la API por tramo de area, y es para suelo: en un loteo no hay
+ * dos lotes iguales, no hay alcobas por las que agrupar y escribir una
+ * tipologia por lote seria una por inmueble.
+ */
+export type UnitTypeKind = 'FIXED' | 'AUTO'
+
+/**
+ * Una tipologia del proyecto: el "Tipo A" del que hay veinte iguales. Es como
+ * se compra obra nueva — nadie compara veinte apartamentos casi iguales,
+ * compara "Tipo A · 3 alcobas · 73 – 75 m²".
+ *
+ * Los campos opcionales son los que solo existen desde que la API sirve la
+ * tabla `unit_type`; hasta entonces las tipologias se calculaban agrupando por
+ * `property.unit_type`, un texto libre que esta vacio en todo el inventario, y
+ * de ahi salia el "Sin clasificar" que se veia en la ficha. Ver
+ * `normalizarTipologia()` para el porque de aceptar las dos formas.
  */
 export interface UnitTypeSummary {
-  unitType: string | null
-  propertyType: string
+  /** Solo con la tabla: es lo que ata cada unidad a su tipologia. */
+  id: string | null
+  /** Corto y unico dentro del proyecto: "A", "B", "L1". */
+  code: string | null
+  /** El rotulo que escribio la agencia: "Tipo A · 2 alcobas · 58 m²". */
+  name: string | null
+  kind: UnitTypeKind
+  propertyType: string | null
   units: number
   available: number
   minArea: number | null
   maxArea: number | null
   bedrooms: number | null
+  bathrooms: number | null
+  garages: number | null
   minPrice: number | null
   maxPrice: number | null
+}
+
+/** Una tipologia con las unidades concretas que la componen. */
+export interface UnitTypeGroup {
+  tipologia: UnitTypeSummary
+  unidades: Property[]
 }
 
 export interface ProjectDetail {
@@ -222,12 +252,233 @@ export function getHomeProjects(signal?: AbortSignal) {
   return api.get<ProjectSummary[]>('/public/home/projects', undefined, signal)
 }
 
-export function getProject(slug: string, signal?: AbortSignal) {
-  return api.get<ProjectDetail>(
-    `/public/projects/${encodeURIComponent(slug)}`,
-    undefined,
-    signal,
+export async function getProject(
+  slug: string,
+  signal?: AbortSignal,
+): Promise<ProjectDetail> {
+  const payload = await api.get<Omit<ProjectDetail, 'unitTypes'> & {
+    unitTypes: RawUnitType[]
+  }>(`/public/projects/${encodeURIComponent(slug)}`, undefined, signal)
+
+  return { ...payload, unitTypes: payload.unitTypes.map(normalizarTipologia) }
+}
+
+// --- tipologias ------------------------------------------------------------
+
+/**
+ * Lo que puede llegar por el cable, que no es una sola cosa.
+ *
+ * La API paso de calcular las tipologias al vuelo a leerlas de la tabla
+ * `unit_type`, y las dos versiones nombran distinto lo mismo: el rango de area
+ * era `minArea`/`maxArea` y en la tabla es `areaMin`/`areaMax`, que ademas
+ * viaja en texto porque es un `numeric` de Postgres. Aceptar los dos nombres
+ * cuesta cuatro lineas y evita que el sitio se quede en blanco durante el rato
+ * que la API de produccion vaya por detras del despliegue — es lo mismo que ya
+ * hace `asPaginated()` con el listado.
+ */
+interface RawUnitType {
+  id?: string | null
+  code?: string | null
+  name?: string | null
+  kind?: UnitTypeKind
+  propertyType?: string | null
+  units?: number | null
+  available?: number | null
+  minArea?: number | string | null
+  maxArea?: number | string | null
+  areaMin?: number | string | null
+  areaMax?: number | string | null
+  bedrooms?: number | null
+  bathrooms?: number | null
+  garages?: number | null
+  minPrice?: number | string | null
+  maxPrice?: number | string | null
+  fromPrice?: number | string | null
+}
+
+function normalizarTipologia(raw: RawUnitType): UnitTypeSummary {
+  return {
+    id: raw.id ?? null,
+    code: limpiar(raw.code),
+    name: limpiar(raw.name),
+    kind: raw.kind === 'AUTO' ? 'AUTO' : 'FIXED',
+    propertyType: limpiar(raw.propertyType),
+    units: Number(raw.units ?? 0),
+    available: Number(raw.available ?? 0),
+    minArea: cifra(raw.minArea ?? raw.areaMin),
+    maxArea: cifra(raw.maxArea ?? raw.areaMax),
+    bedrooms: entero(raw.bedrooms),
+    bathrooms: entero(raw.bathrooms),
+    garages: entero(raw.garages),
+    minPrice: cifra(raw.minPrice ?? raw.fromPrice),
+    maxPrice: cifra(raw.maxPrice),
+  }
+}
+
+/**
+ * Cada tipologia con sus unidades, en el orden en que la API las manda.
+ *
+ * El vinculo bueno es `property.unitTypeId`, que es una clave ajena de verdad.
+ * Mientras no llegue —o para las unidades que la agencia aun no ha asignado— se
+ * cae al criterio con el que la API las agrupaba antes: mismo tipo de inmueble
+ * y mismas alcobas. No es lo mismo que una tipologia escrita a mano, pero es
+ * exactamente el criterio con el que estan contadas las cifras de la tarjeta
+ * del listado, asi que la ficha y la tarjeta dicen el mismo numero.
+ *
+ * Lo que sobre despues de eso NO se tira a un cajon de "Sin clasificar": se
+ * convierte en tipologias derivadas de las propias unidades. Un cajon con ese
+ * nombre era justo el sintoma del problema viejo, y ademas esconde unidades que
+ * estan en venta.
+ */
+export function agruparPorTipologia(
+  unitTypes: UnitTypeSummary[],
+  properties: Property[],
+): UnitTypeGroup[] {
+  const grupos = unitTypes.map((tipologia) => ({ tipologia, unidades: [] as Property[] }))
+  const porId = new Map(grupos.filter((g) => g.tipologia.id).map((g) => [g.tipologia.id, g]))
+  const porForma = new Map<string, UnitTypeGroup>()
+  for (const grupo of grupos) {
+    const clave = formaDe(grupo.tipologia.propertyType, grupo.tipologia.bedrooms)
+    if (!porForma.has(clave)) porForma.set(clave, grupo)
+  }
+
+  const sueltas: Property[] = []
+  for (const property of properties) {
+    const grupo =
+      (property.unitTypeId ? porId.get(property.unitTypeId) : undefined) ??
+      porForma.get(formaDe(property.propertyType?.name ?? null, property.bedrooms))
+    if (grupo) grupo.unidades.push(property)
+    else sueltas.push(property)
+  }
+
+  const conUnidades = grupos.filter((g) => g.unidades.length)
+  conUnidades.forEach(completar)
+
+  return [...conUnidades, ...derivarTipologias(sueltas)]
+}
+
+/**
+ * Rellena con las unidades lo que la tipologia no diga.
+ *
+ * No pisa nada: lo que la agencia escribio manda siempre. Es para los huecos —
+ * los baños y los garajes no existian cuando las tipologias se calculaban, y
+ * sin esto la ficha de un proyecto ya cargado se queda sin ellos hasta que
+ * alguien vuelva a escribir las tres tipologias a mano.
+ */
+function completar(grupo: UnitTypeGroup): void {
+  const t = grupo.tipologia
+  const { unidades } = grupo
+
+  t.propertyType ??= unidades[0].propertyType?.name ?? null
+  t.bedrooms ??= comun(unidades.map((p) => p.bedrooms))
+  t.bathrooms ??= comun(unidades.map((p) => p.bathrooms))
+  t.garages ??= comun(unidades.map((p) => p.garages))
+
+  if (t.minArea === null || t.maxArea === null) {
+    const areas = unidades.map(areaDe).filter((v): v is number => v !== null)
+    t.minArea ??= areas.length ? Math.min(...areas) : null
+    t.maxArea ??= areas.length ? Math.max(...areas) : null
+  }
+  if (t.minPrice === null) {
+    const precios = unidades
+      .map((p) => p.salePrice)
+      .filter((v): v is number => !!v)
+    t.minPrice = precios.length ? Math.min(...precios) : null
+  }
+}
+
+/**
+ * Tipologias sacadas de las unidades mismas, para cuando el proyecto no tiene
+ * ninguna escrita. Agrupa por tipo de inmueble y alcobas, que es el criterio
+ * con el que la API resumia el proyecto antes de existir la tabla.
+ */
+function derivarTipologias(properties: Property[]): UnitTypeGroup[] {
+  const grupos = new Map<string, UnitTypeGroup>()
+
+  for (const property of properties) {
+    const clave = formaDe(property.propertyType?.name ?? null, property.bedrooms)
+    let grupo = grupos.get(clave)
+    if (!grupo) {
+      grupo = {
+        tipologia: {
+          id: null,
+          code: null,
+          name: null,
+          // Sin alcobas por las que agrupar, lo unico que distingue una unidad
+          // de otra es el area: eso es una tipologia AUTO, la de suelo.
+          kind: property.bedrooms ? 'FIXED' : 'AUTO',
+          propertyType: property.propertyType?.name ?? null,
+          units: 0,
+          available: 0,
+          minArea: null,
+          maxArea: null,
+          bedrooms: property.bedrooms,
+          bathrooms: property.bathrooms,
+          garages: property.garages,
+          minPrice: null,
+          maxPrice: null,
+        },
+        unidades: [],
+      }
+      grupos.set(clave, grupo)
+    }
+    grupo.unidades.push(property)
+  }
+
+  for (const grupo of grupos.values()) {
+    const t = grupo.tipologia
+    t.units = grupo.unidades.length
+    t.available = grupo.unidades.filter((p) => p.availability === 'AVAILABLE').length
+    const areas = grupo.unidades.map(areaDe).filter((v): v is number => v !== null)
+    const precios = grupo.unidades
+      .map((p) => p.salePrice)
+      .filter((v): v is number => !!v)
+    t.minArea = areas.length ? Math.min(...areas) : null
+    t.maxArea = areas.length ? Math.max(...areas) : null
+    t.minPrice = precios.length ? Math.min(...precios) : null
+    t.maxPrice = precios.length ? Math.max(...precios) : null
+    // Los baños de la tipologia son los de sus unidades solo si coinciden: si
+    // no, decir "2 baños" de un grupo donde hay de 1 y de 2 es mentir.
+    t.bathrooms = comun(grupo.unidades.map((p) => p.bathrooms))
+    t.garages = comun(grupo.unidades.map((p) => p.garages))
+  }
+
+  return [...grupos.values()].sort(
+    (a, b) => (a.tipologia.minArea ?? 0) - (b.tipologia.minArea ?? 0),
   )
+}
+
+/** El area por la que se compara una unidad: la construida, o la del lote. */
+export function areaDe(property: Property): number | null {
+  return property.builtArea ?? property.area ?? null
+}
+
+/** Un proyecto de suelo no tiene alcobas ni baños: no hay nada que pintar. */
+export function esSuelo(tipologia: UnitTypeSummary): boolean {
+  return tipologia.kind === 'AUTO' || !tipologia.bedrooms
+}
+
+function formaDe(propertyType: string | null, bedrooms: number | null): string {
+  return `${propertyType ?? ''}|${bedrooms ?? ''}`
+}
+
+function comun(valores: (number | null)[]): number | null {
+  const primero = valores[0] ?? null
+  return valores.every((v) => (v ?? null) === primero) ? primero : null
+}
+
+function limpiar(value: string | null | undefined): string | null {
+  return value?.trim() || null
+}
+
+function cifra(value: number | string | null | undefined): number | null {
+  if (value === null || value === undefined || value === '') return null
+  const n = Number(value)
+  return Number.isFinite(n) ? n : null
+}
+
+function entero(value: number | null | undefined): number | null {
+  return value === null || value === undefined ? null : Number(value)
 }
 
 /**

@@ -153,7 +153,10 @@ export interface Property {
   tourUrl: string | null
 
   family: PropertyFamily | null
+  /** Texto libre heredado de WASI; esta vacio en todo el inventario. */
   unitType: string | null
+  /** La tipologia a la que pertenece, ya como fila de `unit_type`. */
+  unitTypeId?: string | null
 
   /** En el listado viene solo la portada; en la ficha, todas. */
   images: PropertyImage[]
