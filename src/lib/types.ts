@@ -102,6 +102,33 @@ export interface PropertyFamily {
   developer: string | null
 }
 
+/**
+ * La tipologia de un inmueble, tal como viaja en su ficha.
+ *
+ * OJO: no es la misma forma que las filas de `unitTypes` de la ficha de
+ * proyecto, aunque sea el mismo concepto. Alli va un resumen calculado —areas
+ * en `minArea`/`maxArea` y como numeros—; aqui va la ENTIDAD, con los nombres
+ * de sus columnas (`areaMin`, `areaMax`) y las areas en texto, porque son
+ * `numeric` de Postgres y `numeric` se serializa como cadena. Se declara como
+ * llega de verdad y no como convendria que llegase: un tipo que promete
+ * `minArea` donde hay `areaMin` no falla al compilar, falla al ejecutar.
+ */
+export interface PropertyUnitType {
+  id: string
+  /** Corto y unico dentro del proyecto: "A", "B", y "L1" en suelo. */
+  code: string | null
+  /** Compuesto y en español; el sitio lo rearma, no lo pinta. */
+  name: string | null
+  kind: 'FIXED' | 'AUTO' | null
+  bedrooms: number | null
+  bathrooms: number | null
+  garages: number | null
+  areaMin: string | null
+  areaMax: string | null
+  builtArea: string | null
+  position: number
+}
+
 export interface Property {
   /** UUID interno. Solo lo pide POST /public/visits; las URLs usan `code`. */
   id: string
@@ -153,9 +180,16 @@ export interface Property {
   tourUrl: string | null
 
   family: PropertyFamily | null
-  /** Texto libre heredado de WASI; esta vacio en todo el inventario. */
-  unitType: string | null
-  /** La tipologia a la que pertenece, ya como fila de `unit_type`. */
+  /**
+   * La tipologia a la que pertenece.
+   *
+   * Viaja de dos maneras segun la version de la API: como el texto libre que
+   * heredamos de WASI —vacio en todo el inventario— y, desde que existe la
+   * tabla `unit_type`, como la fila entera. Se admiten las dos porque no se
+   * despliegan a la vez, y porque pintar la union sin comprobarla dejaba un
+   * "[object Object]" al lado del nombre del proyecto.
+   */
+  unitType: string | PropertyUnitType | null
   unitTypeId?: string | null
 
   /** En el listado viene solo la portada; en la ficha, todas. */

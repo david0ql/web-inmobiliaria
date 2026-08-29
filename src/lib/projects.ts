@@ -320,7 +320,14 @@ function normalizarTipologia(raw: RawUnitType): UnitTypeSummary {
   return {
     id: raw.id ?? null,
     code: limpiar(raw.code),
-    name: limpiar(raw.name),
+    /*
+      Sin `id` no es una tipologia de la agencia: es la bolsa que la API manda
+      para lo que nadie ha clasificado, y se llama "Sin clasificar". Ese cartel
+      es un aviso para el panel —ahi hay trabajo pendiente— y no algo que
+      ofrecerle a quien esta comprando, asi que el nombre se descarta en la
+      puerta y el rotulo se compone con lo que la bolsa si sabe de sus unidades.
+    */
+    name: raw.id ? limpiar(raw.name) : null,
     kind: raw.kind === 'AUTO' ? 'AUTO' : 'FIXED',
     propertyType: limpiar(raw.propertyType),
     units: Number(raw.units ?? 0),
@@ -391,13 +398,22 @@ export function agruparPorTipologia(
           .reverse(),
       )
 
+  /*
+    Lo que no esta clasificado tiene su propia fila en la respuesta —sin `id`,
+    siempre la ultima— y se usa ESA en vez de deducir una aqui. Es la diferencia
+    entre repetir lo que dice la API y opinar por encima: sus `units` y su
+    `available` son los que la tarjeta del listado ya sumo, asi que las opciones
+    del desplegable y el numero de la tarjeta cuadran sin compensar nada.
+  */
+  const bolsa = porId.size ? grupos.find((g) => !g.tipologia.id) : undefined
+
   const sueltas: Property[] = []
   for (const property of properties) {
     const grupo = porForma
       ? porForma.get(formaDe(property.propertyType?.name ?? null, property.bedrooms))
       : property.unitTypeId
         ? porId.get(property.unitTypeId)
-        : undefined
+        : bolsa
     if (grupo) grupo.unidades.push(property)
     else sueltas.push(property)
   }
@@ -444,9 +460,12 @@ function completar(grupo: UnitTypeGroup): void {
  *
  * No es un camino normal ni una segunda fuente de verdad — es un seguro contra
  * un dato incompleto. Con el inventario migrado no se dispara: no hay un solo
- * inmueble con proyecto y sin tipologia. Existe para que un inmueble EN VENTA
- * no desaparezca de la web el dia que alguien cree uno y se le olvide
- * clasificarlo, que es un fallo mucho mas barato de cometer que de detectar.
+ * inmueble con proyecto y sin tipologia, y desde que la API manda su propia
+ * bolsa para lo que no esta clasificado, ni siquiera ese caso llega aqui.
+ * Queda para lo que ninguna de las dos cosas cubre: una unidad que la ficha
+ * traiga y que no encaje en ninguna fila. Existe para que un inmueble EN VENTA
+ * no desaparezca de la web, que es un fallo mucho mas barato de cometer que de
+ * detectar.
  *
  * Por eso una derivada nunca lleva `code` ni `name`: si se inventara un "Tipo
  * A" competiria con los codigos de verdad de la agencia, y el comprador leeria
@@ -520,6 +539,27 @@ function derivarTipologias(properties: Property[]): UnitTypeGroup[] {
 /** El area por la que se compara una unidad: la construida, o la del lote. */
 export function areaDe(property: Property): number | null {
   return property.builtArea ?? property.area ?? null
+}
+
+/**
+ * Como se nombra la tipologia de un inmueble suelto, al lado del proyecto:
+ * "BOSQUES DEL HATO · Tipo A".
+ *
+ * Solo con el codigo, que es lo unico traducible —"A" es "A" en los dos
+ * idiomas—. El `name` de la fila viene compuesto y en español, y la fila de lo
+ * que la API no tiene clasificado se llama literalmente "Sin clasificar": ese
+ * cartel es para el panel, no para quien esta mirando el inmueble. Sin codigo,
+ * no se dice nada, que es mejor que decirlo mal.
+ */
+export function nombreTipologia(
+  unitType: Property['unitType'],
+  t: (key: string, vars?: Record<string, string | number>) => string,
+): string | null {
+  if (!unitType) return null
+  // La API vieja lo servia como texto libre. Esta vacio en todo el inventario,
+  // pero si alguien lo hubiera escrito a mano, es lo que quiso escribir.
+  if (typeof unitType === 'string') return unitType.trim() || null
+  return unitType.code ? t('project.unitType.code', { code: unitType.code }) : null
 }
 
 /** Un proyecto de suelo no tiene alcobas ni baños: no hay nada que pintar. */

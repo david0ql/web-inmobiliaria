@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/misc'
 import {businessType, money} from '@/lib/format'
 import { portadaInyectada } from '@/lib/ficha-inyectada'
+import { nombreTipologia } from '@/lib/projects'
 import { registerVisit } from '@/lib/api'
 import { breadcrumbJsonLd, propertyJsonLd } from '@/lib/seo'
 import { ROUTES, SITE } from '@/lib/site'
@@ -94,6 +95,7 @@ function Detail({ data }: { data: PropertyData }) {
   )?.trim()
   const siblings = data.siblings
   const amount = property.salePrice ?? property.rentPrice
+  const tipologia = nombreTipologia(property.unitType, t)
 
   // El contador de visitas. Va aqui y no en la lectura para que la ficha se
   // pueda cachear; ademas cuenta mejor, porque mide fichas abiertas y no
@@ -240,7 +242,7 @@ function Detail({ data }: { data: PropertyData }) {
                 </span>
                 <span className="block truncate font-medium">
                   {property.family.name}
-                  {property.unitType ? ` · ${property.unitType}` : ''}
+                  {tipologia ? ` · ${tipologia}` : ''}
                 </span>
               </span>
               <span className="flex shrink-0 items-center gap-1 text-sm">
