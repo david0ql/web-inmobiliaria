@@ -113,17 +113,16 @@ export interface PropertyFamily {
 /**
  * La tipologia de un inmueble, tal como viaja en su ficha.
  *
- * Solo el nucleo estable. El campo esta a mitad de un cambio en la API: servia
- * la ENTIDAD cruda —areas en `areaMin`/`areaMax` y en texto, porque son
- * `numeric` de Postgres— y pasa a servir el mismo resumen recortado que las
- * filas de `unitTypes` —`minArea`/`maxArea`, en numeros—. Lo que se declara
- * aqui es lo que significa y se llama igual en las dos versiones.
+ * Ya no hay ambiguedad: la API servia la ENTIDAD cruda —areas en
+ * `areaMin`/`areaMax` y en texto, porque son `numeric` de Postgres— y ahora
+ * sirve el mismo resumen recortado que las filas de `unitTypes`. Las areas se
+ * llaman `minArea`/`maxArea`/`builtArea` y son numeros, igual que alli.
  *
- * Las areas se quedan fuera a proposito hasta que el cambio este desplegado:
- * el sitio no las necesita de aqui —el rango se lee de la tipologia del
- * proyecto— y declarar un nombre que depende de que version conteste es como
- * se cuela un `undefined` que TypeScript no ve. Quien las necesite, que mire
- * antes que responde la API.
+ * Aun asi no se declaran, y no por prudencia sino por la regla de la cabecera
+ * de este fichero: el sitio no las necesita de aqui —el rango de la tipologia
+ * se lee de la ficha del proyecto, que es donde se compara—. Añadirlas ahora
+ * es seguro; añadirlas sin usarlas solo hace que el tipo deje de decir que
+ * necesita el sitio.
  */
 export interface PropertyUnitType {
   id: string

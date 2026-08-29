@@ -628,7 +628,17 @@ function rangoArea(tipologia: UnitTypeSummary, idioma: Idioma): string | null {
  *    entrada lo unico que no se puede comprar.
  *
  * Con la representante ya corregida las dos coinciden salvo en ese segundo
- * caso, que es justo donde esta debe ganar.
+ * caso, que es justo donde esta debe ganar: 13 de 13 tipologias publicadas.
+ *
+ * Queda un acoplamiento que conviene conocer antes de tocar esto: el "desde" es
+ * el `minPrice` de la API, calculado sobre las unidades PUBLICADAS, mientras
+ * que esta es la mas barata de las DISPONIBLES. Hoy coinciden en todas —medido
+ * aguas arriba—, pero si alguna vez la mas barata publicada estuviera vendida,
+ * la caja enseñaria un "desde" mas bajo que el precio de la unidad abierta. La
+ * solucion no es calcular aqui otro "desde": seria distinto del que pinta la
+ * tarjeta del listado, que es el mismo `minPrice`, y volveriamos al descuadre
+ * entre las dos pantallas. Se arregla filtrando `minPrice` por disponibilidad
+ * en la API.
  */
 function destacada(grupo: UnitTypeGroup | undefined): Property | undefined {
   const libres = grupo?.unidades.filter((p) => p.availability === 'AVAILABLE')
