@@ -512,11 +512,19 @@ function etiqueta(
 /**
  * Como se nombra una tipologia: "Tipo A · 3 alcobas · 73 – 75 m²".
  *
- * Si la agencia le escribio un nombre manda ese, que para eso es una decision
- * suya y no una consecuencia de los datos —puede llamarla "Esquinero" porque
- * mira al parque, y ningun calculo sobre el area lo sabria—. Si no, se arma con
- * sus piezas, que es lo unico que se puede traducir: el tipo de inmueble viene
- * del catalogo y va por identificador, no por su texto en español.
+ * El rotulo se COMPONE aqui y no se coge de `tipologia.name`, aunque la base ya
+ * guarde uno hecho con estas mismas piezas: ese viene siempre en español, y
+ * pintarlo tal cual dejaba "Tipo A · 3 alcobas · 73 – 75 m²" en mitad del sitio
+ * en ingles. Las piezas sueltas si se traducen — las alcobas por su clave, el
+ * area por el formato del idioma, y el tipo de inmueble por identificador
+ * (`catalog.propertyType.11`) para que corregir una tilde en el panel no rompa
+ * la traduccion. `name` queda de ultimo recurso, para una tipologia tan vacia
+ * que no haya con que componer nada.
+ *
+ * En suelo manda el area y no el codigo. "Tipo L1" no le dice nada a quien
+ * compra un lote y ademas esconde lo unico que distingue un tramo de otro: para
+ * una tipologia AUTO el rango ES la tipologia, asi que la cabecera es el tipo de
+ * inmueble y el rango va detras.
  */
 function etiquetaTipologia(
   grupo: UnitTypeGroup,
@@ -525,19 +533,12 @@ function etiquetaTipologia(
   tipo: (type?: PropertyType | null) => string | null,
 ): string {
   const { tipologia } = grupo
-  if (tipologia.name) return tipologia.name
+  const suelo = esSuelo(tipologia)
 
-  /*
-    El tipo de inmueble sale de una unidad y no del texto que trae la
-    tipologia: el catalogo se traduce por identificador —`catalog.propertyType.11`—
-    para que corregir una tilde en el panel no rompa la traduccion, y la
-    tipologia solo trae el nombre en español.
-  */
-  const cabecera = tipologia.code
-    ? t('project.unitType.code', { code: tipologia.code })
-    : (tipo(grupo.unidades[0]?.propertyType) ??
-      tipologia.propertyType ??
-      t('property.fallback.type'))
+  const cabecera =
+    tipologia.code && !suelo
+      ? t('project.unitType.code', { code: tipologia.code })
+      : (tipo(grupo.unidades[0]?.propertyType) ?? tipologia.propertyType)
 
   /*
     Sin los baños: van en la linea de la unidad, justo debajo, y aqui solo
@@ -545,10 +546,10 @@ function etiquetaTipologia(
     que distingue una tipologia de otra —dos "3 alcobas" de 58 y de 89 m² no son
     lo mismo—, asi que es lo ultimo que puede caerse por truncado.
   */
-  return [
+  const compuesto = [
     cabecera,
     habitable(
-      esSuelo(tipologia) ? null : tipologia.bedrooms,
+      suelo ? null : tipologia.bedrooms,
       null,
       rangoArea(tipologia, idioma),
       t,
@@ -556,6 +557,8 @@ function etiquetaTipologia(
   ]
     .filter(Boolean)
     .join(' · ')
+
+  return compuesto || tipologia.name || t('property.fallback.type')
 }
 
 /**

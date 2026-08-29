@@ -80,9 +80,15 @@ export type UnitTypeKind = 'FIXED' | 'AUTO'
 export interface UnitTypeSummary {
   /** Solo con la tabla: es lo que ata cada unidad a su tipologia. */
   id: string | null
-  /** Corto y unico dentro del proyecto: "A", "B", "L1". */
+  /** Corto y unico dentro del proyecto: "A", "B", y "L1" en suelo. */
   code: string | null
-  /** El rotulo que escribio la agencia: "Tipo A · 2 alcobas · 58 m²". */
+  /**
+   * El rotulo ya compuesto que guarda la base: "Tipo A · 3 alcobas · 73 – 75
+   * m²". Viene SIEMPRE en español, asi que el sitio no lo pinta: se rearma en
+   * el cliente con `code`, `bedrooms` y el rango, que es lo unico que se puede
+   * traducir. Se conserva como ultimo recurso, para una tipologia tan vacia que
+   * no haya con que componer nada.
+   */
   name: string | null
   kind: UnitTypeKind
   propertyType: string | null
@@ -95,6 +101,13 @@ export interface UnitTypeSummary {
   garages: number | null
   minPrice: number | null
   maxPrice: number | null
+  /**
+   * El orden que decide la agencia. No se usa para ordenar: la API ya sirve las
+   * filas en ese orden y reordenarlas aqui solo abre la puerta a que las dos
+   * listas discrepen. Viaja para que se vea que es una decision suya y no del
+   * azar de la consulta.
+   */
+  position: number
 }
 
 /** Una tipologia con las unidades concretas que la componen. */
@@ -266,15 +279,17 @@ export async function getProject(
 // --- tipologias ------------------------------------------------------------
 
 /**
- * Lo que puede llegar por el cable, que no es una sola cosa.
+ * Lo que llega por el cable.
  *
- * La API paso de calcular las tipologias al vuelo a leerlas de la tabla
- * `unit_type`, y las dos versiones nombran distinto lo mismo: el rango de area
- * era `minArea`/`maxArea` y en la tabla es `areaMin`/`areaMax`, que ademas
- * viaja en texto porque es un `numeric` de Postgres. Aceptar los dos nombres
- * cuesta cuatro lineas y evita que el sitio se quede en blanco durante el rato
- * que la API de produccion vaya por detras del despliegue — es lo mismo que ya
- * hace `asPaginated()` con el listado.
+ * Todo opcional porque la API de produccion aun calcula las tipologias al vuelo
+ * y no manda `id`, `code`, `name` ni `kind` — los nombres que si comparte con la
+ * version de tabla significan lo mismo. Las areas y los precios pueden venir en
+ * texto: son `numeric` de Postgres, y `numeric` viaja como cadena.
+ *
+ * `unitType`, `description`, `propertyId` y `coverUrl` existen en la respuesta y
+ * no se leen a proposito: el primero es el texto libre viejo, duplicado de
+ * `name` para no romper a quien lo consumiera; los otros tres no hacen falta
+ * aqui, porque la ficha ya trae las unidades enteras con todas sus fotos.
  */
 interface RawUnitType {
   id?: string | null
@@ -286,14 +301,12 @@ interface RawUnitType {
   available?: number | null
   minArea?: number | string | null
   maxArea?: number | string | null
-  areaMin?: number | string | null
-  areaMax?: number | string | null
   bedrooms?: number | null
   bathrooms?: number | null
   garages?: number | null
   minPrice?: number | string | null
   maxPrice?: number | string | null
-  fromPrice?: number | string | null
+  position?: number | null
 }
 
 function normalizarTipologia(raw: RawUnitType): UnitTypeSummary {
@@ -305,13 +318,14 @@ function normalizarTipologia(raw: RawUnitType): UnitTypeSummary {
     propertyType: limpiar(raw.propertyType),
     units: Number(raw.units ?? 0),
     available: Number(raw.available ?? 0),
-    minArea: cifra(raw.minArea ?? raw.areaMin),
-    maxArea: cifra(raw.maxArea ?? raw.areaMax),
+    minArea: cifra(raw.minArea),
+    maxArea: cifra(raw.maxArea),
     bedrooms: entero(raw.bedrooms),
     bathrooms: entero(raw.bathrooms),
     garages: entero(raw.garages),
-    minPrice: cifra(raw.minPrice ?? raw.fromPrice),
+    minPrice: cifra(raw.minPrice),
     maxPrice: cifra(raw.maxPrice),
+    position: Number(raw.position ?? 0),
   }
 }
 
@@ -417,6 +431,7 @@ function derivarTipologias(properties: Property[]): UnitTypeGroup[] {
           garages: property.garages,
           minPrice: null,
           maxPrice: null,
+          position: grupos.size,
         },
         unidades: [],
       }
