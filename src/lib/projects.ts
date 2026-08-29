@@ -293,10 +293,12 @@ export async function getProject(
  * version de tabla significan lo mismo. Las areas y los precios pueden venir en
  * texto: son `numeric` de Postgres, y `numeric` viaja como cadena.
  *
- * `unitType`, `description`, `propertyId` y `coverUrl` existen en la respuesta y
- * no se leen a proposito: el primero es el texto libre viejo, duplicado de
- * `name` para no romper a quien lo consumiera; los otros tres no hacen falta
- * aqui, porque la ficha ya trae las unidades enteras con todas sus fotos.
+ * `description`, `propertyId` y `coverUrl` llegan y no se leen a proposito: no
+ * hacen falta aqui, porque la ficha ya trae las unidades enteras con todas sus
+ * fotos, y `propertyId` ademas no sirve para abrir la tipologia (ver
+ * `destacada()` en la pagina de proyecto). Hubo tambien un `unitType`, copia de
+ * `name` para no romper a quien lo consumiera; se retiro al quitar el andamio y
+ * nunca se leyo.
  */
 interface RawUnitType {
   id?: string | null

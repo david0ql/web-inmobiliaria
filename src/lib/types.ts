@@ -1,7 +1,15 @@
 /**
- * Los tipos del modulo `public` de la API. Solo lo que el sitio pinta: el
- * payload trae mas campos (wasiId, labelId, visits, assignedAgentId...) que aqui
- * no interesan y que no se declaran para que no acaben en pantalla por descuido.
+ * Los tipos del modulo `public` de la API. Solo lo que el sitio pinta.
+ *
+ * Durante un tiempo esto fue la unica defensa: las rutas publicas devolvian las
+ * entidades enteras —`wasiId`, `labelId`, `visits`, `assignedAgentId`, y de las
+ * fotos hasta `storageKey`, la ruta interna en el servidor— y no declararlas
+ * era lo que evitaba que acabaran en pantalla por descuido. Ya no: la API
+ * recorta en origen lo que sale por cada ruta publica.
+ *
+ * Se sigue declarando solo lo que se usa, pero ahora por otra razon: que el
+ * tipo diga que necesita el sitio de verdad. Si un campo desaparece del
+ * payload, aqui se ve a que pantalla afecta.
  */
 
 export interface Paginated<T> {
