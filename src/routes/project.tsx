@@ -614,7 +614,21 @@ function rangoArea(tipologia: UnitTypeSummary, idioma: Idioma): string | null {
  * La unidad con la que se abre una tipologia: la mas barata de las libres.
  *
  * Es la que sostiene el "desde" que se acaba de leer arriba; abrir por otra
- * hace que el precio grande no cuadre con el rotulo del desplegable.
+ * hace que el precio grande no cuadre con el rotulo del desplegable. La API
+ * manda su propia representante en `propertyId` y aun asi se calcula aqui, por
+ * dos razones que no caducan:
+ *
+ *  - `minPrice` y `propertyId` no siempre son la misma unidad. Medido contra
+ *    produccion: en 3 de 13 tipologias no lo eran, y en una el "desde" decia
+ *    210 M mientras su representante costaba 320 M. Se esta corrigiendo aguas
+ *    arriba, pero el precio de fiarse es enseñar dos cifras que se contradicen
+ *    en la misma caja.
+ *  - `propertyId` es la mas barata a secas; esta es la mas barata de las
+ *    LIBRES. Cuando la mas barata esta vendida, abrir por ella es enseñar de
+ *    entrada lo unico que no se puede comprar.
+ *
+ * Con la representante ya corregida las dos coinciden salvo en ese segundo
+ * caso, que es justo donde esta debe ganar.
  */
 function destacada(grupo: UnitTypeGroup | undefined): Property | undefined {
   const libres = grupo?.unidades.filter((p) => p.availability === 'AVAILABLE')

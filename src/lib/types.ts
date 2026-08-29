@@ -105,13 +105,17 @@ export interface PropertyFamily {
 /**
  * La tipologia de un inmueble, tal como viaja en su ficha.
  *
- * OJO: no es la misma forma que las filas de `unitTypes` de la ficha de
- * proyecto, aunque sea el mismo concepto. Alli va un resumen calculado —areas
- * en `minArea`/`maxArea` y como numeros—; aqui va la ENTIDAD, con los nombres
- * de sus columnas (`areaMin`, `areaMax`) y las areas en texto, porque son
- * `numeric` de Postgres y `numeric` se serializa como cadena. Se declara como
- * llega de verdad y no como convendria que llegase: un tipo que promete
- * `minArea` donde hay `areaMin` no falla al compilar, falla al ejecutar.
+ * Solo el nucleo estable. El campo esta a mitad de un cambio en la API: servia
+ * la ENTIDAD cruda —areas en `areaMin`/`areaMax` y en texto, porque son
+ * `numeric` de Postgres— y pasa a servir el mismo resumen recortado que las
+ * filas de `unitTypes` —`minArea`/`maxArea`, en numeros—. Lo que se declara
+ * aqui es lo que significa y se llama igual en las dos versiones.
+ *
+ * Las areas se quedan fuera a proposito hasta que el cambio este desplegado:
+ * el sitio no las necesita de aqui —el rango se lee de la tipologia del
+ * proyecto— y declarar un nombre que depende de que version conteste es como
+ * se cuela un `undefined` que TypeScript no ve. Quien las necesite, que mire
+ * antes que responde la API.
  */
 export interface PropertyUnitType {
   id: string
@@ -120,13 +124,10 @@ export interface PropertyUnitType {
   /** Compuesto y en español; el sitio lo rearma, no lo pinta. */
   name: string | null
   kind: 'FIXED' | 'AUTO' | null
+  /** Nulos en suelo, en las dos versiones: un lote no tiene ninguna de las tres. */
   bedrooms: number | null
   bathrooms: number | null
   garages: number | null
-  areaMin: string | null
-  areaMax: string | null
-  builtArea: string | null
-  position: number
 }
 
 export interface Property {
