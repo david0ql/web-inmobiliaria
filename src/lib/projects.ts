@@ -114,6 +114,13 @@ export interface UnitTypeSummary {
 export interface UnitTypeGroup {
   tipologia: UnitTypeSummary
   unidades: Property[]
+  /**
+   * La tipologia NO existe en el panel: la dedujo el cliente de las propias
+   * unidades porque no venia ninguna a la que atarlas. Ver `derivarTipologias()`
+   * — es una red contra un dato incompleto, no una segunda fuente de verdad, y
+   * por eso una derivada no tiene `code` ni puede tenerlo.
+   */
+  derivada: boolean
 }
 
 export interface ProjectDetail {
@@ -348,19 +355,49 @@ export function agruparPorTipologia(
   unitTypes: UnitTypeSummary[],
   properties: Property[],
 ): UnitTypeGroup[] {
-  const grupos = unitTypes.map((tipologia) => ({ tipologia, unidades: [] as Property[] }))
-  const porId = new Map(grupos.filter((g) => g.tipologia.id).map((g) => [g.tipologia.id, g]))
-  const porForma = new Map<string, UnitTypeGroup>()
-  for (const grupo of grupos) {
-    const clave = formaDe(grupo.tipologia.propertyType, grupo.tipologia.bedrooms)
-    if (!porForma.has(clave)) porForma.set(clave, grupo)
-  }
+  const grupos: UnitTypeGroup[] = unitTypes.map((tipologia) => ({
+    tipologia,
+    unidades: [],
+    derivada: false,
+  }))
+
+  const porId = new Map(
+    grupos.filter((g) => g.tipologia.id).map((g) => [g.tipologia.id, g]),
+  )
+
+  /*
+    Una sola verdad a la vez.
+
+    En cuanto UNA tipologia trae `id`, la tabla existe y la clave ajena es lo
+    unico que ata: una unidad sin `unitTypeId` es una unidad que la agencia no
+    ha clasificado, y meterla en el "Tipo A" porque tiene las mismas alcobas es
+    inventarse una decision suya. El comprador la veria dentro del Tipo A y el
+    panel la seguiria enseñando sin tipologia — la clase de discrepancia que no
+    detecta nadie.
+
+    El criterio viejo —mismo tipo de inmueble y mismas alcobas— solo se usa
+    mientras NO haya ni una fila con id, que es la API que aun calcula las
+    tipologias al vuelo. Ahi no hay nada que contradecir: es exactamente el
+    criterio con el que estan hechas las cifras que se enseñan.
+  */
+  const porForma = porId.size
+    ? null
+    : new Map(
+        grupos
+          .map((g): [string, UnitTypeGroup] => [
+            formaDe(g.tipologia.propertyType, g.tipologia.bedrooms),
+            g,
+          ])
+          .reverse(),
+      )
 
   const sueltas: Property[] = []
   for (const property of properties) {
-    const grupo =
-      (property.unitTypeId ? porId.get(property.unitTypeId) : undefined) ??
-      porForma.get(formaDe(property.propertyType?.name ?? null, property.bedrooms))
+    const grupo = porForma
+      ? porForma.get(formaDe(property.propertyType?.name ?? null, property.bedrooms))
+      : property.unitTypeId
+        ? porId.get(property.unitTypeId)
+        : undefined
     if (grupo) grupo.unidades.push(property)
     else sueltas.push(property)
   }
@@ -402,9 +439,24 @@ function completar(grupo: UnitTypeGroup): void {
 }
 
 /**
- * Tipologias sacadas de las unidades mismas, para cuando el proyecto no tiene
- * ninguna escrita. Agrupa por tipo de inmueble y alcobas, que es el criterio
- * con el que la API resumia el proyecto antes de existir la tabla.
+ * La red: tipologias sacadas de las unidades mismas, para las que no tienen
+ * ninguna a la que atarse.
+ *
+ * No es un camino normal ni una segunda fuente de verdad — es un seguro contra
+ * un dato incompleto. Con el inventario migrado no se dispara: no hay un solo
+ * inmueble con proyecto y sin tipologia. Existe para que un inmueble EN VENTA
+ * no desaparezca de la web el dia que alguien cree uno y se le olvide
+ * clasificarlo, que es un fallo mucho mas barato de cometer que de detectar.
+ *
+ * Por eso una derivada nunca lleva `code` ni `name`: si se inventara un "Tipo
+ * A" competiria con los codigos de verdad de la agencia, y el comprador leeria
+ * un nombre que en el panel no existe. Sin codigo, el rotulo cae solo en el
+ * tipo de inmueble —"Apartamento · 3 alcobas · 71 – 89 m²"— que describe sin
+ * afirmar que alguien lo decidio. Y `derivada` lo deja dicho en el dato, no
+ * solo en un comentario.
+ *
+ * Agrupa por tipo de inmueble y alcobas, que es el criterio con el que la API
+ * resumia el proyecto antes de existir la tabla.
  */
 function derivarTipologias(properties: Property[]): UnitTypeGroup[] {
   const grupos = new Map<string, UnitTypeGroup>()
@@ -414,8 +466,10 @@ function derivarTipologias(properties: Property[]): UnitTypeGroup[] {
     let grupo = grupos.get(clave)
     if (!grupo) {
       grupo = {
+        derivada: true,
         tipologia: {
           id: null,
+          // Nunca un codigo: ver la cabecera de esta funcion.
           code: null,
           name: null,
           // Sin alcobas por las que agrupar, lo unico que distingue una unidad
