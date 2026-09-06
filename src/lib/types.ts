@@ -108,6 +108,14 @@ export interface PropertyFamily {
   status: 'PLANNED' | 'UNDER_CONSTRUCTION' | 'DELIVERED' | 'SOLD_OUT'
   description: string | null
   developer: string | null
+  /**
+   * La portada del proyecto. La API ya la servia y nadie la leia; la ficha del
+   * inmueble la pinta ahora en el enlace al conjunto, porque con tres bloques
+   * de imagenes en la misma pagina —las fotos del inmueble, el plano de la
+   * tipologia y esto— una miniatura del edificio distingue de un vistazo cual
+   * de las tres es cual.
+   */
+  coverUrl?: string | null
 }
 
 /**
@@ -135,6 +143,34 @@ export interface PropertyUnitType {
   bedrooms: number | null
   bathrooms: number | null
   garages: number | null
+  /**
+   * El plano de la distribucion. Aqui SI se declara —al contrario que las
+   * areas— porque la ficha del inmueble lo pinta: quien mira un apartamento
+   * sobre planos quiere ver la distribucion sin irse al proyecto. La forma en
+   * que llega la normaliza `planoDe()`, que es la misma que usa la ficha del
+   * proyecto para que las dos pantallas enseñen exactamente el mismo plano.
+   */
+  plan?: PlanSource | string | null
+  planUrl?: string | null
+}
+
+/**
+ * El plano tal y como puede llegar: la imagen entera o solo su direccion.
+ *
+ * Se aceptan las dos porque una tipologia con UN plano no necesita una fila en
+ * la tabla de imagenes —un `planUrl` suelto basta— pero si la API acaba
+ * guardandolo con las demas, con sus tres anchos y su descripcion, tambien
+ * sirve. Quien lo convierte en algo pintable es `planoDe()`.
+ */
+export interface PlanSource {
+  id?: string | null
+  url?: string | null
+  urlMedium?: string | null
+  urlLarge?: string | null
+  urlOriginal?: string | null
+  description?: string | null
+  width?: number | null
+  height?: number | null
 }
 
 export interface Property {

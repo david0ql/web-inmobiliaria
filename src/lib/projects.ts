@@ -13,6 +13,7 @@ import { api } from './api'
 import type {
   City,
   Paginated,
+  PlanSource,
   Property,
   PropertyImage,
   Zone,
@@ -43,8 +44,10 @@ export interface ProjectFamily {
   deliveryYear: number | null
   totalUnits: number | null
   coverUrl: string | null
-  /* Opcional a proposito: hoy el listado solo trae `coverUrl`, y la tarjeta
-     monta el carrusel solo si algun dia llegan las fotos. */
+  /* Opcional a proposito, y no por prudencia: la relacion que no se pidio no
+     viaja. El listado sigue trayendo solo `coverUrl` —la tarjeta monta el
+     carrusel si llegan— y es la ficha del proyecto la que carga la galeria de
+     zonas comunes: fachada, piscina, salon comunal. Ver `ProjectGallery`. */
   images?: PropertyImage[]
   children?: ProjectFamily[]
 }
@@ -97,6 +100,15 @@ export interface UnitTypeSummary {
    * numeros no pueden decir.
    */
   description: string | null
+  /**
+   * El plano de la distribucion, cuando la agencia lo ha cargado.
+   *
+   * Es lo unico de la tipologia que contesta "¿como es por dentro?" sin que
+   * haya que imaginarselo, y no es una foto de la unidad: la unidad enseña ESE
+   * apartamento amueblado, el plano enseña la forma que comparten todos los
+   * "Tipo A". Se pinta aparte por eso — ver `TypologyPlan`.
+   */
+  plan: PropertyImage | null
   kind: UnitTypeKind
   propertyType: string | null
   units: number
@@ -311,6 +323,10 @@ interface RawUnitType {
   code?: string | null
   name?: string | null
   description?: string | null
+  /* El plano puede llegar de dos formas y las dos se aceptan: una imagen con
+     sus variantes, o la URL a secas. Ver `planoDe()`. */
+  plan?: PlanSource | string | null
+  planUrl?: string | null
   kind?: UnitTypeKind
   propertyType?: string | null
   units?: number | null
@@ -338,6 +354,7 @@ function normalizarTipologia(raw: RawUnitType): UnitTypeSummary {
     */
     name: raw.id ? limpiar(raw.name) : null,
     description: limpiar(raw.description),
+    plan: planoDe(raw.plan ?? raw.planUrl),
     kind: raw.kind === 'AUTO' ? 'AUTO' : 'FIXED',
     propertyType: limpiar(raw.propertyType),
     units: Number(raw.units ?? 0),
@@ -350,6 +367,57 @@ function normalizarTipologia(raw: RawUnitType): UnitTypeSummary {
     minPrice: cifra(raw.minPrice),
     maxPrice: cifra(raw.maxPrice),
     position: Number(raw.position ?? 0),
+  }
+}
+
+/**
+ * El plano, venga como venga.
+ *
+ * Acepta las dos formas a proposito. Una tipologia con UN plano no necesita una
+ * fila en una tabla de imagenes, asi que la API puede servirlo como un
+ * `planUrl` suelto; y si un dia lo guarda como las demas imagenes —con sus tres
+ * anchos y su descripcion— tambien vale. Lo que el sitio necesita es una foto
+ * con las cuatro variantes rellenas, porque eso es lo que sabe pintar y
+ * ampliar: cuando solo hay una URL, las cuatro son la misma.
+ *
+ * Una cadena vacia no es un plano: la API la devuelve cuando el campo existe y
+ * nadie lo ha subido, y pintaria una imagen rota bajo el titulo "Plano".
+ */
+export function planoDe(
+  raw: PlanSource | string | null | undefined,
+): PropertyImage | null {
+  if (!raw) return null
+
+  if (typeof raw === 'string') {
+    const url = raw.trim()
+    if (!url) return null
+    return {
+      id: 'plano',
+      url,
+      urlMedium: url,
+      urlLarge: url,
+      urlOriginal: url,
+      description: null,
+      position: 1,
+      isMain: true,
+      width: null,
+      height: null,
+    }
+  }
+
+  const url = limpiar(raw.urlLarge) ?? limpiar(raw.url) ?? limpiar(raw.urlOriginal)
+  if (!url) return null
+  return {
+    id: raw.id ?? 'plano',
+    url: limpiar(raw.url) ?? url,
+    urlMedium: limpiar(raw.urlMedium) ?? url,
+    urlLarge: limpiar(raw.urlLarge) ?? url,
+    urlOriginal: limpiar(raw.urlOriginal) ?? url,
+    description: limpiar(raw.description),
+    position: 1,
+    isMain: true,
+    width: raw.width ?? null,
+    height: raw.height ?? null,
   }
 }
 
@@ -508,8 +576,11 @@ function derivarTipologias(properties: Property[]): UnitTypeGroup[] {
           // Nunca un codigo: ver la cabecera de esta funcion.
           code: null,
           name: null,
-          // Nadie la escribio, porque nadie escribio la tipologia.
+          // Nadie la escribio, porque nadie escribio la tipologia. Por lo mismo
+          // no hay plano: un plano se sube a una tipologia del panel, y esta no
+          // existe alli.
           description: null,
+          plan: null,
           // Sin alcobas por las que agrupar, lo unico que distingue una unidad
           // de otra es el area: eso es una tipologia AUTO, la de suelo.
           kind: property.bedrooms ? 'FIXED' : 'AUTO',

@@ -9,19 +9,22 @@ import { cn } from '@/lib/utils'
 /**
  * Las fotos de la unidad elegida, en mosaico.
  *
- * Arriba de la pagina va una sola foto, la del proyecto: es la que dice donde
- * estas y no cambia al cambiar de unidad. Estas son otra cosa —el interior
- * concreto del apartamento que se esta mirando— y por eso van aqui abajo,
- * pegadas al desplegable que las decide.
+ * Arriba de la pagina va la galeria del proyecto: es la que dice donde estas y
+ * no cambia al cambiar de unidad. Estas son otra cosa —el interior concreto del
+ * apartamento que se esta mirando— y por eso van aqui abajo, pegadas al
+ * desplegable que las decide.
  *
  * Al pulsar cualquiera se abren a pantalla completa, que es donde de verdad se
  * miran unas fotos, con flechas y con las teclas del cursor.
  */
 export function UnitPhotos({
   images,
+  code,
   title,
 }: {
   images: PropertyImage[]
+  /** El codigo de la unidad, para el rotulo. Ver el contador de abajo. */
+  code?: string
   title: string
 }) {
   const t = useT()
@@ -78,9 +81,11 @@ export function UnitPhotos({
   return (
     <section className="lg:h-full">
       {/*
-        Sin rotulo: una rejilla de fotos debajo del desplegable de unidades no
-        necesita que le digan que son fotos. El titulo queda para quien navega
-        con lector de pantalla, que si necesita saber donde empieza el bloque.
+        Sin titulo propio: una rejilla de fotos debajo del desplegable de
+        unidades no necesita que le digan que son fotos. El titulo queda para
+        quien navega con lector de pantalla, que si necesita saber donde empieza
+        el bloque. Lo que si hace falta decir —de QUE unidad son— cabe en el
+        contador de abajo, que ya estaba puesto sobre la foto grande.
       */}
       <h2 className="sr-only">{t('project.unit.photos.title')}</h2>
 
@@ -115,11 +120,27 @@ export function UnitPhotos({
                 <Expand className="size-5 text-white" aria-hidden="true" />
               </span>
 
-              {index === 0 && total > 1 && (
-                /* El total va sobre la primera y no en la ultima casilla: la
-                   ultima cambia con el ancho de la pantalla, el numero no. */
+              {index === 0 && (
+                /*
+                  El rotulo va sobre la primera y no en la ultima casilla: la
+                  ultima cambia con el ancho de la pantalla, la primera no.
+
+                  Y lleva el codigo de la unidad porque en esta pagina hay tres
+                  bloques de imagenes —el proyecto arriba, el plano en medio y
+                  este— y una cocina suelta no dice de cual de las tres es. Con
+                  "9009194 · 5 fotos" queda claro que son de la unidad elegida,
+                  y ademas es el mismo codigo que se lee en la caja del precio,
+                  justo al lado.
+                */
                 <span className="tabular absolute bottom-3 left-3 rounded-full bg-black/70 px-3 py-1 text-xs text-white">
-                  {t('gallery.photo.count', { total })}
+                  {code
+                    ? t(
+                        total === 1
+                          ? 'project.unit.photos.count.one'
+                          : 'project.unit.photos.count.other',
+                        { code, total },
+                      )
+                    : t('gallery.photo.count', { total })}
                 </span>
               )}
             </button>

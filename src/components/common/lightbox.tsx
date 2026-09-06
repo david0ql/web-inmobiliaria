@@ -78,7 +78,11 @@ export function Lightbox({
                   index: (index ?? 0) + 1,
                 })
               }
-              className="max-h-[85vh] w-full rounded-lg object-contain"
+              /* El blanco de detras solo se ve cuando la imagen no lo tapa,
+                 que es el caso de los planos: llegan como PNG con el fondo
+                 transparente y sobre el velo oscuro del dialogo las lineas
+                 finas desaparecen. Una foto es opaca y no lo nota. */
+              className="max-h-[85vh] w-full rounded-lg bg-white object-contain"
             />
 
             {images.length > 1 && (

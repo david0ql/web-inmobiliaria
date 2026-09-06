@@ -11,13 +11,14 @@ import { FeatureList } from '@/components/property/feature-list'
 import { PropertyGallery } from '@/components/property/property-gallery'
 import { PropertyGrid } from '@/components/property/property-grid'
 import { PropertyMap } from '@/components/property/property-map'
+import { TypologyPlan } from '@/components/project/typology-plan'
 import { SpecTable } from '@/components/property/spec-table'
 import { VisitForm } from '@/components/property/visit-form'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/misc'
 import {businessType, money} from '@/lib/format'
 import { portadaInyectada } from '@/lib/ficha-inyectada'
-import { nombreTipologia } from '@/lib/projects'
+import { nombreTipologia, planoDe } from '@/lib/projects'
 import { registerVisit } from '@/lib/api'
 import { breadcrumbJsonLd, propertyJsonLd } from '@/lib/seo'
 import { ROUTES, SITE } from '@/lib/site'
@@ -96,6 +97,19 @@ function Detail({ data }: { data: PropertyData }) {
   const siblings = data.siblings
   const amount = property.salePrice ?? property.rentPrice
   const tipologia = nombreTipologia(property.unitType, t)
+
+  /*
+    El plano de la tipologia, si el inmueble es una unidad de un proyecto.
+
+    Quien mira un apartamento sobre planos quiere ver la distribucion aqui y no
+    tener que irse al proyecto a buscarla: el plano es de SU tipologia, no del
+    conjunto. La API vieja servia `unitType` como texto libre, y de un texto no
+    sale ningun plano.
+  */
+  const plano =
+    typeof property.unitType === 'object' && property.unitType
+      ? planoDe(property.unitType.plan ?? property.unitType.planUrl)
+      : null
 
   // El contador de visitas. Va aqui y no en la lectura para que la ficha se
   // pueda cachear; ademas cuenta mejor, porque mide fichas abiertas y no
@@ -236,13 +250,24 @@ function Detail({ data }: { data: PropertyData }) {
               to={`${ROUTES.projects}/${property.family.slug}`}
               className="flex items-center justify-between gap-4 rounded-lg border bg-secondary/40 px-5 py-4 transition-colors hover:bg-secondary"
             >
-              <span className="min-w-0">
-                <span className="block text-xs tracking-widest text-muted-foreground uppercase">
-                  {t('property.project.label')}
-                </span>
-                <span className="block truncate font-medium">
-                  {property.family.name}
-                  {tipologia ? ` · ${tipologia}` : ''}
+              <span className="flex min-w-0 items-center gap-3">
+                {property.family.coverUrl && (
+                  <img
+                    src={property.family.coverUrl}
+                    alt=""
+                    loading="lazy"
+                    decoding="async"
+                    className="size-14 shrink-0 rounded-md border object-cover"
+                  />
+                )}
+                <span className="min-w-0">
+                  <span className="block text-xs tracking-widest text-muted-foreground uppercase">
+                    {t('property.project.label')}
+                  </span>
+                  <span className="block truncate font-medium">
+                    {property.family.name}
+                    {tipologia ? ` · ${tipologia}` : ''}
+                  </span>
                 </span>
               </span>
               <span className="flex shrink-0 items-center gap-1 text-sm">
@@ -251,6 +276,22 @@ function Detail({ data }: { data: PropertyData }) {
               </span>
             </Link>
           )}
+
+          {/*
+            El plano va aqui, entre el enlace al proyecto y la descripcion, y no
+            arriba con la galeria: las fotos de arriba son de ESTE apartamento
+            —esta cocina, este balcon— y el plano es de todos los "Tipo A" a la
+            vez. Metido en la misma galeria se leeria como una foto rara del
+            inmueble; detras del enlace al proyecto se lee como lo que es, algo
+            que este inmueble hereda del conjunto.
+          */}
+          <TypologyPlan
+            plan={plano}
+            title={
+              [property.family?.name, tipologia].filter(Boolean).join(' · ') ||
+              titulo(property)
+            }
+          />
 
           {/*
             La descripcion. Primero la automatica —armada con los propios datos

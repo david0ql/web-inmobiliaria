@@ -5,8 +5,9 @@ import { useLocation } from 'react-router-dom'
 import { useLoaderData } from 'react-router-dom'
 import { Link } from '@/lib/nav'
 
-import { Lightbox } from '@/components/common/lightbox'
 import { PaymentPlan } from '@/components/property/payment-plan'
+import { ProjectGallery } from '@/components/project/project-gallery'
+import { TypologyPlan } from '@/components/project/typology-plan'
 import { UnitPhotos } from '@/components/project/unit-photos'
 import { AgentPanel } from '@/components/property/agent-panel'
 import { PropertyMap } from '@/components/property/property-map'
@@ -73,7 +74,6 @@ export function ProjectPage() {
     useLoaderData() as ProjectDetail
   const [tipologiaId, setTipologiaId] = useState('0')
   const [selectedId, setSelectedId] = useState('')
-  const [portadaAbierta, setPortadaAbierta] = useState(false)
   const { precio, moneda } = useCurrency()
   const { pathname } = useLocation()
   const t = useT()
@@ -125,12 +125,18 @@ export function ProjectPage() {
     : ''
 
   /*
-    Arriba, una sola foto: la del proyecto.
+    La foto con la que abre la pagina.
 
     Es la que dice donde estas, y no tiene por que cambiar al cambiar de unidad
     —el edificio es el mismo—. Las fotos del interior van abajo, pegadas al
     desplegable que las decide. Si el proyecto no tiene portada cargada se usa
     la de la unidad con mas fotos, que en la practica es una aerea del conjunto.
+
+    Sigue calculandose aqui aunque ya exista la galeria del proyecto porque es
+    tambien la imagen que se manda a las redes en la cabecera (`useSeo`), y ahi
+    hace falta una sola URL y no una lista. `ProjectGallery` la usa como unica
+    foto cuando el proyecto todavia no tiene galeria cargada, que hoy es el caso
+    de todos.
   */
   const portada = useMemo(() => {
     if (family.coverUrl) return family.coverUrl
@@ -207,43 +213,14 @@ export function ProjectPage() {
 
       <div className="grid gap-8 lg:grid-cols-12">
         <div className="flex min-w-0 flex-col gap-8 lg:col-span-8 xl:col-span-9">
-          {portada && (
-            <>
-              {/* La portada tambien se amplia: esta recortada a 420 px de alto
-                  y es la unica foto del conjunto entero. */}
-              <button
-                type="button"
-                onClick={() => setPortadaAbierta(true)}
-                aria-label={t('project.cover.zoom', { name: family.name })}
-                className="block cursor-zoom-in overflow-hidden rounded-lg border bg-secondary"
-              >
-                <img
-                  src={portada}
-                  alt={family.name}
-                  className="h-[240px] w-full object-cover sm:h-[340px] lg:h-[420px]"
-                />
-              </button>
-              <Lightbox
-                images={[
-                  {
-                    id: 'portada',
-                    url: portada,
-                    urlMedium: portada,
-                    urlLarge: portada,
-                    urlOriginal: portada,
-                    description: family.name,
-                    position: 1,
-                    isMain: true,
-                    width: null,
-                    height: null,
-                  },
-                ]}
-                index={portadaAbierta ? 0 : null}
-                onIndex={(i) => setPortadaAbierta(i !== null)}
-                title={family.name}
-              />
-            </>
-          )}
+          {/* Las zonas comunes, la fachada, la piscina: lo que se compra
+              ademas del apartamento. Si no hay ninguna, cae a la portada sola;
+              si tampoco la hay, no pinta nada. */}
+          <ProjectGallery
+            images={family.images}
+            cover={portada}
+            name={family.name}
+          />
 
           {selected ? (
             <>
@@ -381,9 +358,32 @@ export function ProjectPage() {
                 */}
                 <UnitPhotos
                   images={fotosDe(grupo, selected)}
+                  code={selected.code}
                   title={`${family.name} · ${selected.code}`}
                 />
               </div>
+
+              {/*
+                El plano de la tipologia elegida.
+
+                Va debajo de la rejilla y no dentro: la rejilla tiene alto fijo
+                para que las dos columnas terminen en la misma linea, y un plano
+                es la unica imagen de la pagina que NO se puede recortar para
+                que quepa. Y va antes de la descripcion porque las dos hablan de
+                lo mismo —como es esta tipologia—, asi que el texto se lee como
+                el pie del dibujo.
+              */}
+              <TypologyPlan
+                plan={grupo.tipologia.plan}
+                title={[
+                  family.name,
+                  grupo.tipologia.code
+                    ? t('project.unitType.code', { code: grupo.tipologia.code })
+                    : null,
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
+              />
 
               {/*
                 Lo que la agencia quiso contar de esta tipologia y no cabe en
