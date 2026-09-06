@@ -724,6 +724,7 @@
   "property.carousel.next": "Next",
   "property.carousel.previous": "Previous",
   "property.code": "Ref. {code}",
+  "property.code.label": "Reference",
   "property.fallback.type": "Property",
   "property.features.external": "Exterior features",
   "property.features.internal": "Interior features",

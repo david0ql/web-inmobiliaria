@@ -724,6 +724,7 @@
   "property.carousel.next": "Siguientes",
   "property.carousel.previous": "Anteriores",
   "property.code": "Cód. {code}",
+  "property.code.label": "Código",
   "property.fallback.type": "Inmueble",
   "property.features.external": "Características externas",
   "property.features.internal": "Características internas",

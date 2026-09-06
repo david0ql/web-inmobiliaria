@@ -225,8 +225,11 @@ function Detail({ data }: { data: PropertyData }) {
               las fotos y es lo primero que se mira. */}
           <div className="flex flex-wrap items-end justify-between gap-4 rounded-lg border bg-secondary/40 px-5 py-4">
             <div>
+              {/* Rotulo, no frase: el codigo va debajo, en su propia linea.
+                  `property.code` lleva dentro un {code} y aqui se pintaba
+                  crudo — "Cod. {code}" literal sobre la ficha. */}
               <p className="text-xs tracking-widest text-muted-foreground uppercase">
-                {t('property.code')}
+                {t('property.code.label')}
               </p>
               <p className="tabular text-lg font-semibold">{property.code}</p>
             </div>
