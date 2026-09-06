@@ -13,6 +13,7 @@ import {
   type ProjectSummary,
 } from '@/lib/projects'
 import type { PropertyImage } from '@/lib/types'
+import { soloFotos } from '@/lib/projects'
 
 /**
  * La tarjeta del listado de proyectos, con la misma anatomia que la de inmueble
@@ -29,9 +30,11 @@ export function ProjectCard({ project }: { project: ProjectSummary }) {
   const place = [project.zone?.name, project.city?.name]
     .filter(Boolean)
     .join(' · ')
-  /* El listado de proyectos hoy solo trae la portada; si algun dia trae las
-     fotos, la tarjeta pasa a carrusel sin tocar nada mas. */
-  const fotos = project.images ?? []
+  /* El listado de proyectos trae solo `coverUrl` a proposito —doce galerias
+     enteras para pintar doce miniaturas no compensa—, asi que esto casi siempre
+     esta vacio; si algun dia llegan, la tarjeta pasa a carrusel sin tocar nada
+     mas. Sin planos: el de implantacion de un conjunto no es su portada. */
+  const fotos = soloFotos(project.images)
 
   /* Una foto del proyecto, con sus tres anchos. */
   const foto = (image: PropertyImage, indice: number) => (

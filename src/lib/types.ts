@@ -73,8 +73,9 @@ export interface PropertyImage {
   id: string
   /** Miniatura, 560px. Rutas relativas servidas desde /media. */
   url: string
-  /** 1600px. */
+  /** 800px. */
   urlMedium: string | null
+  /** 1600px. */
   urlLarge: string
   /** Archivo, 2560px. */
   urlOriginal: string
@@ -83,7 +84,21 @@ export interface PropertyImage {
   isMain: boolean
   width: number | null
   height: number | null
+  /**
+   * Foto o plano.
+   *
+   * Es lo unico que separa las dos cosas: sin esta columna, saber cual de las
+   * imagenes de una tipologia es el plano dependeria del orden o del nombre del
+   * fichero. Un plano no va nunca en un carrusel de fotos —se lee, no se ojea—,
+   * asi que el sitio los separa en la puerta con `soloFotos()` y `soloPlanos()`.
+   *
+   * Opcional porque las respuestas anteriores a la galeria no lo traen: lo que
+   * no lo diga se trata como foto, que es lo que era todo hasta ahora.
+   */
+  kind?: ImageKind
 }
+
+export type ImageKind = 'PHOTO' | 'FLOOR_PLAN'
 
 export type Availability =
   | 'AVAILABLE'
@@ -144,33 +159,20 @@ export interface PropertyUnitType {
   bathrooms: number | null
   garages: number | null
   /**
-   * El plano de la distribucion. Aqui SI se declara —al contrario que las
-   * areas— porque la ficha del inmueble lo pinta: quien mira un apartamento
-   * sobre planos quiere ver la distribucion sin irse al proyecto. La forma en
-   * que llega la normaliza `planoDe()`, que es la misma que usa la ficha del
-   * proyecto para que las dos pantallas enseñen exactamente el mismo plano.
+   * El plano de la tipologia, ya resuelto por la API: la primera imagen con
+   * `kind` de plano, en su version de 1600 px.
+   *
+   * Aqui SI se declara —al contrario que las areas— porque la ficha del
+   * inmueble lo pinta: quien mira un apartamento sobre planos quiere ver la
+   * distribucion sin irse al proyecto.
+   *
+   * Opcional y no por prudencia: la API solo lo emite cuando la consulta cargo
+   * las imagenes de la tipologia, y la de la ficha de inmueble aun no las une.
+   * Mientras no lo haga, la clave no viene y la seccion no se pinta.
    */
-  plan?: PlanSource | string | null
   planUrl?: string | null
-}
-
-/**
- * El plano tal y como puede llegar: la imagen entera o solo su direccion.
- *
- * Se aceptan las dos porque una tipologia con UN plano no necesita una fila en
- * la tabla de imagenes —un `planUrl` suelto basta— pero si la API acaba
- * guardandolo con las demas, con sus tres anchos y su descripcion, tambien
- * sirve. Quien lo convierte en algo pintable es `planoDe()`.
- */
-export interface PlanSource {
-  id?: string | null
-  url?: string | null
-  urlMedium?: string | null
-  urlLarge?: string | null
-  urlOriginal?: string | null
-  description?: string | null
-  width?: number | null
-  height?: number | null
+  /** La galeria de la tipologia, con sus planos dentro. Ver `planosDe()`. */
+  images?: PropertyImage[]
 }
 
 export interface Property {

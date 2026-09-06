@@ -13,7 +13,6 @@ import { api } from './api'
 import type {
   City,
   Paginated,
-  PlanSource,
   Property,
   PropertyImage,
   Zone,
@@ -101,14 +100,27 @@ export interface UnitTypeSummary {
    */
   description: string | null
   /**
-   * El plano de la distribucion, cuando la agencia lo ha cargado.
+   * Los planos de la distribucion, cuando la agencia los ha cargado.
    *
-   * Es lo unico de la tipologia que contesta "¿como es por dentro?" sin que
-   * haya que imaginarselo, y no es una foto de la unidad: la unidad enseña ESE
+   * Son lo unico de la tipologia que contesta "¿como es por dentro?" sin que
+   * haya que imaginarselo, y no son fotos de la unidad: la unidad enseña ESE
    * apartamento amueblado, el plano enseña la forma que comparten todos los
-   * "Tipo A". Se pinta aparte por eso — ver `TypologyPlan`.
+   * "Tipo A". Se pintan aparte por eso — ver `TypologyPlan`.
+   *
+   * En plural porque un duplex tiene dos plantas y un apartamento con sotano
+   * tiene planta y sotano: enseñar solo el primero seria esconder medio piso.
+   * Casi siempre habra uno.
    */
-  plan: PropertyImage | null
+  planos: PropertyImage[]
+  /**
+   * Las fotos de la tipologia: el piso modelo, el render del salon.
+   *
+   * No son de una unidad concreta —eso son `unidades[].images`— sino de la
+   * forma que comparten todas. Sirven de respaldo del mosaico cuando la unidad
+   * elegida no tiene fotos propias, que es lo normal en obra nueva: se vende el
+   * Tipo A, no el apartamento 802.
+   */
+  fotos: PropertyImage[]
   kind: UnitTypeKind
   propertyType: string | null
   units: number
@@ -323,9 +335,9 @@ interface RawUnitType {
   code?: string | null
   name?: string | null
   description?: string | null
-  /* El plano puede llegar de dos formas y las dos se aceptan: una imagen con
-     sus variantes, o la URL a secas. Ver `planoDe()`. */
-  plan?: PlanSource | string | null
+  /* La galeria de la tipologia, con los planos dentro y marcados por `kind`, y
+     el atajo al primer plano ya resuelto por la API. Ver `planosDe()`. */
+  images?: PropertyImage[] | null
   planUrl?: string | null
   kind?: UnitTypeKind
   propertyType?: string | null
@@ -354,7 +366,8 @@ function normalizarTipologia(raw: RawUnitType): UnitTypeSummary {
     */
     name: raw.id ? limpiar(raw.name) : null,
     description: limpiar(raw.description),
-    plan: planoDe(raw.plan ?? raw.planUrl),
+    planos: planosDe(raw.images, raw.planUrl),
+    fotos: soloFotos(raw.images),
     kind: raw.kind === 'AUTO' ? 'AUTO' : 'FIXED',
     propertyType: limpiar(raw.propertyType),
     units: Number(raw.units ?? 0),
@@ -371,53 +384,66 @@ function normalizarTipologia(raw: RawUnitType): UnitTypeSummary {
 }
 
 /**
- * El plano, venga como venga.
+ * Las fotos de una galeria, sin los planos.
  *
- * Acepta las dos formas a proposito. Una tipologia con UN plano no necesita una
- * fila en una tabla de imagenes, asi que la API puede servirlo como un
- * `planUrl` suelto; y si un dia lo guarda como las demas imagenes —con sus tres
- * anchos y su descripcion— tambien vale. Lo que el sitio necesita es una foto
- * con las cuatro variantes rellenas, porque eso es lo que sabe pintar y
- * ampliar: cuando solo hay una URL, las cuatro son la misma.
+ * Es la separacion que pidio el usuario y la razon de que la API traiga `kind`:
+ * proyecto, tipologia y unidad son tres cosas distintas, y dentro de cada una
+ * un plano tampoco es una foto. Metido en un carrusel, un plano pasa como una
+ * imagen rara del salon; y quien busca la distribucion no la encuentra porque
+ * esta en la septima diapositiva.
  *
- * Una cadena vacia no es un plano: la API la devuelve cuando el campo existe y
- * nadie lo ha subido, y pintaria una imagen rota bajo el titulo "Plano".
+ * Lo que no declara `kind` se cuenta como foto: es lo que era todo antes de que
+ * la columna existiera, y una respuesta vieja no debe vaciar una galeria.
  */
-export function planoDe(
-  raw: PlanSource | string | null | undefined,
-): PropertyImage | null {
-  if (!raw) return null
+export function soloFotos(
+  images: PropertyImage[] | null | undefined,
+): PropertyImage[] {
+  return images?.filter((image) => image.kind !== 'FLOOR_PLAN') ?? []
+}
 
-  if (typeof raw === 'string') {
-    const url = raw.trim()
-    if (!url) return null
-    return {
-      id: 'plano',
-      url,
-      urlMedium: url,
-      urlLarge: url,
-      urlOriginal: url,
-      description: null,
-      position: 1,
-      isMain: true,
-      width: null,
-      height: null,
-    }
-  }
+/**
+ * Los planos de una galeria, con el atajo de la API como respaldo.
+ *
+ * `planUrl` lo resuelve la API —el primer plano, en 1600 px— y sirve cuando la
+ * galeria no viaja. Pero cuando SI viaja se prefiere la imagen entera, por dos
+ * razones: trae `urlOriginal` a 2560 px, que es lo que se mira al ampliar un
+ * plano para contar las puertas, y trae `description`, que es el alt que lee
+ * quien no ve la pantalla. Y si hay mas de uno —planta y sotano— salen los dos:
+ * el atajo, por definicion, solo nombra al primero.
+ */
+export function planosDe(
+  images: PropertyImage[] | null | undefined,
+  planUrl: string | null | undefined,
+): PropertyImage[] {
+  const enGaleria = images?.filter((image) => image.kind === 'FLOOR_PLAN') ?? []
+  if (enGaleria.length) return enGaleria
+  const atajo = planoSuelto(planUrl)
+  return atajo ? [atajo] : []
+}
 
-  const url = limpiar(raw.urlLarge) ?? limpiar(raw.url) ?? limpiar(raw.urlOriginal)
-  if (!url) return null
+/**
+ * Una URL a secas convertida en algo que el visor sepa pintar y ampliar.
+ *
+ * Rellena las cuatro variantes con la misma direccion porque es la unica que
+ * hay: no es un plano degradado, es que el atajo no tiene mas versiones. Una
+ * cadena vacia no es un plano —la API la devuelve cuando el campo existe y
+ * nadie ha subido nada— y pintaria una imagen rota bajo el titulo "Plano".
+ */
+function planoSuelto(url: string | null | undefined): PropertyImage | null {
+  const limpia = limpiar(url)
+  if (!limpia) return null
   return {
-    id: raw.id ?? 'plano',
-    url: limpiar(raw.url) ?? url,
-    urlMedium: limpiar(raw.urlMedium) ?? url,
-    urlLarge: limpiar(raw.urlLarge) ?? url,
-    urlOriginal: limpiar(raw.urlOriginal) ?? url,
-    description: limpiar(raw.description),
+    id: 'plano',
+    url: limpia,
+    urlMedium: limpia,
+    urlLarge: limpia,
+    urlOriginal: limpia,
+    description: null,
     position: 1,
     isMain: true,
-    width: raw.width ?? null,
-    height: raw.height ?? null,
+    width: null,
+    height: null,
+    kind: 'FLOOR_PLAN',
   }
 }
 
@@ -577,10 +603,11 @@ function derivarTipologias(properties: Property[]): UnitTypeGroup[] {
           code: null,
           name: null,
           // Nadie la escribio, porque nadie escribio la tipologia. Por lo mismo
-          // no hay plano: un plano se sube a una tipologia del panel, y esta no
-          // existe alli.
+          // no hay ni planos ni fotos: se suben a una tipologia del panel, y
+          // esta no existe alli.
           description: null,
-          plan: null,
+          planos: [],
+          fotos: [],
           // Sin alcobas por las que agrupar, lo unico que distingue una unidad
           // de otra es el area: eso es una tipologia AUTO, la de suelo.
           kind: property.bedrooms ? 'FIXED' : 'AUTO',

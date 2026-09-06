@@ -33,6 +33,7 @@ import {
   FAMILY_STATUS_LABEL,
   getProject,
   PROJECTS_PATH,
+  soloFotos,
   type ProjectDetail,
   type UnitTypeGroup,
   type UnitTypeSummary,
@@ -151,6 +152,19 @@ export function ProjectPage() {
     return imagen?.urlLarge ?? imagen?.url ?? null
   }, [family.coverUrl, properties])
 
+  /*
+    Las fotos del proyecto, sin sus planos.
+
+    Un proyecto tambien puede llevar un plano —el de implantacion, el que dice
+    donde cae cada torre— y ese no es una foto de la piscina: colado en el
+    carrusel de zonas comunes pasaria por una imagen rara del jardin. Hoy la
+    galeria del proyecto no viaja si no se pidio, y `soloFotos` de nada es nada.
+  */
+  const fotosProyecto = useMemo(
+    () => soloFotos(family.images),
+    [family.images],
+  )
+
   const place = [family.zone?.name, family.city?.name, family.city?.region?.name]
     .filter(Boolean)
     .join(' · ')
@@ -217,7 +231,7 @@ export function ProjectPage() {
               ademas del apartamento. Si no hay ninguna, cae a la portada sola;
               si tampoco la hay, no pinta nada. */}
           <ProjectGallery
-            images={family.images}
+            images={fotosProyecto}
             cover={portada}
             name={family.name}
           />
@@ -374,7 +388,7 @@ export function ProjectPage() {
                 el pie del dibujo.
               */}
               <TypologyPlan
-                plan={grupo.tipologia.plan}
+                plans={grupo.tipologia.planos}
                 title={[
                   family.name,
                   grupo.tipologia.code
@@ -667,8 +681,24 @@ function destacada(grupo: UnitTypeGroup | undefined): Property | undefined {
   )
 }
 
-/** Las fotos de la unidad, o las de otra igual si esta no tiene ninguna. */
+/**
+ * Las fotos del mosaico, por orden de quien las representa mejor.
+ *
+ * Primero las de la unidad elegida, que son ESE apartamento. Si no tiene, las
+ * de la tipologia —el piso modelo, el render del salon—, que es exactamente lo
+ * que se esta vendiendo en obra nueva: se compra el Tipo A, no el 802. Y solo
+ * si tampoco hay, las de otra unidad de la misma tipologia: son el mismo
+ * apartamento en otro piso, y un hueco en blanco no ayuda a nadie a decidir.
+ *
+ * Los planos no entran en ninguno de los tres pasos: van arriba, en su seccion.
+ */
 function fotosDe(grupo: UnitTypeGroup, selected: Property) {
-  if (selected.images?.length) return selected.images
-  return grupo.unidades.find((p) => p.images?.length)?.images ?? []
+  const propias = soloFotos(selected.images)
+  if (propias.length) return propias
+  if (grupo.tipologia.fotos.length) return grupo.tipologia.fotos
+  for (const unidad of grupo.unidades) {
+    const fotos = soloFotos(unidad.images)
+    if (fotos.length) return fotos
+  }
+  return []
 }

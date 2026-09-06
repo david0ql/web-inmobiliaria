@@ -17,6 +17,7 @@ import { Link } from '@/lib/nav'
 import { MAP_CENTER, MAP_ZOOM } from '@/lib/site'
 import { propertyPath } from '@/lib/slug'
 import type { Property } from '@/lib/types'
+import { soloFotos } from '@/lib/projects'
 
 /**
  * El mapa que hace de portada. En el sitio actual es lo primero que se ve
@@ -338,7 +339,9 @@ function FichaMapa({ property }: { property: Property }) {
   const { tipo, titulo } = useCatalogo()
   const [indice, setIndice] = useState(0)
 
-  const fotos = property.images ?? []
+  /* Sin planos, igual que la tarjeta del listado: en un globo de mapa de 200
+     px, un plano no dice nada de donde esta el inmueble. */
+  const fotos = soloFotos(property.images)
   const foto = fotos[indice] ?? fotos[0]
   const to = propertyPath(property)
   const nombre = titulo(property)

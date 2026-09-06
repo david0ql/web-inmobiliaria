@@ -2,6 +2,7 @@ import { autoDescription } from '@/lib/auto-description'
 import { LOCALE, type Traducir } from '@/lib/format'
 import type { Idioma } from '@/lib/i18n'
 import { SITE } from '@/lib/site'
+import { soloFotos } from '@/lib/projects'
 import type { Property } from '@/lib/types'
 
 /**
@@ -199,7 +200,9 @@ export function propertyJsonLd(
   t: Traducir,
   idioma: Idioma,
 ) {
-  const images = (property.images ?? [])
+  /* Fotos, no planos: `image` de un anuncio es lo que Google enseña como
+     miniatura del inmueble, y un dibujo de la distribucion no lo es. */
+  const images = soloFotos(property.images)
     .slice(0, 6)
     .map((image) => new URL(image.urlLarge || image.url, SITE.url).toString())
 

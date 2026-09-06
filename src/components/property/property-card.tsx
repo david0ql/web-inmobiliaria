@@ -11,6 +11,7 @@ import { useCatalogo } from '@/lib/catalog-i18n'
 import { useIdioma, useT } from '@/lib/i18n'
 import { propertyPath } from '@/lib/slug'
 import type { Property, PropertyImage } from '@/lib/types'
+import { soloFotos } from '@/lib/projects'
 
 /**
  * La tarjeta del listado, calcada de la del tema: foto con la etiqueta de estado
@@ -33,7 +34,9 @@ export function PropertyCard({
   const { precio, moneda } = useCurrency()
   const { tipo, titulo } = useCatalogo()
   const to = propertyPath(property)
-  const fotos = property.images ?? []
+  /* Sin planos: la tarjeta de un listado enseña de que casa se trata, y un
+     dibujo de la distribucion de portada no lo dice. */
+  const fotos = soloFotos(property.images)
   const cover = fotos[0]
   const built = property.builtArea ?? property.area
   /* El estrato, con su separador. */

@@ -18,7 +18,7 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/misc'
 import {businessType, money} from '@/lib/format'
 import { portadaInyectada } from '@/lib/ficha-inyectada'
-import { nombreTipologia, planoDe } from '@/lib/projects'
+import { nombreTipologia, planosDe, soloFotos } from '@/lib/projects'
 import { registerVisit } from '@/lib/api'
 import { breadcrumbJsonLd, propertyJsonLd } from '@/lib/seo'
 import { ROUTES, SITE } from '@/lib/site'
@@ -98,18 +98,33 @@ function Detail({ data }: { data: PropertyData }) {
   const amount = property.salePrice ?? property.rentPrice
   const tipologia = nombreTipologia(property.unitType, t)
 
-  /*
-    El plano de la tipologia, si el inmueble es una unidad de un proyecto.
+  const tipologiaDe = typeof property.unitType === 'object' ? property.unitType : null
 
-    Quien mira un apartamento sobre planos quiere ver la distribucion aqui y no
-    tener que irse al proyecto a buscarla: el plano es de SU tipologia, no del
-    conjunto. La API vieja servia `unitType` como texto libre, y de un texto no
-    sale ningun plano.
+  /*
+    Los planos, que pueden venir de dos sitios distintos y son la misma seccion.
+
+    Si el inmueble es una unidad de un proyecto, el plano es el de SU tipologia:
+    quien mira un apartamento sobre planos quiere la distribucion aqui y no
+    tener que irse al conjunto a buscarla. Y si es un inmueble suelto —un lote
+    con su levantamiento, una casa con su reforma dibujada— el plano esta entre
+    sus propias imagenes, marcado con `kind`.
+
+    Los dos casos no se suman: un plano de la tipologia y otro del inmueble
+    serian dos dibujos de lo mismo uno debajo del otro. Manda el de la
+    tipologia, que es el que la agencia mantiene en un solo sitio para las
+    veinte unidades iguales.
+
+    La API vieja servia `unitType` como texto libre, y de un texto no sale
+    ningun plano.
   */
-  const plano =
-    typeof property.unitType === 'object' && property.unitType
-      ? planoDe(property.unitType.plan ?? property.unitType.planUrl)
-      : null
+  const planos = tipologiaDe
+    ? planosDe(tipologiaDe.images, tipologiaDe.planUrl)
+    : []
+  const planosFicha = planos.length ? planos : planosDe(property.images, null)
+
+  /* El carrusel enseña fotos. Un plano colado entre ellas se recorta a 480 px
+     de alto y se pasa de largo en la tercera diapositiva. */
+  const fotos = soloFotos(property.images)
 
   // El contador de visitas. Va aqui y no en la lectura para que la ficha se
   // pueda cachear; ademas cuenta mejor, porque mide fichas abiertas y no
@@ -123,8 +138,9 @@ function Detail({ data }: { data: PropertyData }) {
   const place = [property.zone?.name, property.city?.name]
     .filter(Boolean)
     .join(', ')
-  const cover =
-    property.images?.find((image) => image.isMain) ?? property.images?.[0]
+  /* La imagen que se manda a las redes. De `fotos` y no de `images`: un plano
+     como miniatura en WhatsApp no enseña la casa, enseña un dibujo. */
+  const cover = fotos.find((image) => image.isMain) ?? fotos[0]
 
   useSeo(
     {
@@ -185,7 +201,7 @@ function Detail({ data }: { data: PropertyData }) {
             el contenido ancho (una foto de 1600px) lo estira en vez de recortarlo. */}
         <div className="flex min-w-0 flex-col gap-8 lg:col-span-8 xl:col-span-9">
           <PropertyGallery
-            images={property.images ?? []}
+            images={fotos}
             title={titulo(property)}
             availability={property.availability}
           />
@@ -289,7 +305,8 @@ function Detail({ data }: { data: PropertyData }) {
             que este inmueble hereda del conjunto.
           */}
           <TypologyPlan
-            plan={plano}
+            plans={planosFicha}
+            owner={planos.length ? 'unitType' : 'property'}
             title={
               [property.family?.name, tipologia].filter(Boolean).join(' · ') ||
               titulo(property)
