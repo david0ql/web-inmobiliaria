@@ -73,9 +73,7 @@ export function ProjectGallery({
           className="h-[240px] w-full object-cover sm:h-[340px] lg:h-[420px]"
         />
 
-        <span className="absolute inset-0 flex items-center justify-center bg-black/25 opacity-0 transition-opacity group-hover:opacity-100">
-          <Expand className="size-6 text-white" aria-hidden="true" />
-        </span>
+        <span className="sr-only"><Expand aria-hidden="true" /></span>
 
         {fotos.length > 1 && (
           <span className="tabular absolute bottom-3 left-3 rounded-full bg-black/70 px-3 py-1 text-xs text-white">

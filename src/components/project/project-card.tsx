@@ -120,14 +120,7 @@ export function ProjectCard({ project }: { project: ProjectSummary }) {
             to={to}
             className="absolute inset-0 z-10 block"
             aria-label={project.name}
-          >
-            {/* La cortina con el boton centrado solo aparece donde hay raton. */}
-            <div className="absolute inset-0 hidden items-center justify-center bg-black/70 opacity-0 transition-opacity duration-300 group-hover:opacity-100 lg:flex">
-              <span className="rounded-sm border-2 border-white px-3 py-2 text-xs font-bold tracking-wide text-white uppercase">
-                {t('project.card.view')}
-              </span>
-            </div>
-          </Link>
+          />
         </div>
 
         <div className="absolute top-2.5 left-2.5 z-20">

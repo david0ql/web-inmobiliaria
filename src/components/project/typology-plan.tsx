@@ -90,9 +90,7 @@ export function TypologyPlan({
               className="max-h-[460px] w-auto max-w-full object-contain p-2"
             />
 
-            <span className="absolute inset-0 flex items-center justify-center bg-black/25 opacity-0 transition-opacity group-hover:opacity-100">
-              <Expand className="size-6 text-white" aria-hidden="true" />
-            </span>
+            <span className="sr-only"><Expand aria-hidden="true" /></span>
           </button>
         ))}
       </div>

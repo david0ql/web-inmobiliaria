@@ -116,9 +116,7 @@ export function UnitPhotos({
                 className="size-full object-cover transition-transform duration-300 group-hover:scale-105"
               />
 
-              <span className="absolute inset-0 flex items-center justify-center bg-black/35 opacity-0 transition-opacity group-hover:opacity-100">
-                <Expand className="size-5 text-white" aria-hidden="true" />
-              </span>
+              <span className="sr-only"><Expand aria-hidden="true" /></span>
 
               {index === 0 && (
                 /*
@@ -157,4 +155,3 @@ export function UnitPhotos({
     </section>
   )
 }
-
