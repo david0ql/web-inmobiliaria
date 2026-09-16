@@ -12,15 +12,25 @@ const GRID = 'grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
 export function PropertyGrid({
   properties,
   className,
+  compact = false,
   /** Cuantas portadas se cargan sin diferir. La primera fila es el LCP. */
   eager = 0,
 }: {
   properties: Property[]
   className?: string
+  /** Dos columnas como máximo para el panel estrecho junto al mapa. */
+  compact?: boolean
   eager?: number
 }) {
   return (
-    <div className={cn(GRID, className)}>
+    <div
+      className={cn(
+        compact
+          ? 'grid grid-cols-1 gap-5 2xl:grid-cols-2'
+          : GRID,
+        className,
+      )}
+    >
       {properties.map((property, index) => (
         <PropertyCard
           key={property.id}

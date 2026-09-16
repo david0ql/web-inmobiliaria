@@ -1,9 +1,10 @@
-import { MessageCircle } from 'lucide-react'
+import { MessageCircle, MessageSquareText } from 'lucide-react'
 import { lazy, Suspense, useEffect, useState } from 'react'
 
 import { useT } from '@/lib/i18n'
 import { useAssistant } from '@/lib/use-assistant'
 import { cn } from '@/lib/utils'
+import { SITE } from '@/lib/site'
 
 /*
   El panel entero —hilo, tarjetas, formato de fechas— se pide al abrir el chat,
@@ -39,6 +40,7 @@ export function ChatFab() {
   const t = useT()
   const assistant = useAssistant()
   const [open, setOpen] = useState(false)
+  const [chooser, setChooser] = useState(false)
   const isMobile = useIsMobile()
 
   // En móvil, con el panel a pantalla completa, se bloquea el scroll de detrás.
@@ -67,7 +69,7 @@ export function ChatFab() {
           propia X, y en escritorio nace justo de este rincón. */}
       <button
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={() => setChooser((value) => !value)}
         onMouseEnter={preloadPanel}
         onFocus={preloadPanel}
         aria-label={t('chat.fab.open')}
@@ -82,6 +84,29 @@ export function ChatFab() {
       >
         <MessageCircle className="size-6" />
       </button>
+
+      {chooser && !open && (
+        <div className="fixed right-4 bottom-20 z-40 w-56 rounded-xl border bg-background p-2 shadow-xl sm:right-6 sm:bottom-24">
+          <p className="px-2 py-1 text-xs font-medium text-muted-foreground">
+            {t('chat.channel.title')}
+          </p>
+          <button
+            type="button"
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium hover:bg-secondary"
+            onClick={() => { setChooser(false); setOpen(true) }}
+          >
+            <MessageSquareText className="size-5" /> {t('chat.channel.online')}
+          </button>
+          <a
+            href={`https://wa.me/${SITE.phone.replace(/\D/g, '')}`}
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium hover:bg-secondary"
+          >
+            <MessageCircle className="size-5" /> {t('chat.channel.whatsapp')}
+          </a>
+        </div>
+      )}
 
       {open && (
         <>

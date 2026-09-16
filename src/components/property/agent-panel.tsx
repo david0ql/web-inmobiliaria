@@ -1,9 +1,22 @@
-import { Mail, MessageCircle, Phone } from 'lucide-react'
+import { CalendarCheck, Mail, MessageCircle, Phone } from 'lucide-react'
+import { useEffect, useState } from 'react'
 
 import { initials } from '@/lib/format'
 import { useT } from '@/lib/i18n'
 import { SITE } from '@/lib/site'
 import type { Property } from '@/lib/types'
+import { api } from '@/lib/api'
+
+interface VisitContact {
+  confirmed: boolean
+  agent?: {
+    fullName: string
+    email: string
+    cellPhone: string | null
+    hasWhatsapp: boolean
+    photoUrl: string | null
+  } | null
+}
 
 /**
  * La caja del asesor de la ficha.
@@ -15,7 +28,68 @@ import type { Property } from '@/lib/types'
  */
 export function AgentPanel({ property }: { property: Property }) {
   const t = useT()
-  const agent = property.agent
+  const [contact, setContact] = useState<VisitContact | null>(null)
+
+  useEffect(() => {
+    let timer: number | undefined
+    let stopped = false
+    const load = async () => {
+      const raw = localStorage.getItem(`serrano:visit:${property.code}`)
+      if (!raw) return
+      try {
+        const proof = JSON.parse(raw) as { appointmentId: string; accessToken: string }
+        const next = await api.get<VisitContact>(
+          `/public/visits/${encodeURIComponent(proof.appointmentId)}/contact`,
+          { token: proof.accessToken },
+        )
+        if (stopped) return
+        setContact(next)
+        if (!next.confirmed && timer === undefined) {
+          timer = window.setInterval(() => void load(), 30_000)
+        }
+        if (next.confirmed && timer !== undefined) {
+          window.clearInterval(timer)
+          timer = undefined
+        }
+      } catch {
+        // Un comprobante inválido no revela si la cita existe.
+      }
+    }
+    const created = (event: Event) => {
+      if ((event as CustomEvent<string>).detail === property.code) void load()
+    }
+    void load()
+    window.addEventListener('serrano:visit-created', created)
+    return () => {
+      stopped = true
+      if (timer !== undefined) window.clearInterval(timer)
+      window.removeEventListener('serrano:visit-created', created)
+    }
+  }, [property.code])
+
+  if (!contact?.confirmed) {
+    return (
+      <div className="rounded-lg border bg-card p-5 shadow-sm">
+        <div className="flex items-start gap-3">
+          <span className="grid size-11 shrink-0 place-items-center rounded-full bg-secondary">
+            <CalendarCheck className="size-5 text-muted-foreground" />
+          </span>
+          <div>
+            <p className="font-semibold">{t('property.agent.locked.title')}</p>
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+              {t(
+                contact
+                  ? 'property.agent.locked.pending'
+                  : 'property.agent.locked.before',
+              )}
+            </p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  const agent = contact.agent
   const name = agent?.fullName ?? SITE.name
   const phone = agent?.cellPhone ?? SITE.phone
   const email = agent?.email ?? SITE.email

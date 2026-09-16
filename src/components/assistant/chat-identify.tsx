@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Loader2 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
+import { PrivacyConsent } from '@/components/common/privacy-consent'
 import { mensajeDeError } from '@/lib/api-error'
 import { identify, type ChatScope } from '@/lib/assistant'
 import { useIdioma, useT } from '@/lib/i18n'
@@ -176,14 +177,13 @@ export function ChatIdentify({
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 
+      <PrivacyConsent />
+
       <Button type="submit" disabled={!listo || enviando} className="mt-1">
         {enviando && <Loader2 className="size-4 animate-spin" />}
         {t('chat.identify.submit')}
       </Button>
 
-      <p className="text-[11px] leading-snug text-muted-foreground">
-        {t('chat.identify.privacy')}
-      </p>
     </form>
   )
 }

@@ -8,6 +8,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { SectionHeading } from '@/components/common/section-heading'
 import { Field, Fieldset, Toggle } from '@/components/form/fields'
 import { Button } from '@/components/ui/button'
+import { PrivacyConsent } from '@/components/common/privacy-consent'
 import { mensajeDeError } from '@/lib/api-error'
 import { useIdioma, useT } from '@/lib/i18n'
 import { login, register } from '@/lib/portal'
@@ -36,7 +37,10 @@ const crearRegisterSchema = (t: T) =>
       lastName: z.string().trim().min(2, t('errors.lastName')),
       email: z.email(t('errors.email')),
       cellPhone: z.string().trim().min(7, t('errors.phone')),
-      identification: z.string().trim().optional(),
+      identification: z
+        .string()
+        .trim()
+        .refine((value) => !value || /^\d{6,}$/.test(value), t('errors.identification')),
       password: z
         .string()
         .min(MIN_PASSWORD, t('errors.password.min', { min: MIN_PASSWORD })),
@@ -180,6 +184,8 @@ function RegisterForm({ onDone }: { onDone: (email: string) => void }) {
   const schema = useMemo(() => crearRegisterSchema(t), [t])
   const form = useForm<RegisterValues>({
     resolver: zodResolver(schema),
+    mode: 'onBlur',
+    reValidateMode: 'onChange',
     defaultValues: {
       firstName: '',
       lastName: '',
@@ -268,6 +274,9 @@ function RegisterForm({ onDone }: { onDone: (email: string) => void }) {
             name="acceptsMarketing"
             label={t('account.field.acceptsMarketing')}
           />
+        </div>
+        <div className="sm:col-span-2">
+          <PrivacyConsent />
         </div>
       </Fieldset>
 

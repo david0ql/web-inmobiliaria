@@ -318,6 +318,8 @@ export interface BookVisitResult {
   endsAt: string
   propertyCode: string
   message: string
+  /** Comprobante opaco para consultar el contacto tras la confirmación. */
+  accessToken: string
 }
 
 export interface ConsignmentResult {

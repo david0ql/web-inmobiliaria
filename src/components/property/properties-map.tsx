@@ -18,6 +18,7 @@ import { MAP_CENTER, MAP_ZOOM } from '@/lib/site'
 import { propertyPath } from '@/lib/slug'
 import type { Property } from '@/lib/types'
 import { soloFotos } from '@/lib/projects'
+import { cn } from '@/lib/utils'
 
 /**
  * El mapa que hace de portada. En el sitio actual es lo primero que se ve
@@ -55,6 +56,7 @@ export function PropertiesMap({
   punto,
   radioKm = 5,
   cerca = true,
+  className,
 }: {
   properties: Property[]
   /** Donde esta quien mira, si lo concedio. */
@@ -62,6 +64,8 @@ export function PropertiesMap({
   radioKm?: number
   /** Con la geocerca puesta o con el mapa entero. */
   cerca?: boolean
+  /** Permite que el buscador use el mapa a la altura completa del viewport. */
+  className?: string
 }) {
   const t = useT()
   const { idioma } = useIdioma()
@@ -307,7 +311,7 @@ export function PropertiesMap({
         ref={container}
         role="application"
         aria-label={t('property.map.label')}
-        className="h-[300px] w-full sm:h-[380px] lg:h-[450px]"
+        className={cn('h-[300px] w-full sm:h-[380px] lg:h-[450px]', className)}
       />
 
       {/* La ficha del popup, dentro del arbol de React y por eso con idioma,

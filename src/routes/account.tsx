@@ -5,8 +5,14 @@ import {
   LogOut,
   Plus,
   UserRound,
+  ExternalLink,
+  Pencil,
+  EyeOff,
+  Archive,
+  Loader2,
 } from 'lucide-react'
 import { useState } from 'react'
+import { toast } from 'sonner'
 
 import { SectionHeading } from '@/components/common/section-heading'
 import { ConsignmentDialog } from '@/components/consignment/consignment-dialog'
@@ -16,9 +22,20 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/misc'
 import { area, fechaFormat, money } from '@/lib/format'
 import { useIdioma, useT } from '@/lib/i18n'
-import { logout, portal, type PortalProfile } from '@/lib/portal'
+import { logout, portal, type PortalProfile, type PortalProperty, type PortalRequest } from '@/lib/portal'
 import { usePortalData, usePortalSession } from '@/lib/use-portal'
 import { cn } from '@/lib/utils'
+import { Link } from '@/lib/nav'
+import { slugify } from '@/lib/slug'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 
 /**
  * `/mi-cuenta`: el portal del propietario.
@@ -142,7 +159,9 @@ function Portal() {
 // --- pestañas ---------------------------------------------------------------
 
 function PropertiesTab() {
-  const { data, loading } = usePortalData(portal.properties)
+  const { data, loading, reload } = usePortalData(portal.properties)
+  const changes = usePortalData(portal.propertyChanges)
+  const [selected, setSelected] = useState<PortalProperty | null>(null)
   const t = useT()
   const { idioma } = useIdioma()
 
@@ -205,10 +224,146 @@ function PropertiesTab() {
                 .filter(Boolean)
                 .join(' · ')}
             </p>
+            <Button
+              type="button"
+              variant="outline"
+              className="mt-4 w-full"
+              onClick={() => setSelected(property)}
+            >
+              {t('account.property.manage')}
+            </Button>
           </div>
         </article>
       ))}
+      <PropertyManager
+        property={selected}
+        open={Boolean(selected)}
+        onOpenChange={(open) => !open && setSelected(null)}
+        pending={changes.data?.find(
+          (change) =>
+            change.propertyId === selected?.id &&
+            (change.status === 'PENDING' || change.status === 'APPROVED'),
+        )}
+        onChanged={() => {
+          reload()
+          changes.reload()
+        }}
+      />
     </div>
+  )
+}
+
+function PropertyManager({ property, open, onOpenChange, pending, onChanged }: {
+  property: PortalProperty | null
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  pending?: { status: string; action: string; applyAfter: string | null }
+  onChanged: () => void
+}) {
+  const t = useT()
+  const [editing, setEditing] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [draft, setDraft] = useState<Record<string, string>>({})
+  if (!property) return null
+  const path = `/${slugify(property.title) || 'inmueble'}/${property.code}`
+  const fields = [
+    ['address', t('account.property.field.address'), property.address ?? ''],
+    ['salePrice', t('account.property.field.salePrice'), property.salePrice?.toString() ?? ''],
+    ['rentPrice', t('account.property.field.rentPrice'), property.rentPrice?.toString() ?? ''],
+    ['area', t('account.property.field.area'), property.area?.toString() ?? ''],
+    ['bedrooms', t('account.property.field.bedrooms'), property.bedrooms?.toString() ?? ''],
+    ['bathrooms', t('account.property.field.bathrooms'), property.bathrooms?.toString() ?? ''],
+    ['garages', t('account.property.field.garages'), property.garages?.toString() ?? ''],
+  ] as const
+  const beginEdit = () => {
+    setDraft(Object.fromEntries(fields.map(([key, , value]) => [key, value])))
+    setEditing(true)
+  }
+  const changed = fields.filter(([key, , value]) => draft[key] !== value)
+  const submit = async () => {
+    setBusy(true)
+    try {
+      const body = Object.fromEntries(changed.map(([key]) => [
+        key,
+        key === 'address' ? draft[key].trim() : Number(draft[key]),
+      ]))
+      await portal.proposePropertyChange(property.id, body)
+      toast.success(t('account.property.change.sent'))
+      setEditing(false)
+      onChanged()
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t('errors.load'))
+    } finally { setBusy(false) }
+  }
+  const deactivate = async () => {
+    if (!window.confirm(t('account.property.deactivate.confirm'))) return
+    setBusy(true)
+    try {
+      await portal.deactivateProperty(property.id)
+      toast.success(t('account.property.deactivate.done'))
+      onChanged(); onOpenChange(false)
+    } finally { setBusy(false) }
+  }
+  const archive = async () => {
+    if (!window.confirm(t('account.property.archive.confirm'))) return
+    setBusy(true)
+    try {
+      await portal.archiveProperty(property.id)
+      toast.success(t('account.property.archive.sent'))
+      onChanged()
+    } finally { setBusy(false) }
+  }
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>{property.title}</DialogTitle>
+          <DialogDescription>{property.code} · {property.address}</DialogDescription>
+        </DialogHeader>
+        {pending && (
+          <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950">
+            {t('account.property.pending', { action: pending.action, status: pending.status })}
+          </div>
+        )}
+        {editing ? (
+          <div className="grid gap-4 sm:grid-cols-2">
+            {fields.map(([key, label]) => (
+              <div key={key} className={cn('grid gap-1.5', key === 'address' && 'sm:col-span-2')}>
+                <Label htmlFor={`owner-${key}`}>{label}</Label>
+                <Input id={`owner-${key}`} type={key === 'address' ? 'text' : 'number'} value={draft[key] ?? ''} onChange={(e) => setDraft((v) => ({ ...v, [key]: e.target.value }))} />
+              </div>
+            ))}
+            {changed.length > 0 && (
+              <div className="rounded-lg bg-secondary p-3 text-xs sm:col-span-2">
+                <p className="mb-2 font-semibold">{t('account.property.change.preview')}</p>
+                {changed.map(([key, label, before]) => (
+                  <p key={key}><span className="text-muted-foreground">{label}:</span> <s>{before || '—'}</s> → <strong>{draft[key] || '—'}</strong></p>
+                ))}
+              </div>
+            )}
+            <div className="flex justify-end gap-2 sm:col-span-2">
+              <Button variant="outline" onClick={() => setEditing(false)}>{t('form.back')}</Button>
+              <Button onClick={() => void submit()} disabled={!changed.length || busy}>{busy && <Loader2 className="animate-spin" />}{t('account.property.change.submit')}</Button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <dl className="grid gap-2 rounded-lg bg-secondary/50 p-4 text-sm sm:grid-cols-2">
+              <Row label={t('account.property.field.salePrice')} value={money(property.salePrice)} />
+              <Row label={t('account.property.field.rentPrice')} value={money(property.rentPrice)} />
+              <Row label={t('account.property.field.area')} value={property.area ? `${property.area} m²` : '—'} />
+              <Row label={t('account.property.status.label')} value={property.publicationStatus} />
+            </dl>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <Button asChild variant="outline"><Link to={path} target="_blank"><ExternalLink />{t('account.property.publicUrl')}</Link></Button>
+              <Button variant="outline" onClick={beginEdit} disabled={Boolean(pending)}><Pencil />{t('account.property.edit')}</Button>
+              <Button variant="outline" onClick={() => void deactivate()} disabled={busy || property.publicationStatus === 'INACTIVE'}><EyeOff />{t('account.property.deactivate')}</Button>
+              <Button variant="outline" onClick={() => void archive()} disabled={busy || Boolean(pending)}><Archive />{t('account.property.archive')}</Button>
+            </div>
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
   )
 }
 
@@ -236,6 +391,7 @@ const REQUEST_STATUS: Record<string, { label: string; tone: string }> = {
 function RequestsTab() {
   const { data, loading } = usePortalData(portal.requests)
   const t = useT()
+  const [selected, setSelected] = useState<PortalRequest | null>(null)
 
   if (loading) return <ListSkeleton />
   if (!data?.length) {
@@ -255,9 +411,11 @@ function RequestsTab() {
           tone: 'bg-secondary',
         }
         return (
-          <article
+          <button
             key={request.id}
-            className="rounded-lg border bg-card p-4 shadow-sm"
+            type="button"
+            onClick={() => setSelected(request)}
+            className="rounded-lg border bg-card p-4 text-left shadow-sm transition hover:border-primary/50"
           >
             <div className="mb-2 flex flex-wrap items-center gap-2">
               <span className="tabular text-xs font-semibold">
@@ -296,11 +454,32 @@ function RequestsTab() {
                 },
               )}
             </p>
-          </article>
+          </button>
         )
       })}
+      <RequestDetail request={selected} onClose={() => setSelected(null)} />
     </div>
   )
+}
+
+function RequestDetail({ request, onClose }: { request: PortalRequest | null; onClose: () => void }) {
+  const t = useT()
+  if (!request) return null
+  const photos = request.files.filter((file) => file.kind === 'PHOTO' && file.url)
+  const documents = request.files.filter((file) => file.kind === 'DOCUMENT')
+  return <Dialog open={Boolean(request)} onOpenChange={(open) => !open && onClose()}>
+    <DialogContent className="sm:max-w-2xl">
+      <DialogHeader><DialogTitle>{request.reference}</DialogTitle><DialogDescription>{request.propertyTypeName} · {request.address} {request.unitNumber}</DialogDescription></DialogHeader>
+      <dl className="grid gap-2 rounded-lg bg-secondary/50 p-4 text-sm sm:grid-cols-2">
+        <Row label={t('account.property.field.salePrice')} value={money(request.salePrice)} />
+        <Row label={t('account.property.field.area')} value={`${request.builtArea} m²`} />
+        <Row label={t('account.property.field.bedrooms')} value={String(request.bedrooms)} />
+        <Row label={t('account.property.field.bathrooms')} value={String(request.bathrooms)} />
+      </dl>
+      <div><p className="mb-2 text-sm font-semibold">Fotografías enviadas</p>{photos.length ? <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">{photos.map((file) => <img key={file.index} src={file.url!} alt={file.originalName} className="aspect-square rounded-md border object-cover" />)}</div> : <p className="text-sm text-muted-foreground">No hay fotografías adjuntas.</p>}</div>
+      <div><p className="mb-2 text-sm font-semibold">Documentos enviados</p><ul className="grid gap-1 text-sm">{documents.map((file) => <li key={file.index} className="rounded border px-3 py-2">{file.originalName}</li>)}</ul></div>
+    </DialogContent>
+  </Dialog>
 }
 
 /* Guarda la clave: la etiqueta se traduce al pintar la visita. */

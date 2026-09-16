@@ -179,6 +179,11 @@ export function submitCreditRequest(payload: unknown) {
   return api.post<CreditRequestResult>('/public/credit-requests', payload)
 }
 
+/** Valida que el dominio exista y pueda recibir correo, sin enumerar buzones. */
+export function validateEmailDomain(email: string, signal?: AbortSignal) {
+  return api.post<{ valid: boolean }>('/public/email-domain', { email }, signal)
+}
+
 /** Los barrios de una ciudad. Sin `cityId` son varios miles: no se pide asi. */
 export function getZones(cityId: number, signal?: AbortSignal) {
   return api.get<Zone[]>('/public/catalogs/zones', { cityId }, signal)

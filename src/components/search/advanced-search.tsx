@@ -180,7 +180,7 @@ function AdvancedSearchForm({ initial }: { initial?: Filters }) {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value={ANY}>{t('search.option.all.m')}</SelectItem>
-            <Opciones lista={opciones.countries} />
+            <Opciones lista={opciones.countries} buscable />
           </SelectContent>
         </Select>
       </FieldShell>
@@ -202,7 +202,7 @@ function AdvancedSearchForm({ initial }: { initial?: Filters }) {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value={ANY}>{t('search.option.all.m')}</SelectItem>
-            <Opciones lista={opciones.regions} />
+            <Opciones lista={opciones.regions} buscable />
           </SelectContent>
         </Select>
       </FieldShell>
@@ -224,7 +224,7 @@ function AdvancedSearchForm({ initial }: { initial?: Filters }) {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value={ANY}>{t('search.option.all.f')}</SelectItem>
-            <Opciones lista={opciones.cities} />
+            <Opciones lista={opciones.cities} buscable />
           </SelectContent>
         </Select>
       </FieldShell>
@@ -257,7 +257,7 @@ function AdvancedSearchForm({ initial }: { initial?: Filters }) {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value={ANY}>{t('search.option.all.m')}</SelectItem>
-            <Opciones lista={opciones.zones} />
+            <Opciones lista={opciones.zones} buscable />
           </SelectContent>
         </Select>
       </FieldShell>
@@ -277,7 +277,11 @@ function AdvancedSearchForm({ initial }: { initial?: Filters }) {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value={ANY}>{t('search.option.all.m')}</SelectItem>
-            <Opciones lista={opciones.propertyTypes} prefijo="catalog.propertyType" />
+            <Opciones
+              lista={opciones.propertyTypes}
+              prefijo="catalog.propertyType"
+              buscable
+            />
           </SelectContent>
         </Select>
       </FieldShell>
@@ -400,6 +404,7 @@ function AdvancedSearchForm({ initial }: { initial?: Filters }) {
 function Opciones({
   lista,
   prefijo,
+  buscable = false,
 }: {
   lista: FacetOption[]
   /*
@@ -409,16 +414,47 @@ function Opciones({
     nombres propios y no se traducen.
   */
   prefijo?: string
+  buscable?: boolean
 }) {
   const t = useT()
+  const [query, setQuery] = useState('')
+  const visible = query.trim()
+    ? lista.filter((opcion) =>
+        opcion.name.localeCompare(query.trim(), undefined, {
+          sensitivity: 'base',
+          usage: 'search',
+        }) === 0 ||
+        opcion.name.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()),
+      )
+    : lista
   return (
     <>
-      {lista.map((opcion) => (
+      {buscable && lista.length > 6 && (
+        <div
+          className="sticky top-0 z-10 bg-popover p-1"
+          onKeyDown={(event) => event.stopPropagation()}
+        >
+          <Input
+            autoFocus
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder={t('search.option.filter')}
+            aria-label={t('search.option.filter')}
+            className="h-9"
+          />
+        </div>
+      )}
+      {visible.map((opcion) => (
         <SelectItem key={opcion.id} value={String(opcion.id)}>
           {prefijo ? t(`${prefijo}.${opcion.id}`, undefined, opcion.name) : opcion.name}{' '}
           <span className="text-muted-foreground">({opcion.count})</span>
         </SelectItem>
       ))}
+      {visible.length === 0 && (
+        <p className="px-2 py-3 text-center text-xs text-muted-foreground">
+          {t('search.option.noResults')}
+        </p>
+      )}
     </>
   )
 }

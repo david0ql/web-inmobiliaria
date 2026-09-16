@@ -129,12 +129,10 @@ export function PropertyCard({
             onFocus={warm}
             aria-label={titulo(property)}
           >
-            {/* La cortina con el boton centrado solo aparece donde hay raton. */}
-            <div className="absolute inset-0 hidden items-center justify-center bg-black/70 opacity-0 transition-opacity duration-300 group-hover:opacity-100 lg:flex">
-              <span className="rounded-sm border-2 border-white px-3 py-2 text-xs font-bold tracking-wide text-white uppercase">
-                {t('property.card.view_details')}
-              </span>
-            </div>
+            {/* La foto conserva su color al pasar el ratón. El oscurecimiento
+                anterior ocultaba justo la información visual que la persona
+                estaba comparando; el título y el cursor ya comunican que la
+                tarjeta abre el detalle. */}
           </Link>
         </div>
 
@@ -222,4 +220,3 @@ export function PropertyCard({
     </article>
   )
 }
-

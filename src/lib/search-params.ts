@@ -106,16 +106,14 @@ export function digits(value: string): string {
   `useT()` solo vive dentro de un componente. El select las traduce al pintar.
 */
 export const SORTS = [
-  { value: '', label: 'catalog.sort.newest' },
-  { value: 'price_asc', label: 'catalog.sort.price_asc' },
-  { value: 'price_desc', label: 'catalog.sort.price_desc' },
+  { value: '', label: 'catalog.sort.recent', direction: 'recent' },
+  { value: 'price_asc', label: 'catalog.sort.price_asc', direction: 'up' },
+  { value: 'price_desc', label: 'catalog.sort.price_desc', direction: 'down' },
 ] as const
 
 export const CONDITIONS = [
   { value: 'NEW', label: 'catalog.condition.new' },
   { value: 'USED', label: 'catalog.condition.used' },
-  { value: 'PROJECT', label: 'catalog.condition.project' },
-  { value: 'UNDER_CONSTRUCTION', label: 'catalog.condition.under_construction' },
 ] as const
 
 /*

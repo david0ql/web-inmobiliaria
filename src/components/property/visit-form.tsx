@@ -22,6 +22,7 @@ import { useIdioma, useT, type Idioma } from '@/lib/i18n'
 import { useNotaVisita } from '@/lib/nota-visita'
 import type { Property } from '@/lib/types'
 import { cn } from '@/lib/utils'
+import { PrivacyConsent } from '@/components/common/privacy-consent'
 
 interface Slot {
   startsAt: string
@@ -71,6 +72,7 @@ export function VisitForm({ property }: { property: Property }) {
   const [days, setDays] = useState<DayAvailability[]>([])
   const [date, setDate] = useState('')
   const [mes, setMes] = useState<string>(() => mesDe(hoy()))
+  const [confirmation, setConfirmation] = useState<string | null>(null)
 
   const form = useForm<VisitValues>({
     resolver: zodResolver(schema),
@@ -173,6 +175,17 @@ export function VisitForm({ property }: { property: Property }) {
       toast.success(t('property.visit.toast.success'), {
         description: result.message,
       })
+      setConfirmation(result.message)
+      localStorage.setItem(
+        `serrano:visit:${property.code}`,
+        JSON.stringify({
+          appointmentId: result.appointmentId,
+          accessToken: result.accessToken,
+        }),
+      )
+      window.dispatchEvent(
+        new CustomEvent('serrano:visit-created', { detail: property.code }),
+      )
       form.reset()
       setDate('')
     } catch (error) {
@@ -188,6 +201,19 @@ export function VisitForm({ property }: { property: Property }) {
         <CalendarCheck className="size-4" />
         {t('property.visit.title')}
       </p>
+
+      {confirmation && (
+        <div
+          role="status"
+          className="rounded-xl border border-tag-available/40 bg-tag-available/10 p-4 text-sm shadow-sm"
+        >
+          <p className="flex items-center gap-2 font-semibold">
+            <CalendarCheck className="size-5 text-tag-available" />
+            {t('property.visit.confirmation.title')}
+          </p>
+          <p className="mt-1 text-muted-foreground">{confirmation}</p>
+        </div>
+      )}
 
       {/*
         El plan que se trajo del simulador, a la vista desde el primer momento.
@@ -335,7 +361,12 @@ export function VisitForm({ property }: { property: Property }) {
             />
           </div>
 
-          <Button type="submit" disabled={form.formState.isSubmitting}>
+          <PrivacyConsent />
+          <Button
+            type="submit"
+            disabled={form.formState.isSubmitting}
+            className="h-12 text-sm font-bold"
+          >
             {form.formState.isSubmitting && <Loader2 className="animate-spin" />}
             {t('property.visit.submit')}
           </Button>

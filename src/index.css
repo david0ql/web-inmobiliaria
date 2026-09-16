@@ -324,6 +324,11 @@
   }
 }
 
+@keyframes search-progress {
+  0% { transform: translateX(-120%); }
+  100% { transform: translateX(420%); }
+}
+
 /* Quien pidió no ver animaciones tampoco quiere un punto latiendo. */
 @media (prefers-reduced-motion: reduce) {
   .mapa-yo::after {

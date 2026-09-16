@@ -66,7 +66,7 @@ export function SiteHeader() {
       */
       className="sticky top-0 z-40 border-b bg-background"
     >
-      <div className="container-site flex items-center gap-4 py-3">
+      <div className="container-site flex min-h-16 items-center gap-3 py-2.5 lg:min-h-20 lg:gap-4">
         <Link to={ROUTES.home} className="shrink-0">
           <img
             src={SITE.logo}
@@ -75,7 +75,7 @@ export function SiteHeader() {
             alt={SITE.name}
             /* El logo es lo primero que se ve: no se difiere. */
             fetchPriority="high"
-            className="h-11 w-auto lg:h-14"
+            className="h-10 w-auto lg:h-12"
           />
         </Link>
 

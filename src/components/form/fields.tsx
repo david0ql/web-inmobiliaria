@@ -106,6 +106,7 @@ export function Field<T extends FieldValues>({
 } & Omit<React.ComponentProps<'input'>, 'form' | 'name'>) {
   const id = useId()
   const message = useMessage(form, name)
+  const registered = form.register(name)
 
   return (
     <div className={cn('grid content-start gap-1.5', className)}>
@@ -114,7 +115,11 @@ export function Field<T extends FieldValues>({
         id={id}
         aria-invalid={message ? true : undefined}
         {...props}
-        {...form.register(name)}
+        {...registered}
+        onBlur={(event) => {
+          registered.onBlur(event)
+          props.onBlur?.(event)
+        }}
       />
       {hint && !message && (
         <p className="text-xs text-muted-foreground">{hint}</p>

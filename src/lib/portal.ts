@@ -231,6 +231,18 @@ export interface PortalProperty {
   createdAt: string
 }
 
+export interface PropertyChangeRequest {
+  id: string
+  propertyId: string
+  action: 'UPDATE' | 'ARCHIVE'
+  status: 'PENDING' | 'APPROVED' | 'APPLIED' | 'REJECTED'
+  beforeValues: Record<string, unknown>
+  afterValues: Record<string, unknown>
+  resolution: string | null
+  applyAfter: string | null
+  createdAt: string
+}
+
 export interface PortalVisit {
   id: string
   type: string
@@ -257,6 +269,13 @@ export interface PortalRequest {
   requestedVisitAt: string | null
   documents: { docType: string | null }[]
   photos: number
+  files: {
+    index: number
+    kind: 'DOCUMENT' | 'PHOTO'
+    docType: string | null
+    originalName: string
+    url: string | null
+  }[]
   propertyId: string | null
   createdAt: string
 }
@@ -299,6 +318,20 @@ export const portal = {
     request<PortalVisit[]>('/portal/visits', { signal }),
   requests: (signal?: AbortSignal) =>
     request<PortalRequest[]>('/portal/requests', { signal }),
+  propertyChanges: (signal?: AbortSignal) =>
+    request<PropertyChangeRequest[]>('/portal/property-changes', { signal }),
+  proposePropertyChange: (propertyId: string, body: Record<string, unknown>) =>
+    request<PropertyChangeRequest>(`/portal/properties/${propertyId}/changes`, {
+      method: 'POST', body,
+    }),
+  archiveProperty: (propertyId: string) =>
+    request<PropertyChangeRequest>(`/portal/properties/${propertyId}/archive`, {
+      method: 'POST',
+    }),
+  deactivateProperty: (propertyId: string) =>
+    request<{ publicationStatus: string }>(`/portal/properties/${propertyId}/deactivate`, {
+      method: 'PATCH',
+    }),
   createConsignment: (body: FormData) =>
     request<ConsignmentResult>('/portal/consignments', {
       method: 'POST',

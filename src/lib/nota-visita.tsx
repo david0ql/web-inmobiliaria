@@ -1,4 +1,5 @@
-import { createContext, useCallback, useContext, useMemo, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { useLocation } from 'react-router-dom'
 
 interface NotaVisita {
   nota: string
@@ -30,6 +31,7 @@ export function NotaVisitaProvider({
 }: {
   children: React.ReactNode
 }) {
+  const { pathname } = useLocation()
   const [nota, setNota] = useState('')
   const [sello, setSello] = useState(0)
 
@@ -53,6 +55,12 @@ export function NotaVisitaProvider({
   }, [])
 
   const limpiar = useCallback(() => setNota(''), [])
+
+  // El plan pertenece a la ficha donde se calculó. Al navegar a otro inmueble
+  // se descarta para que nunca aparezca pegado a una propiedad distinta.
+  useEffect(() => {
+    setNota('')
+  }, [pathname])
 
   const valor = useMemo(
     () => ({ nota, proponer, limpiar, sello }),

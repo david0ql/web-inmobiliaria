@@ -1,6 +1,6 @@
 import { ArrowLeft, ArrowRight, Check, Loader2, Upload, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { useForm, useWatch, type UseFormReturn } from 'react-hook-form'
+import { useForm, useWatch, type Path, type UseFormReturn } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -16,6 +16,7 @@ import {
   type Step,
 } from '@/components/form/fields'
 import { Button } from '@/components/ui/button'
+import { PrivacyConsent } from '@/components/common/privacy-consent'
 import {
   Dialog,
   DialogContent,
@@ -25,6 +26,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { getZones } from '@/lib/api'
 import { mensajeDeError } from '@/lib/api-error'
@@ -32,7 +34,7 @@ import { useIdioma, useT } from '@/lib/i18n'
 import { portal } from '@/lib/portal'
 import { digits } from '@/lib/search-params'
 import { useSiteData } from '@/lib/site-data'
-import type { Zone } from '@/lib/types'
+import type { City, Zone } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
 /**
@@ -161,13 +163,19 @@ const count = (message: string) =>
   z
     .string()
     .trim()
-    .refine((value) => value !== '' && Number.isFinite(Number(value)), message)
+    .refine((value) => Number(value) > 0 && Number.isInteger(Number(value)), message)
 
-const amount = (message: string) =>
-  z
-    .string()
-    .trim()
-    .refine((value) => Number(digits(value)) > 0, message)
+/** Un área opcional se deja vacía; si se escribe, cero no es un área válida. */
+const optionalArea = (message: string) =>
+  z.string().trim().refine(
+    (value) => value === '' || (Number(value) > 0 && Number.isFinite(Number(value))),
+    message,
+  )
+
+const saleAmount = z
+  .string()
+  .trim()
+  .refine((value) => Number(digits(value)) >= 1_000_000, 'form.consignment.error.price.min')
 
 const schema = z
   .object({
@@ -176,7 +184,12 @@ const schema = z
     commune: z.string().trim().optional(),
     neighborhood: z.string().trim().min(2, 'form.consignment.error.neighborhood'),
     complexName: z.string().trim().min(2, 'form.consignment.error.complex'),
-    address: z.string().trim().min(4, 'form.consignment.error.address'),
+    // Evita direcciones de relleno como "Uej ju" sin imponer un formato que
+    // rompa direcciones rurales o conjuntos.
+    address: z.string().trim().min(4, 'form.consignment.error.address').refine(
+      (value) => /[a-záéíóúñ]/i.test(value) && /\d/.test(value),
+      'form.consignment.error.address',
+    ),
     unitNumber: z.string().trim().min(1, 'form.consignment.error.unit'),
     stratum: z.string().min(1, 'form.consignment.error.stratum'),
 
@@ -193,9 +206,9 @@ const schema = z
       'SHELL',
       'BLUEPRINT',
     ]),
-    privateArea: z.string().trim().optional(),
+    privateArea: optionalArea('form.consignment.error.builtarea'),
     builtArea: count('form.consignment.error.builtarea'),
-    lotArea: z.string().trim().optional(),
+    lotArea: optionalArea('form.consignment.error.builtarea'),
     bedrooms: count('form.consignment.error.bedrooms'),
     bathrooms: count('form.consignment.error.bathrooms'),
     parkingSpaces: count('form.consignment.error.parking'),
@@ -215,7 +228,7 @@ const schema = z
 
     // dinero
     maintenanceFee: z.string().trim().optional(),
-    salePrice: amount('form.consignment.error.price'),
+    salePrice: saleAmount,
     creditType: z.enum(['MORTGAGE', 'LEASING', 'DEBT_FREE']),
     creditInstitution: z.string().trim().optional(),
     debtAmount: z.string().trim().optional(),
@@ -369,6 +382,8 @@ export function ConsignmentDialog({
 
   const form = useForm<Values>({
     resolver: zodResolver(schema),
+    mode: 'onBlur',
+    reValidateMode: 'onChange',
     defaultValues: {
       cityId: '',
       commune: '',
@@ -459,7 +474,20 @@ export function ConsignmentDialog({
  * el boton esta roto.
  */
   async function next() {
-    if (!(await form.trigger(step.fields))) {
+    const basicValid = await form.trigger(step.fields)
+    // Ejecuta también reglas que dependen de varios campos (fecha/hora,
+    // hipoteca/saldo) antes de abandonar el paso, nunca al pulsar Enviar.
+    const parsed = schema.safeParse(form.getValues())
+    const stepIssues = parsed.success
+      ? []
+      : parsed.error.issues.filter((issue) =>
+          step.fields.includes(issue.path[0] as Path<Values>),
+        )
+    for (const issue of stepIssues) {
+      const name = issue.path[0] as Path<Values>
+      form.setError(name, { type: 'validate', message: issue.message })
+    }
+    if (!basicValid || stepIssues.length) {
       const failed = step.fields.find(
         (field) => form.getFieldState(field).invalid,
       )
@@ -524,7 +552,8 @@ export function ConsignmentDialog({
         {children ?? <Button>{t('form.consignment.trigger')}</Button>}
       </DialogTrigger>
 
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className="flex max-h-[calc(100dvh-1rem)] flex-col p-0 sm:max-w-2xl">
+        <div className="min-h-0 overflow-y-auto p-5 sm:p-6">
         <DialogHeader>
           <DialogTitle>{t('form.consignment.title')}</DialogTitle>
           <DialogDescription>
@@ -562,7 +591,9 @@ export function ConsignmentDialog({
             />
           )}
 
-          <div className="mt-6 flex items-center justify-between gap-3 border-t pt-4">
+          {last && <PrivacyConsent className="mt-5 rounded-lg bg-secondary/50 p-3" />}
+
+          <div className="sticky bottom-0 mt-6 flex items-center justify-between gap-3 border-t bg-background pt-4 pb-1">
             <Button
               type="button"
               variant="ghost"
@@ -595,6 +626,7 @@ export function ConsignmentDialog({
             </div>
           </div>
         </form>
+        </div>
       </DialogContent>
     </Dialog>
   )
@@ -695,16 +727,7 @@ function LocationStep({ form }: { form: Form }) {
 
   return (
     <Fieldset legend={t('form.consignment.legend.location')}>
-      <SelectField
-        form={form}
-        name="cityId"
-        label={t('form.consignment.field.city')}
-        placeholder={t('form.consignment.city.placeholder')}
-        options={catalogs.cities.map((city) => ({
-          value: String(city.id),
-          label: city.name,
-        }))}
-      />
+      <CitySearch form={form} cities={catalogs.cities} />
       <Field
         form={form}
         name="commune"
@@ -754,6 +777,34 @@ function LocationStep({ form }: { form: Form }) {
       />
     </Fieldset>
   )
+}
+
+/** Ciudad buscable para no obligar a recorrer una lista larga en el teléfono. */
+function CitySearch({ form, cities }: { form: Form; cities: City[] }) {
+  const t = useT()
+  const cityId = useWatch({ control: form.control, name: 'cityId' })
+  const selected = cities.find((city) => String(city.id) === cityId)
+  const [query, setQuery] = useState(selected?.name ?? '')
+  useEffect(() => setQuery(selected?.name ?? ''), [selected?.name])
+  return <div className="grid content-start gap-1.5">
+    <Label htmlFor="consignment-city">{t('form.consignment.field.city')}</Label>
+    <Input
+      id="consignment-city"
+      list="consignment-cities"
+      value={query}
+      placeholder={t('form.consignment.city.placeholder')}
+      onChange={(event) => {
+        const value = event.target.value
+        setQuery(value)
+        const match = cities.find((city) => city.name.toLocaleLowerCase() === value.trim().toLocaleLowerCase())
+        form.setValue('cityId', match ? String(match.id) : '', { shouldValidate: true, shouldDirty: true })
+      }}
+      onBlur={() => void form.trigger('cityId')}
+      autoComplete="address-level2"
+    />
+    <datalist id="consignment-cities">{cities.map((city) => <option key={city.id} value={city.name}>{city.region?.name ? `${city.name} · ${city.region.name}` : city.name}</option>)}</datalist>
+    {selected?.region?.name && <p className="text-xs text-muted-foreground">{t('form.consignment.field.department')}: {selected.region.name}</p>}
+  </div>
 }
 
 function PropertyStep({ form }: { form: Form }) {
@@ -1195,7 +1246,7 @@ function DocumentRow({
       <input
         id={id}
         type="file"
-        accept="application/pdf,image/*"
+        accept="application/pdf,.pdf"
         className="sr-only"
         onChange={(event) => onPick(event.target.files?.[0])}
       />

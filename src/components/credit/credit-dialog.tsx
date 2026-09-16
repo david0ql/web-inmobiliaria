@@ -1,5 +1,5 @@
 import { ArrowLeft, ArrowRight, Check, Loader2 } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useForm, useWatch, type Path, type UseFormReturn } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
@@ -16,6 +16,7 @@ import {
   type Step,
 } from '@/components/form/fields'
 import { Button } from '@/components/ui/button'
+import { PrivacyConsent } from '@/components/common/privacy-consent'
 import {
   Dialog,
   DialogContent,
@@ -26,7 +27,7 @@ import {
 } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { submitCreditRequest } from '@/lib/api'
+import { submitCreditRequest, validateEmailDomain } from '@/lib/api'
 import { mensajeDeError } from '@/lib/api-error'
 import { useIdioma, useT } from '@/lib/i18n'
 import { digits } from '@/lib/search-params'
@@ -159,7 +160,10 @@ const person = {
   phone: z.string().trim().min(7, 'form.error.phone'),
   email: z.email('form.error.email'),
   documentType: z.enum(['CC', 'CE', 'PASSPORT', 'NIT']),
-  documentNumber: z.string().trim().min(4, 'form.error.document'),
+  documentNumber: z
+    .string()
+    .trim()
+    .refine((value) => /^\d{6,}$/.test(value), 'form.error.document'),
   gender: z.enum(['FEMALE', 'MALE', 'OTHER', 'UNDISCLOSED']).or(z.literal('')),
   occupation: z.enum(['SALARIED', 'PENSIONER', 'SELF_EMPLOYED']),
   monthlyIncome: z.string().trim().optional(),
@@ -354,6 +358,8 @@ export function CreditDialog({
 
   const form = useForm<CreditValues>({
     resolver: zodResolver(schema),
+    mode: 'onBlur',
+    reValidateMode: 'onChange',
     defaultValues: {
       firstName: '',
       lastName: '',
@@ -413,7 +419,21 @@ export function CreditDialog({
  * el boton esta roto.
  */
   async function next() {
-    if (!(await form.trigger(step.fields))) {
+    const basicValid = await form.trigger(step.fields)
+    // `trigger(['phoneConfirm'])` no siempre ejecuta las reglas cruzadas del
+    // resolver. Revisarlas aquí evita descubrir teléfonos/documentos distintos
+    // al final de un formulario de tres pasos.
+    const parsed = schema.safeParse(form.getValues())
+    const stepIssues = parsed.success
+      ? []
+      : parsed.error.issues.filter((issue) =>
+          step.fields.includes(issue.path[0] as Path<CreditValues>),
+        )
+    for (const issue of stepIssues) {
+      const name = issue.path[0] as Path<CreditValues>
+      form.setError(name, { type: 'validate', message: issue.message })
+    }
+    if (!basicValid || stepIssues.length) {
       const failed = step.fields.find(
         (field) => form.getFieldState(field).invalid,
       )
@@ -476,6 +496,8 @@ export function CreditDialog({
           {step.id === 'co-applicant' && <CoApplicantStep form={form} />}
           {step.id === 'credit' && <CreditStep form={form} />}
           {step.id === 'property' && <PropertyStep form={form} />}
+
+          {last && <PrivacyConsent className="mt-5 rounded-lg bg-secondary/50 p-3" />}
 
           <div className="mt-6 flex items-center justify-between gap-3 border-t pt-4">
             <Button
@@ -574,6 +596,34 @@ function toPayload(values: CreditValues) {
 
 function ApplicantStep({ form }: { form: Form }) {
   const t = useT()
+  const phone = useWatch({ control: form.control, name: 'phone' })
+  const phoneConfirm = useWatch({ control: form.control, name: 'phoneConfirm' })
+  const documentNumber = useWatch({ control: form.control, name: 'documentNumber' })
+  const documentNumberConfirm = useWatch({ control: form.control, name: 'documentNumberConfirm' })
+  const [emailDomain, setEmailDomain] = useState<'idle' | 'checking' | 'valid' | 'invalid'>('idle')
+
+  // Mensaje inmediato al terminar de corregir: no hay que pulsar Continuar
+  // para enterarse de que una confirmación no coincide.
+  useEffect(() => {
+    if (phone && phoneConfirm) void form.trigger('phoneConfirm')
+  }, [phone, phoneConfirm, form])
+  useEffect(() => {
+    if (documentNumber && documentNumberConfirm) void form.trigger('documentNumberConfirm')
+  }, [documentNumber, documentNumberConfirm, form])
+
+  const checkEmail = async () => {
+    const email = form.getValues('email').trim()
+    if (!z.email().safeParse(email).success) return
+    setEmailDomain('checking')
+    try {
+      const result = await validateEmailDomain(email)
+      setEmailDomain(result.valid ? 'valid' : 'invalid')
+      if (!result.valid) form.setError('email', { type: 'validate', message: 'form.error.email.domain' })
+      else form.clearErrors('email')
+    } catch {
+      setEmailDomain('idle')
+    }
+  }
 
   return (
     <Fieldset legend={t('form.credit.legend.applicant')}>
@@ -621,8 +671,14 @@ function ApplicantStep({ form }: { form: Form }) {
         label={t('form.field.email')}
         type="email"
         autoComplete="email"
+        onBlur={() => void checkEmail()}
         className="sm:col-span-2"
       />
+      {emailDomain !== 'idle' && (
+        <p className={cn('text-xs sm:col-span-2', emailDomain === 'valid' ? 'text-emerald-700' : emailDomain === 'invalid' ? 'text-destructive' : 'text-muted-foreground')}>
+          {t(`form.email.domain.${emailDomain}`)}
+        </p>
+      )}
       <SelectField
         form={form}
         name="documentType"
