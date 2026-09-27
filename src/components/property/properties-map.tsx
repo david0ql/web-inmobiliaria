@@ -14,6 +14,12 @@ import {
   terminarVueloMapa,
   vueloPendiente,
 } from '@/lib/hero-map'
+import {
+  capaBase,
+  cercoAproximado,
+  chincheta,
+  controlZoom,
+} from '@/lib/mapa-skin'
 import { useCatalogo } from '@/lib/catalog-i18n'
 import { useIdioma, useT } from '@/lib/i18n'
 import { MAP_CENTER, MAP_ZOOM } from '@/lib/site'
@@ -138,6 +144,9 @@ export function PropertiesMap({
         asi que el mapa nunca se queda robando el desplazamiento de la pagina.
       */
       scrollWheelZoom: false,
+      // El de serie sale arriba a la izquierda; se pone el del sitio abajo a
+      // la derecha, junto con el resto de la piel.
+      zoomControl: false,
     })
     mapa.current = map
     // Para que el vuelo pueda preguntar a donde mira antes de navegar.
@@ -146,21 +155,8 @@ export function PropertiesMap({
     map.on('click', () => map.scrollWheelZoom.enable())
     map.on('mouseout', () => map.scrollWheelZoom.disable())
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      // En pantallas de alta densidad pide un zoom mas y las dibuja a la mitad:
-      // sin esto las teselas se ven borrosas en cualquier movil.
-      detectRetina: true,
-      /*
-        Dos anillos de teselas de mas alrededor de lo que se ve (por defecto es
-        uno). Ahora que el mapa sobrevive a los cambios de pagina y que el raton
-        lo hace volar de una tarjeta a otra, el encuadre se mueve mucho mas: con
-        el margen de serie, cada vuelo corto descubria un borde gris que se
-        rellenaba despues.
-      */
-      keepBuffer: 4,
-      attribution: '&copy; OpenStreetMap',
-      maxZoom: 19,
-    }).addTo(map)
+    capaBase().addTo(map)
+    controlZoom().addTo(map)
 
     /*
       El popup compartido. `maxWidth` = `minWidth` = el ancho de la ficha: asi
@@ -282,23 +278,18 @@ export function PropertiesMap({
       }
 
       if (property.mapPublication === 'APPROXIMATE') {
-        const circulo = L.circle(position, {
-          radius: 400,
-          color: '#0d0d0d',
-          weight: 1,
-          fillOpacity: 0.12,
-        }).on('click', abrir)
+        const circulo = cercoAproximado(position).on('click', abrir)
         nuevas.push(circulo)
         porInmueble.set(property.id, { capa: circulo, posicion: position })
       } else {
         // El `title` es lo que da nombre al marcador: Leaflet le pone
         // role="button" y sin texto queda mudo para un lector de pantalla.
-        const chincheta = L.marker(position, {
-          icon: pin(),
+        const aguja = L.marker(position, {
+          icon: chincheta(),
           title: textos.current.titulo(property),
         }).on('click', abrir)
-        nuevas.push(chincheta)
-        porInmueble.set(property.id, { capa: chincheta, posicion: position })
+        nuevas.push(aguja)
+        porInmueble.set(property.id, { capa: aguja, posicion: position })
       }
     }
 
@@ -488,17 +479,23 @@ export function PropertiesMap({
       if (!(capa instanceof L.Marker)) continue
       const elemento = capa.getElement()
       if (!elemento) continue
-      const punta = elemento.firstElementChild as HTMLElement | null
-      if (!punta) continue
-      punta.style.transition = 'transform .25s cubic-bezier(.2,.8,.2,1), background-color .25s ease'
-      punta.style.transformOrigin = 'center'
+      /*
+        La gota crece desde su punta, no desde su centro.
+
+        `transform-origin` va al 50% 100% —lo pone la propia chincheta— porque
+        la punta es la que señala la coordenada: escalando desde el centro, el
+        inmueble se movia medio bloque al pasar el raton por su tarjeta.
+      */
+      const gota = elemento.firstElementChild as HTMLElement | null
+      if (!gota) continue
+      const cuerpo = gota.querySelector('path')
       if (id === destacado) {
-        punta.style.transform = 'scale(1.9)'
-        punta.style.backgroundColor = 'var(--color-primary, #0d0d0d)'
+        gota.style.transform = 'scale(1.45)'
+        cuerpo?.setAttribute('fill', '#c8102e')
         elemento.style.zIndex = '1000'
       } else {
-        punta.style.transform = 'scale(1)'
-        punta.style.backgroundColor = '#0d0d0d'
+        gota.style.transform = 'scale(1)'
+        cuerpo?.setAttribute('fill', '#0d0d0d')
         elemento.style.zIndex = ''
       }
     }
@@ -660,18 +657,4 @@ function coreBounds(points: L.LatLngExpression[]): L.LatLngBounds | null {
     [cut(lats, 0.05), cut(lngs, 0.05)],
     [cut(lats, 0.95), cut(lngs, 0.95)],
   )
-}
-
-/**
- * Un `divIcon` en lugar del marcador por defecto: el PNG de Leaflet se pierde
- * al empaquetar y ademas asi la chincheta es del negro del sitio.
- */
-function pin() {
-  return L.divIcon({
-    className: '',
-    html: `<span style="display:block;width:16px;height:16px;border-radius:50%;background:#0d0d0d;border:3px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.4)"></span>`,
-    iconSize: [16, 16],
-    iconAnchor: [8, 8],
-    popupAnchor: [0, -8],
-  })
 }

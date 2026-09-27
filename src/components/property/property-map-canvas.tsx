@@ -1,4 +1,11 @@
 import L from 'leaflet'
+
+import {
+  capaBase,
+  cercoAproximado,
+  chincheta,
+  controlZoom,
+} from '@/lib/mapa-skin'
 import 'leaflet/dist/leaflet.css'
 import { useEffect, useRef } from 'react'
 
@@ -31,34 +38,21 @@ export function PropertyMapCanvas({ property }: { property: Property }) {
       center: position,
       zoom: mapPublication === 'APPROXIMATE' ? 14 : 16,
       scrollWheelZoom: false,
+      // La piel del sitio pone el suyo abajo a la derecha.
+      zoomControl: false,
     })
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      // Como en el mapa del inventario: sin esto, en cualquier movil las
-      // teselas de la ficha se ven borrosas. Faltaba aqui por descuido.
-      detectRetina: true,
-      attribution: '&copy; OpenStreetMap',
-      maxZoom: 19,
-    }).addTo(map)
+    capaBase().addTo(map)
+    controlZoom().addTo(map)
 
     if (mapPublication === 'APPROXIMATE') {
-      L.circle(position, {
-        radius: 400,
-        color: '#0d0d0d',
-        weight: 1,
-        fillOpacity: 0.12,
-      }).addTo(map)
+      cercoAproximado(position).addTo(map)
     } else {
       L.marker(position, {
         // Leaflet le pone role="button": sin `title` queda mudo para un lector
         // de pantalla.
         title: property.title,
-        icon: L.divIcon({
-          className: '',
-          html: `<span style="display:block;width:16px;height:16px;border-radius:50%;background:#0d0d0d;border:3px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.4)"></span>`,
-          iconSize: [16, 16],
-          iconAnchor: [8, 8],
-        }),
+        icon: chincheta(),
       }).addTo(map)
     }
 

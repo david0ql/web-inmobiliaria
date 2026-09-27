@@ -219,40 +219,57 @@ export function encuadreRecién(): boolean {
 }
 
 /**
- * Resuelve cuando el mapa termina de pintar sus teselas, o cuando se acaba la
+ * Resuelve cuando la capa de teselas termina de pintar, o cuando se acaba la
  * paciencia.
  *
- * `load` de Leaflet salta cuando no queda ninguna tesela pendiente en la capa
- * visible. Si ya estaban todas en el cache del navegador —que es lo normal aqui,
- * porque el mapa de la portada acaba de pedir las mismas— salta en el primer
- * cuadro y no se espera nada.
+ * ESTE ERA EL BUG DE "SE QUEDA MEDIO GRIS Y LUEGO SE LLENA".
+ *
+ * Escuchaba `map.on('load')`, que en Leaflet NO es "las teselas estan listas":
+ * es "el mapa se inicializo con centro y zoom", y salta una sola vez al crearlo.
+ * Con el mapa ya montado no volvia a saltar nunca, asi que la espera se resolvia
+ * por el tope de tiempo o por una comprobacion que miraba antes de que Leaflet
+ * hubiera pedido nada. Resultado: se descubria el mapa a medio pintar. La
+ * primera vez colaba —las teselas venian del cache de la portada— y a partir de
+ * la segunda, con otro encuadre pedido, se veia el relleno en directo.
+ *
+ * El evento bueno es `load` de la CAPA (`GridLayer`), que salta cuando no queda
+ * ninguna tesela pendiente. Y se comprueba despues de dos cuadros, que es
+ * cuando Leaflet ya ha tenido ocasion de pedirlas: preguntar antes es preguntar
+ * por un trabajo que todavia no ha empezado.
  */
 function esperarTeselas(map: L.Map, topeMs: number): Promise<void> {
   return new Promise((listo) => {
+    // `_tiles` es la marca de una capa de rejilla; el tipado publico no ofrece
+    // ninguna forma de distinguirla sin importar la clase.
+    let encontrada: unknown = null
+    map.eachLayer((l) => {
+      if ('_tiles' in l) encontrada = l
+    })
+    if (!encontrada) {
+      listo()
+      return
+    }
+    const rejilla = encontrada as L.GridLayer
+
     let cerrado = false
     const acabar = () => {
       if (cerrado) return
       cerrado = true
-      map.off('load', acabar)
+      rejilla.off('load', acabar)
       window.clearTimeout(reloj)
       listo()
     }
     const reloj = window.setTimeout(acabar, topeMs)
-    map.once('load', acabar)
-    // `load` no vuelve a saltar si la capa ya estaba cargada antes de escuchar.
-    requestAnimationFrame(() => {
-      const capas = Object.values(
-        (map as unknown as { _layers: Record<string, unknown> })._layers,
-      )
-      const pendientes = capas.some(
-        (capa) =>
-          typeof capa === 'object' &&
-          capa !== null &&
-          '_loading' in capa &&
-          (capa as { _loading?: boolean })._loading === true,
-      )
-      if (!pendientes) acabar()
-    })
+    rejilla.on('load', acabar)
+
+    // Dos cuadros: el primero deja que Leaflet pida las teselas que faltan, el
+    // segundo comprueba si de verdad quedaba alguna pendiente.
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        const pendiente = (rejilla as unknown as { _loading?: boolean })._loading
+        if (pendiente !== true) acabar()
+      }),
+    )
   })
 }
 
@@ -397,9 +414,11 @@ export function terminarVueloMapa(
     distintas no hay transicion que las salve.
 
     El tope existe porque las teselas vienen de un servidor ajeno: mas vale
-    descubrir un borde a medio pintar que dejar la pantalla congelada.
+    descubrir un borde a medio pintar que dejar la pantalla congelada. Es
+    generoso —casi un segundo— porque mientras se espera no hay nada roto: se ve
+    el mapa de la portada, quieto, que es de donde se venia.
   */
-  esperarTeselas(map, 320).then(() => {
+  esperarTeselas(map, 900).then(() => {
     capa.remove()
     arrancar()
   })
