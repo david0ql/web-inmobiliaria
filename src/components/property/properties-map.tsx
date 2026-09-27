@@ -9,6 +9,7 @@ import { createPortal } from 'react-dom'
 import { PropertyCard } from '@/components/property/property-card'
 import {
   HERO_MAP_ATTR,
+  encuadreRecién,
   registrarMapaVivo,
   terminarVueloMapa,
   vueloPendiente,
@@ -338,15 +339,15 @@ export function PropertiesMap({
       Tres cuadros: montar el mapa, colocar el panel y dejar que el encuadre de
       la pagina termine. Midiendo antes, el vuelo aterrizaba desplazado.
 
-      El encuadre se lee de `encuadre.current`, que lo deja el efecto de los
-      marcadores: es a donde el mapa iba a ir por su cuenta, y por tanto a donde
-      tiene que llegar volando.
+      El vuelo no necesita saber a donde encuadrar: el mapa llega quieto, con el
+      encuadre que traia de la portada, y el seguimiento de la lista lo ajusta
+      sobre los resultados un instante despues, ya en reposo.
     */
     const id = requestAnimationFrame(() =>
       requestAnimationFrame(() =>
         requestAnimationFrame(() => {
           if (!cancelado) {
-            terminarVueloMapa(nodo, mapa.current, encuadre.current)
+            terminarVueloMapa(nodo, mapa.current)
           }
         }),
       ),
@@ -446,6 +447,16 @@ export function PropertiesMap({
     // Con el raton sobre una tarjeta manda el hover: reencuadrar aqui le
     // quitaria el mapa de debajo a mitad de gesto.
     if (destacado) return
+    /*
+      Y tampoco nada mas aterrizar.
+
+      El vuelo deja el mapa ya encuadrado sobre estos mismos inmuebles. Sin esta
+      guarda, el observador de tarjetas visibles se disparaba una decima despues
+      y arrancaba OTRO viaje de setecientos milisegundos hacia practicamente el
+      mismo sitio: el mapa llegaba y se volvia a mover solo, que es lo que hacia
+      que la llegada no se sintiera como una llegada.
+    */
+    if (encuadreRecién()) return
     map.flyToBounds(marco, {
       padding: [56, 56],
       maxZoom: 16,

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react'
 import { useLocation, useNavigationType } from 'react-router-dom'
 
-import { vueloPendiente } from '@/lib/hero-map'
+import { reservarScroll, vueloPendiente } from '@/lib/hero-map'
 
 /**
  * Llevar la vista al arranque de una lista al cambiar de pagina.
@@ -24,6 +24,15 @@ function stickyOffset(): number {
   return (header?.offsetHeight ?? 0) + GAP
 }
 
+/** A que altura tiene que quedar la pagina para que la lista abra arriba. */
+export function destinoDeLista(anchor: HTMLElement | null): number {
+  if (!anchor) return window.scrollY
+  return Math.max(
+    anchor.getBoundingClientRect().top + window.scrollY - stickyOffset(),
+    0,
+  )
+}
+
 export function scrollToListTop(
   anchor: HTMLElement | null,
   /** Sin animar, para cuando otra animacion depende de que la pagina ya este quieta. */
@@ -31,10 +40,7 @@ export function scrollToListTop(
 ): void {
   if (!anchor) return
 
-  const top = Math.max(
-    anchor.getBoundingClientRect().top + window.scrollY - stickyOffset(),
-    0,
-  )
+  const top = destinoDeLista(anchor)
   const distance = Math.abs(top - window.scrollY)
 
   window.scrollTo({
@@ -100,16 +106,20 @@ export function useSettleOnList(anchor: HTMLElement | null, listo: boolean): voi
       estar el hueco vacio y el encuadre salia corto.
     */
     /*
-      Con un vuelo del mapa en marcha, el encuadre es instantaneo.
+      Con un vuelo del mapa en marcha, la pagina NO se desplaza aqui: se le
+      reserva el destino al vuelo y es el quien la mueve.
 
-      El clon aterriza midiendo la caja del mapa de destino, y una pagina
-      desplazandose suavemente mueve esa caja mientras se mide: el clon caia un
-      par de dedos por debajo de su sitio. Colocando la pagina de golpe —antes de
-      que el vuelo mida— las dos cosas coinciden, y lo que se ve es un mapa que
-      va a su hueco mientras la pagina ya esta quieta.
+      Antes esto daba un salto instantaneo de trescientos y pico pixeles en el
+      mismo instante en que el mapa empezaba a volar. Eran dos movimientos
+      distintos en la misma decima de segundo —uno seco y otro suave— y el
+      resultado se leia como que algo se descoloca. Ahora el scroll va dentro
+      del vuelo, con su misma curva, y todo llega junto.
     */
     requestAnimationFrame(() =>
-      requestAnimationFrame(() => scrollToListTop(anchor, vueloPendiente())),
+      requestAnimationFrame(() => {
+        if (vueloPendiente()) reservarScroll(destinoDeLista(anchor))
+        else scrollToListTop(anchor)
+      }),
     )
   }, [anchor, listo, key, navigationType])
 }
