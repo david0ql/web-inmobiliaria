@@ -52,8 +52,14 @@ import type L from 'leaflet'
  */
 
 
-/** Si el destino no aparece en este tiempo, lo que haya montado se retira. */
-const PACIENCIA_MS = 2000
+/**
+ * Si el destino no aparece en este tiempo, lo que haya montado se retira.
+ *
+ * Tres segundos porque la vuelta a la portada tiene mas trabajo por delante que
+ * la ida: alli el mapa se monta con la lista de resultados que ya viene pedida,
+ * y aqui hay que traerse el inventario entero.
+ */
+const PACIENCIA_MS = 3000
 
 /** El radio del panel de destino, para redondear la ventana al llegar. */
 const RADIO_FINAL = 16
@@ -80,6 +86,20 @@ export function registrarMapaVivo(map: L.Map | null): void {
   vivo = map
 }
 
+/**
+ * Si un mapa sigue vivo y colgando del documento.
+ *
+ * Preguntarle cualquier cosa a un mapa ya desmontado —el centro, por ejemplo—
+ * revienta dentro de Leaflet con un críptico "cannot read properties of
+ * undefined (reading '_leaflet_pos')", porque sus paneles ya no existen. Pasa
+ * cuando alguien navega dos veces seguidas antes de que termine un vuelo.
+ */
+function sigueVivo(map: L.Map | null): boolean {
+  if (!map) return false
+  const contenedor = (map as unknown as { _container?: HTMLElement })._container
+  return Boolean(contenedor?.isConnected)
+}
+
 function menosMovimiento(): boolean {
   return (
     typeof window === 'undefined' ||
@@ -97,7 +117,7 @@ export function empezarVueloMapa(): boolean {
   if (typeof document === 'undefined' || menosMovimiento()) return false
 
   const nodo = document.querySelector<HTMLElement>(`[${HERO_MAP_ATTR}]`)
-  if (!nodo || !vivo) return false
+  if (!nodo || !sigueVivo(vivo) || !vivo) return false
 
   const rect = nodo.getBoundingClientRect()
   // Un mapa que ya esta fuera de la pantalla no tiene nada que contar.
@@ -110,6 +130,7 @@ export function empezarVueloMapa(): boolean {
   const clon = nodo.cloneNode(true) as HTMLElement
   clon.removeAttribute(HERO_MAP_ATTR)
   clon.style.cssText = `width:${rect.width}px;height:${rect.height}px;margin:0`
+  copiarLienzos(nodo, clon)
 
   const capa = document.createElement('div')
   capa.setAttribute('aria-hidden', 'true')
@@ -307,6 +328,38 @@ function esperarTeselas(map: L.Map, topeMs: number): Promise<void> {
       }),
     )
   })
+}
+
+/**
+ * Copia el contenido de los lienzos, que `cloneNode` no se lleva.
+ *
+ * `cloneNode(true)` duplica el arbol y los atributos, pero el dibujo de un
+ * `<canvas>` no es ninguna de las dos cosas: vive en su contexto grafico. La
+ * copia sale con el tamaño correcto y completamente transparente — o sea, un
+ * hueco blanco justo donde tiene que haber un mapa.
+ *
+ * Se resuelve pintando el lienzo original dentro del clonado. Funciona porque la
+ * capa base se crea con `preserveDrawingBuffer`; sin eso, WebGL tira el buffer
+ * al componer el cuadro y lo que se lee es transparente.
+ *
+ * Si algo falla —contexto perdido, lienzo de otro origen— no se rompe nada: se
+ * queda la copia sin pintar, que es exactamente lo que habia antes.
+ */
+function copiarLienzos(origen: HTMLElement, destino: HTMLElement): void {
+  const de = origen.querySelectorAll('canvas')
+  const a = destino.querySelectorAll('canvas')
+  for (let i = 0; i < de.length && i < a.length; i++) {
+    const fuente = de[i]
+    const copia = a[i]
+    if (!fuente.width || !fuente.height) continue
+    copia.width = fuente.width
+    copia.height = fuente.height
+    try {
+      copia.getContext('2d')?.drawImage(fuente, 0, 0)
+    } catch {
+      /* Sin copia del lienzo; el resto del clon sigue sirviendo. */
+    }
+  }
 }
 
 /**
@@ -520,9 +573,17 @@ export function terminarVueloMapa(
       nodo.setAttribute('style', estiloPrevio)
       capa.remove()
 
-      const centroActual = map.getCenter()
-      map.invalidateSize({ animate: false, pan: false })
-      map.setView(centroActual, map.getZoom(), { animate: false })
+      /*
+        Si el mapa ya no esta en la pagina no hay nada que recolocar: se llego
+        aqui porque alguien navego otra vez a mitad de vuelo y la animacion se
+        cancelo. Preguntarle el centro a un mapa desmontado revienta dentro de
+        Leaflet.
+      */
+      if (sigueVivo(map)) {
+        const centroActual = map.getCenter()
+        map.invalidateSize({ animate: false, pan: false })
+        map.setView(centroActual, map.getZoom(), { animate: false })
+      }
       reciénAterrizado = Date.now()
     }
 
@@ -566,6 +627,34 @@ export function cancelarVueloMapa(): void {
   window.clearTimeout(origen.temporizador)
   origen.capa.remove()
   origen = null
+}
+
+/** Si una ruta es la portada, en cualquiera de los dos idiomas. */
+function esPortada(ruta: string): boolean {
+  return ruta === '/' || ruta === '/en' || ruta === '/en/'
+}
+
+/**
+ * El vuelo de vuelta: del buscador a la portada.
+ *
+ * Volver se hace de dos maneras y hay que atender las dos. Pulsando el logotipo
+ —eso lo dispara el propio enlace— o con el boton atras del navegador, que no
+ * pasa por ningun manejador nuestro: para eso esta `popstate`, que salta con la
+ * direccion ya cambiada pero con la pantalla anterior todavia montada. Ese
+ * instante es exactamente el que hace falta: se puede leer a donde vamos y
+ * todavia se puede medir y fotografiar el mapa del que venimos.
+ *
+ * Solo hacia la portada. Volver a cualquier otra pantalla no tiene mapa donde
+ * aterrizar, y dejar una copia flotando dos segundos hasta que se rinde es peor
+ * que no hacer nada.
+ */
+export function vigilarVueltaAtras(): () => void {
+  if (typeof window === 'undefined') return () => {}
+  const alVolver = () => {
+    if (esPortada(window.location.pathname)) empezarVueloMapa()
+  }
+  window.addEventListener('popstate', alVolver)
+  return () => window.removeEventListener('popstate', alVolver)
 }
 
 /** Si ahora mismo hay un vuelo esperando destino. */

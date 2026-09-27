@@ -18,6 +18,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/misc'
 import { menuTypes, typePath, useSiteData } from '@/lib/site-data'
+import { empezarVueloMapa } from '@/lib/hero-map'
 import { useT } from '@/lib/i18n'
 import { ROUTES, SITE } from '@/lib/site'
 import { cn } from '@/lib/utils'
@@ -67,7 +68,13 @@ export function SiteHeader() {
       className="sticky top-0 z-40 border-b bg-background"
     >
       <div className="container-site flex min-h-16 items-center gap-3 py-2.5 lg:min-h-20 lg:gap-4">
-        <Link to={ROUTES.home} className="shrink-0">
+        {/* El logotipo es el otro camino de vuelta a la portada, ademas del
+            boton atras del navegador: tambien devuelve el mapa volando. */}
+        <Link
+          to={ROUTES.home}
+          onClick={() => empezarVueloMapa()}
+          className="shrink-0"
+        >
           <img
             src={SITE.logo}
             /* La marca nueva es la S, cuadrada: con 250x90 el navegador

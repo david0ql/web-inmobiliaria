@@ -146,6 +146,23 @@ export function capaBase(): L.Layer {
     // El lienzo no atiende gestos: los sigue gobernando Leaflet, que es quien
     // sabe de chinchetas y de popups.
     interactive: false,
+    /*
+      Se conserva el buffer de dibujo.
+
+      Por defecto WebGL lo descarta en cuanto compone el cuadro, y entonces el
+      lienzo no se puede leer: cualquier intento de copiarlo devuelve
+      transparente. El vuelo entre pantallas necesita justo eso —una copia
+      fiel del mapa para taparlo mientras el nuevo se dibuja—, y sin esto la
+      copia salia en blanco.
+
+      Cuesta algo de memoria y un poco de rendimiento en moviles antiguos. A
+      cambio, la transicion entre portada y buscador deja de enseñar un hueco
+      blanco donde deberia haber un mapa.
+
+      En MapLibre 6 la opcion se mudo dentro de `canvasContextAttributes`; suelta
+      ya no existe y se ignoraba en silencio.
+    */
+    canvasContextAttributes: { preserveDrawingBuffer: true },
   })
   /*
     La atribucion se pone a mano porque el puente no la acepta como opcion, y no

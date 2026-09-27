@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef } from 'react'
 import { useLocation, useNavigationType } from 'react-router-dom'
 
+import { entradaCoreografiada } from '@/lib/hero-map'
+
 
 /**
  * Llevar la vista al arranque de una lista al cambiar de pagina.
@@ -169,6 +171,14 @@ export function useSmoothScrollTop(): void {
 
     if (window.scrollY === 0) return
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    window.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' })
+    /*
+      Con un vuelo del mapa en marcha, de golpe.
+
+      Subir suavemente mientras el mapa vuela son otra vez dos movimientos
+      distintos a la vez. El vuelo ya cuenta la historia del cambio de pantalla;
+      la pagina solo tiene que estar donde toca cuando termine.
+    */
+    const instantaneo = reduce || entradaCoreografiada()
+    window.scrollTo({ top: 0, behavior: instantaneo ? 'auto' : 'smooth' })
   }, [key, navigationType])
 }

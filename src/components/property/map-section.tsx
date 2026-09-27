@@ -2,6 +2,7 @@ import { MapPinOff, X } from 'lucide-react'
 import { lazy, Suspense, useEffect, useState } from 'react'
 
 import { api, searchProperties } from '@/lib/api'
+import { entradaCoreografiada } from '@/lib/hero-map'
 import { useUbicacion } from '@/lib/ubicacion'
 import { useCuandoOcioso } from '@/lib/cuando-ocioso'
 import { useT } from '@/lib/i18n'
@@ -35,6 +36,18 @@ type Cercano = Property & { distanceKm?: number }
 
 export function MapSection() {
   const ocioso = useCuandoOcioso()
+  /*
+    Con un vuelo de vuelta en camino no se espera a que el navegador este
+    ocioso.
+
+    `useCuandoOcioso` existe para no pelear con el primer pintado de la portada,
+    y puede tardar segundo y medio. Perfecto para quien ABRE la portada; ruinoso
+    para quien VUELVE a ella desde el buscador, porque el mapa que viene volando
+    no tendria donde aterrizar y se quedaria esperando hasta rendirse.
+
+    Se pregunta una sola vez, al montar: despues ya manda `ocioso`.
+  */
+  const [vueloEnCamino] = useState(entradaCoreografiada)
   const { punto } = useUbicacion()
   const [properties, setProperties] = useState<Property[] | null>(null)
   /** Cuando quien mira esta lejos de todo el inventario. */
@@ -94,7 +107,7 @@ export function MapSection() {
   }, [punto])
 
   useEffect(() => {
-    if (!ocioso) return
+    if (!ocioso && !vueloEnCamino) return
     const controller = new AbortController()
 
     // Dos paginas: el mapa quiere el inventario entero y la API lo da de 48.
@@ -115,9 +128,19 @@ export function MapSection() {
       .catch(() => setProperties([]))
 
     return () => controller.abort()
-  }, [ocioso])
+  }, [ocioso, vueloEnCamino])
 
-  if (!properties?.length) return <MapPoster />
+  /*
+    Con un vuelo de vuelta en camino, el mapa se monta YA, aunque todavia no
+    haya inmuebles que dibujar.
+
+    El poster no sirve de destino: es una fotografia, no un mapa, y el vuelo
+    necesita un contenedor de Leaflet vivo donde posarse. Esperando a que
+    lleguen los noventa y seis inmuebles de la portada se agotaba la paciencia
+    del vuelo y la vuelta se quedaba sin animacion. Las chinchetas entran
+    despues, por su cuenta, que para eso se sincronizan aparte.
+  */
+  if (!properties?.length && !vueloEnCamino) return <MapPoster />
 
   return (
     <div className="relative">
@@ -128,7 +151,7 @@ export function MapSection() {
           el aviso.
         */}
         <PropertiesMap
-          properties={properties}
+          properties={properties ?? []}
           punto={lejos ? null : punto}
           radioKm={RADIO_KM}
           cerca={!lejos}

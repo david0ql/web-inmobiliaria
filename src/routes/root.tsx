@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { Outlet, useLocation, useNavigate, useNavigation } from 'react-router-dom'
 
+import { vigilarVueltaAtras } from '@/lib/hero-map'
 import { useSmoothScrollTop } from '@/lib/scroll'
 import { CurrencyProvider } from '@/lib/currency'
 import { NotaVisitaProvider } from '@/lib/nota-visita'
@@ -23,6 +24,8 @@ export function Root() {
   */
   usePortalSession()
   useSmoothScrollTop()
+  // El boton atras del navegador tambien devuelve el mapa volando.
+  useEffect(vigilarVueltaAtras, [])
 
   const navigation = useNavigation()
 
