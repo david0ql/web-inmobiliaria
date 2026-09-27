@@ -38,6 +38,13 @@ export function PropertyMapCanvas({ property }: { property: Property }) {
       center: position,
       zoom: mapPublication === 'APPROXIMATE' ? 14 : 16,
       scrollWheelZoom: false,
+      /*
+        El maximo, explicito. Lo ponia la capa de imagenes; la vectorial no, y
+        sin el `map.getMaxZoom()` devuelve infinito. El plugin de agrupacion lo
+        usa para repartir los grupos y revienta con "Map has no maxZoom
+        specified" antes de dibujar nada.
+      */
+      maxZoom: 19,
       // La piel del sitio pone el suyo abajo a la derecha.
       zoomControl: false,
     })

@@ -1,4 +1,34 @@
 import L from 'leaflet'
+import * as maplibregl from 'maplibre-gl'
+import 'maplibre-gl/dist/maplibre-gl.css'
+
+/*
+  El puente busca `maplibregl` en el objeto global, no lo importa.
+
+  Sin esta linea coge lo que haya —o nada—, y el sintoma es que su worker no
+  arranca: "Worker failed to load". Tiene que ir ANTES de importar el puente,
+  porque el puente lo lee al cargarse.
+*/
+;(window as unknown as { maplibregl: typeof maplibregl }).maplibregl = maplibregl
+
+/*
+  El worker, servido por nosotros.
+
+  MapLibre descarga y tesela en un worker que vive en un fichero hermano
+  (`maplibre-gl-worker.mjs`). Al empaquetar, ese fichero deja de estar al lado
+  del modulo principal, y lo que el navegador acaba pidiendo es una ruta que no
+  existe: el servidor devuelve el index.html del sitio, el worker intenta
+  ejecutar HTML y muere con "Worker failed to load. Check that the worker URL is
+  correct" — un mensaje que manda a mirar la URL, que es lo unico que estaba
+  bien. El mapa se queda en blanco sin mas aviso.
+
+  `?worker&url` le pide al empaquetador que emita ese fichero como un asset con
+  su propia direccion y nos la devuelva, y `setWorkerUrl` se la dice a MapLibre.
+*/
+import urlDelWorker from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
+maplibregl.setWorkerUrl(urlDelWorker)
+
+await import('@maplibre/maplibre-gl-leaflet')
 
 /**
  * La piel de los mapas del sitio: teselas, controles y chinchetas.
@@ -39,25 +69,49 @@ import L from 'leaflet'
  * es la misma imagen al doble de resolucion: una sola peticion, el mismo
  * resultado y la cuarta parte del trafico contra un servicio ajeno.
  */
+/**
+ * El estilo: Liberty de OpenFreeMap.
+ *
+ * Es el aspecto que se buscaba —el de CARTO Voyager— por otro camino. Los dos
+ * descienden del mismo linaje (OSM Bright sobre el esquema OpenMapTiles): misma
+ * paleta apagada, el color reservado para agua, parques y vias principales, y
+ * pocos rotulos. Al lado, el estilo estandar de OpenStreetMap es un mapa para
+ * editar OpenStreetMap: carreteras naranja chillon y un icono por cada
+ * gasolineria, compitiendo con las chinchetas del inventario.
+ *
+ * ¿POR QUE NO CARTO, QUE ERA LO PEDIDO?
+ *
+ * Porque ya no sirve sus teselas sin clave. Devuelve un PNG de 2 KB que dice
+ * "API KEY REQUIRED" —con codigo 200, asi que ni siquiera se ve como un fallo—.
+ * Comprobado desde Chrome en los cuatro subdominios, en dos estilos y en ambas
+ * densidades. Si algun dia se contrata una clave, se pone `VITE_CARTO_API_KEY`
+ * en el `.env` y esto pasa a usar Voyager sin tocar nada mas.
+ *
+ * ¿Y POR QUE VECTORIAL Y NO IMAGENES?
+ *
+ * Porque no existe ningun proveedor de teselas EN IMAGEN con este aspecto que
+ * no pida clave. Vectorial resulta ademas mejor aqui: el navegador dibuja el
+ * mapa a la resolucion de la pantalla, asi que se ve nitido en cualquier movil
+ * y en cualquier zoom intermedio, y los rotulos se recolocan en vez de venir
+ * cocidos dentro de un PNG.
+ *
+ * OpenFreeMap no pide clave ni registro y no impone limite de peticiones; se
+ * financia con donaciones. La atribucion a OpenStreetMap y a OpenMapTiles se
+ * queda puesta, que es lo que pide la licencia de los datos.
+ */
+const ESTILO_LIBERTY = 'https://tiles.openfreemap.org/styles/liberty'
+
+/** El Voyager de CARTO, solo si hay clave. */
 const VOYAGER = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager'
 
 /**
  * La clave de CARTO, si la hay.
  *
- * CARTO dejo de servir sus basemaps sin clave: sin ella devuelve una tesela gris
- * que pone "API KEY REQUIRED" —con 200 y todo, asi que ni siquiera falla de
- * forma visible en la consola—. Con clave se usa Voyager; sin ella se cae al
- * estilo estandar de OpenStreetMap, que es feo para esto pero funciona y no le
- * debe nada a nadie.
- *
- * Se pide en https://carto.com/basemaps/ ("Request a key") y se pone en el
- * `.env` del despliegue como `VITE_CARTO_API_KEY`. El parametro de la URL se
- * llama `key`, no `api_key`.
- *
- * El plan gratuito de uso COMERCIAL —que es el nuestro— son un millon de
- * peticiones al mes. Conviene restringir la clave por dominio desde el panel de
- * CARTO: la clave viaja en la URL de cada tesela, o sea que es publica por
- * definicion, y sin restriccion cualquiera puede gastar la cuota.
+ * Se pide en https://carto.com/basemaps/ ("Request a key"). El parametro de la
+ * URL se llama `key`, no `api_key`. El plan gratuito de uso COMERCIAL —que es
+ * el nuestro— es de un millon de peticiones al mes, y conviene restringir la
+ * clave por dominio desde su panel: viaja en la URL de cada tesela, o sea que
+ * es publica por definicion.
  */
 const CLAVE_CARTO = import.meta.env.VITE_CARTO_API_KEY as string | undefined
 
@@ -65,43 +119,40 @@ const CLAVE_CARTO = import.meta.env.VITE_CARTO_API_KEY as string | undefined
 const DENSA =
   typeof window !== 'undefined' && window.devicePixelRatio > 1.25 ? '@2x' : ''
 
-const FUENTE = CLAVE_CARTO
-  ? {
-      url: `${VOYAGER}/{z}/{x}/{y}${DENSA}.png?key=${CLAVE_CARTO}`,
-      atribucion:
-        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
-      /*
-        `@2x` EN VEZ DE `detectRetina`. Leaflet, con `detectRetina`, pide teselas
-        de un zoom MAS y las dibuja a la mitad: cuatro peticiones donde cabia
-        una. CARTO sirve la version `@2x` de cada tesela, que es la misma imagen
-        al doble de resolucion: una peticion, el mismo resultado y la cuarta
-        parte del trafico contra un servicio ajeno.
-      */
-      retina: false,
-    }
-  : {
-      url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-      atribucion:
-        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-      // OSM no publica teselas @2x, asi que aqui si toca el truco de Leaflet.
-      retina: true,
-    }
-
-export const ATRIBUCION = FUENTE.atribucion
+export const ATRIBUCION = CLAVE_CARTO
+  ? '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
+  : '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://openfreemap.org/">OpenFreeMap</a> &copy; <a href="https://www.openmaptiles.org/">OpenMapTiles</a>'
 
 /** La capa base, igual en los tres mapas. */
-export function capaBase(): L.TileLayer {
-  return L.tileLayer(FUENTE.url, {
-    attribution: FUENTE.atribucion,
-    detectRetina: FUENTE.retina,
-    maxZoom: 19,
-    /*
-      Dos anillos de teselas de mas alrededor de lo que se ve, en vez de uno.
-      El mapa del buscador se mueve mucho —el raton lo hace volar de una tarjeta
-      a otra— y con el margen de serie cada salto corto descubria un borde gris.
-    */
-    keepBuffer: 4,
+export function capaBase(): L.Layer {
+  if (CLAVE_CARTO) {
+    return L.tileLayer(`${VOYAGER}/{z}/{x}/{y}${DENSA}.png?key=${CLAVE_CARTO}`, {
+      attribution: ATRIBUCION,
+      maxZoom: 19,
+      keepBuffer: 4,
+    })
+  }
+
+  /*
+    La capa vectorial vive dentro de Leaflet como una capa mas.
+
+    Leaflet sigue mandando en todo lo demas —chinchetas, agrupacion, el globo de
+    la ficha, el vuelo de la portada al buscador—; MapLibre solo dibuja el fondo
+    sobre un lienzo. Es lo que permite cambiar el aspecto del mapa sin tocar una
+    linea del resto.
+  */
+  const capa = L.maplibreGL({
+    style: ESTILO_LIBERTY,
+    // El lienzo no atiende gestos: los sigue gobernando Leaflet, que es quien
+    // sabe de chinchetas y de popups.
+    interactive: false,
   })
+  /*
+    La atribucion se pone a mano porque el puente no la acepta como opcion, y no
+    es opcional: la licencia de los datos de OpenStreetMap la exige.
+  */
+  capa.getAttribution = () => ATRIBUCION
+  return capa
 }
 
 /**

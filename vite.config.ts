@@ -33,6 +33,19 @@ export default defineConfig(({ mode }) => {
         '@': fileURLToPath(new URL('./src', import.meta.url)),
       },
     },
+    /*
+      Los workers, como modulos.
+
+      MapLibre —el que dibuja el mapa vectorial— descarga y tesela en un worker,
+      y ese worker tiene sus propios imports. Vite los empaqueta por defecto en
+      formato `iife`, que no admite `import`: el worker se sirve, el navegador lo
+      carga y muere al primer import con "Worker failed to load. Check that the
+      worker URL is correct" — un mensaje que manda a mirar la URL, que es
+      justamente lo unico que estaba bien. El mapa se queda en blanco.
+    */
+    worker: {
+      format: 'es' as const,
+    },
     server: {
       // 5173 lo ocupa el panel; los dos suelen correr a la vez.
       port: 5174,

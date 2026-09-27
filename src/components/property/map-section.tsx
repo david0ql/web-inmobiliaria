@@ -211,8 +211,13 @@ function MapPoster() {
         srcSet="/mapa-santander-sm.webp 760w, /mapa-santander.webp 1280w"
         sizes="100vw"
         alt={t('property.map.poster_alt')}
+        /*
+          Las medidas son las del mapa real en escritorio, no las de una foto
+          suelta: asi el navegador reserva la caja correcta y el cambio de la
+          foto al mapa de verdad no mueve nada.
+        */
         width={1280}
-        height={760}
+        height={450}
         fetchPriority="high"
         decoding="sync"
         className="size-full object-cover"

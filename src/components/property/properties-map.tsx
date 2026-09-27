@@ -144,6 +144,13 @@ export function PropertiesMap({
         asi que el mapa nunca se queda robando el desplazamiento de la pagina.
       */
       scrollWheelZoom: false,
+      /*
+        El maximo, explicito. Lo ponia la capa de imagenes; la vectorial no, y
+        sin el `map.getMaxZoom()` devuelve infinito. El plugin de agrupacion lo
+        usa para repartir los grupos y revienta con "Map has no maxZoom
+        specified" antes de dibujar nada.
+      */
+      maxZoom: 19,
       // El de serie sale arriba a la izquierda; se pone el del sitio abajo a
       // la derecha, junto con el resto de la piel.
       zoomControl: false,

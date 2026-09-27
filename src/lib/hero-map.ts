@@ -239,34 +239,76 @@ export function encuadreRecién(): boolean {
  */
 function esperarTeselas(map: L.Map, topeMs: number): Promise<void> {
   return new Promise((listo) => {
-    // `_tiles` es la marca de una capa de rejilla; el tipado publico no ofrece
-    // ninguna forma de distinguirla sin importar la clase.
-    let encontrada: unknown = null
+    /*
+      Hay dos clases de fondo posibles y cada una avisa a su manera.
+
+      La vectorial (MapLibre) dibuja sobre un lienzo y no tiene teselas que
+      contar: su señal es `idle`, que significa "ya no queda nada por cargar ni
+      por dibujar". La de imagenes (Leaflet) se reconoce por `_tiles` y avisa con
+      el `load` de su rejilla. El tipado publico no ofrece forma de distinguir
+      ninguna de las dos sin importar sus clases.
+    */
+    let rejilla: unknown = null
+    let vectorial: { once: (e: string, f: () => void) => void; loaded?: () => boolean } | null =
+      null
     map.eachLayer((l) => {
-      if ('_tiles' in l) encontrada = l
+      if ('_tiles' in l) rejilla = l
+      const puente = l as unknown as { getMaplibreMap?: () => unknown }
+      if (typeof puente.getMaplibreMap === 'function') {
+        vectorial = puente.getMaplibreMap() as typeof vectorial
+      }
     })
-    if (!encontrada) {
+
+    if (vectorial) {
+      const gl = vectorial as {
+        once: (e: string, f: () => void) => void
+        loaded?: () => boolean
+      }
+      let cerrado = false
+      const acabar = () => {
+        if (cerrado) return
+        cerrado = true
+        window.clearTimeout(reloj)
+        listo()
+      }
+      const reloj = window.setTimeout(acabar, topeMs)
+      /*
+        `load` y no `idle`.
+
+        `idle` significa "no queda nada por cargar NI por dibujar", y sobre un
+        mapa vectorial eso llega tarde: la etiqueta de la ultima calle de la
+        esquina cuenta. Mientras tanto, quien pulso Buscar se queda mirando el
+        mapa de la portada congelado casi dos segundos. `load` es "el estilo
+        esta y hay un primer dibujado", que es justo lo que hace falta para que
+        el relevo no se note.
+      */
+      if (gl.loaded?.()) requestAnimationFrame(acabar)
+      else gl.once('load', acabar)
+      return
+    }
+
+    if (!rejilla) {
       listo()
       return
     }
-    const rejilla = encontrada as L.GridLayer
+    const capaRejilla = rejilla as L.GridLayer
 
     let cerrado = false
     const acabar = () => {
       if (cerrado) return
       cerrado = true
-      rejilla.off('load', acabar)
+      capaRejilla.off('load', acabar)
       window.clearTimeout(reloj)
       listo()
     }
     const reloj = window.setTimeout(acabar, topeMs)
-    rejilla.on('load', acabar)
+    capaRejilla.on('load', acabar)
 
     // Dos cuadros: el primero deja que Leaflet pida las teselas que faltan, el
     // segundo comprueba si de verdad quedaba alguna pendiente.
     requestAnimationFrame(() =>
       requestAnimationFrame(() => {
-        const pendiente = (rejilla as unknown as { _loading?: boolean })._loading
+        const pendiente = (capaRejilla as unknown as { _loading?: boolean })._loading
         if (pendiente !== true) acabar()
       }),
     )
