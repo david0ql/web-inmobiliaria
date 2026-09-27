@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef } from 'react'
 import { useLocation, useNavigationType } from 'react-router-dom'
 
-import { entradaCoreografiada, reservarScroll } from '@/lib/hero-map'
 
 /**
  * Llevar la vista al arranque de una lista al cambiar de pagina.
@@ -106,35 +105,20 @@ export function useSettleOnList(anchor: HTMLElement | null, listo: boolean): voi
       estar el hueco vacio y el encuadre salia corto.
     */
     /*
-      Con un vuelo del mapa en marcha, la pagina NO se desplaza aqui: se le
-      reserva el destino al vuelo y es el quien la mueve.
+      La pagina se coloca DE GOLPE, nunca animada.
 
-      Antes esto daba un salto instantaneo de trescientos y pico pixeles en el
-      mismo instante en que el mapa empezaba a volar. Eran dos movimientos
-      distintos en la misma decima de segundo —uno seco y otro suave— y el
-      resultado se leia como que algo se descoloca. Ahora el scroll va dentro
-      del vuelo, con su misma curva, y todo llega junto.
+      Antes se desplazaba con una curva, a la vez que el mapa volaba. Son dos
+      movimientos en direcciones distintas compitiendo por la misma decima de
+      segundo, y es de lo peor documentado que se puede hacer: NN/g mide
+      desorientacion y abandono con cualquier desplazamiento que no haya pedido
+      la persona, y Val Head lo clasifica como disparador vestibular por
+      distancia y por direcciones desacopladas.
+
+      Colocada de una vez, en el mismo cuadro en que los resultados aparecen por
+      primera vez, no hay desplazamiento que percibir: la lista simplemente nace
+      donde tiene que estar. Un salto que nunca se ve no es un movimiento.
     */
-    requestAnimationFrame(() =>
-      requestAnimationFrame(() => {
-        /*
-          `entradaCoreografiada` y no `vueloPendiente`.
-
-          `vueloPendiente` mira si el vuelo sigue esperando destino, y para
-          cuando esto corre puede que el mapa ya lo haya reclamado: el efecto del
-          mapa es hijo y corre antes. Entonces esto creia que no habia vuelo, se
-          desplazaba por su cuenta con una animacion suave, y el vuelo —que ya
-          habia medido su destino— se encontraba la pagina moviendose debajo. De
-          ahi los trescientos pixeles de desfase.
-
-          `entradaCoreografiada` responde a otra pregunta, que es la que importa
-          aqui: "¿se ha llegado a esta pantalla desde un vuelo?". Eso no deja de
-          ser cierto porque el mapa haya empezado a trabajar.
-        */
-        if (entradaCoreografiada()) reservarScroll(destinoDeLista(anchor))
-        else scrollToListTop(anchor)
-      }),
-    )
+    requestAnimationFrame(() => scrollToListTop(anchor, true))
   }, [anchor, listo, key, navigationType])
 }
 

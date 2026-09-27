@@ -58,21 +58,6 @@ const PACIENCIA_MS = 2000
 /** El radio del panel de destino, para redondear la ventana al llegar. */
 const RADIO_FINAL = 16
 
-/**
- * A donde tiene que quedar desplazada la pagina al terminar el vuelo.
- *
- * Lo reserva el buscador en vez de desplazarse el solo. Antes la pagina daba un
- * salto instantaneo de trescientos y pico pixeles mientras el mapa volaba: dos
- * movimientos independientes en la misma decima de segundo, y el ojo los suma.
- * Ahora el scroll es una animacion mas del vuelo, con su misma curva y su misma
- * duracion, asi que todo llega a la vez.
- */
-let scrollReservado: number | null = null
-
-export function reservarScroll(y: number): void {
-  scrollReservado = y
-}
-
 export const HERO_MAP_ATTR = 'data-hero-map'
 
 interface Origen {
@@ -445,15 +430,16 @@ export function terminarVueloMapa(
       el panel es `sticky`, y a un elemento pegajoso no se le puede predecir la
       posicion restando scroll.
     */
-    const objetivo = scrollReservado ?? window.scrollY
-    scrollReservado = null
-    const inicio = window.scrollY
-    const desplazamiento = objetivo - inicio
+    /*
+      El destino se mide AQUI, no al principio.
 
-    if (desplazamiento) window.scrollTo({ top: objetivo, behavior: 'auto' })
+      Antes se medía antes de esperar a que el mapa se dibujara, y en esos
+      cientos de milisegundos la pagina se colocaba: el vuelo acababa apuntando
+      a un sitio donde el panel ya no estaba. Ahora, cuando esto corre, la pagina
+      lleva rato quieta en su posicion definitiva y lo que se mide es lo que hay.
+    */
     const r = hueco.getBoundingClientRect()
     const destino = new DOMRect(r.left, r.top, r.width, r.height)
-    if (desplazamiento) window.scrollTo({ top: inicio, behavior: 'auto' })
 
     const fuera =
       destino.width < 8 ||
@@ -466,7 +452,6 @@ export function terminarVueloMapa(
       // Sin sitio donde posarse: se deja todo como estaba, sin numeros de circo.
       nodo.setAttribute('style', estiloPrevio)
       map.invalidateSize({ animate: false, pan: false })
-      if (desplazamiento) window.scrollTo({ top: objetivo, behavior: 'auto' })
       return
     }
 
@@ -517,44 +502,12 @@ export function terminarVueloMapa(
       El encuadre sobre los resultados llega despues, con la caja ya parada, y lo
       hace el seguimiento de la lista, que existe de todas formas.
     */
-    let cuadro = 0
-    if (desplazamiento) {
-      /*
-        El scroll se lee del RELOJ DE LA ANIMACION, no de uno propio.
-
-        Un reloj propio empieza a contar al crear la animacion; la animacion no
-        cuenta hasta el siguiente cuadro que el navegador pinta de verdad. Y
-        justo antes de esto se le ha cambiado el tamaño al mapa y se ha
-        redibujado entero, con lo que el hilo principal se queda ocupado un buen
-        rato. La pagina salia con cien milisegundos de ventaja sobre la caja, y
-        con un recorrido de trescientos pixeles esa ventaja es la diferencia
-        entre "todo llega junto" y "algo se descoloca y el resto lo alcanza".
-
-        Leyendo `currentTime`, los dos comparten reloj por construccion: si el
-        navegador se atasca, se atascan los dos.
-      */
-      const paso = () => {
-        const t = Math.min(Number(animacion.currentTime ?? 0) / duracion, 1)
-        const indice = Math.min(
-          curvaMuelle.length - 1,
-          Math.round(t * (curvaMuelle.length - 1)),
-        )
-        window.scrollTo({
-          top: inicio + desplazamiento * curvaMuelle[indice],
-          behavior: 'auto',
-        })
-        if (t < 1) cuadro = requestAnimationFrame(paso)
-      }
-      cuadro = requestAnimationFrame(paso)
-    }
-
     let aterrizado = false
     const aterrizar = () => {
       // `cancel()` vuelve a disparar el evento: sin esta guarda, aterrizar se
       // llamaria dos veces.
       if (aterrizado) return
       aterrizado = true
-      cancelAnimationFrame(cuadro)
 
       /*
         Cancelar la animacion ANTES de devolver el estilo. Va con
@@ -566,7 +519,6 @@ export function terminarVueloMapa(
       animacion.cancel()
       nodo.setAttribute('style', estiloPrevio)
       capa.remove()
-      if (desplazamiento) window.scrollTo({ top: objetivo, behavior: 'auto' })
 
       const centroActual = map.getCenter()
       map.invalidateSize({ animate: false, pan: false })
