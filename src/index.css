@@ -335,3 +335,32 @@
     animation: none;
   }
 }
+
+/*
+  La entrada escalonada de las tarjetas cuando el mapa llega volando.
+
+  Suben poco —diez pixeles— y con la misma curva que el vuelo. Lo que se busca
+  no es que se note la animacion, sino que la pantalla no pase de vacia a llena
+  en un cuadro mientras algo se mueve por encima.
+*/
+@keyframes tarjeta-entra {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.tarjeta-entra {
+  animation: tarjeta-entra 420ms cubic-bezier(0.32, 0.72, 0, 1) both;
+  animation-delay: var(--retraso, 0ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tarjeta-entra {
+    animation: none;
+  }
+}

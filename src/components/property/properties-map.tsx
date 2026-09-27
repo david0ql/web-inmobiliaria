@@ -7,7 +7,12 @@ import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 
 import { PropertyCard } from '@/components/property/property-card'
-import { HERO_MAP_ATTR, terminarVueloMapa } from '@/lib/hero-map'
+import {
+  HERO_MAP_ATTR,
+  registrarMapaVivo,
+  terminarVueloMapa,
+  vueloPendiente,
+} from '@/lib/hero-map'
 import { useCatalogo } from '@/lib/catalog-i18n'
 import { useIdioma, useT } from '@/lib/i18n'
 import { MAP_CENTER, MAP_ZOOM } from '@/lib/site'
@@ -134,6 +139,8 @@ export function PropertiesMap({
       scrollWheelZoom: false,
     })
     mapa.current = map
+    // Para que el vuelo pueda preguntar a donde mira antes de navegar.
+    registrarMapaVivo(map)
 
     map.on('click', () => map.scrollWheelZoom.enable())
     map.on('mouseout', () => map.scrollWheelZoom.disable())
@@ -206,6 +213,7 @@ export function PropertiesMap({
 
     return () => {
       map.remove()
+      registrarMapaVivo(null)
       mapa.current = null
       globo.current = null
       capas.current = new Map()
@@ -302,7 +310,12 @@ export function PropertiesMap({
     // de pagina le arrancaria el mapa de donde lo habia dejado.
     if (frame && !encuadrado.current) {
       encuadrado.current = true
-      map.fitBounds(frame, { padding: [40, 40], maxZoom: 14 })
+      // Con un vuelo en camino, el encuadre lo pone el aterrizaje: hacerlo aqui
+      // seria colocar el mapa en su sitio y despues traerlo volando al mismo
+      // sitio, o sea enseñar el final antes de empezar.
+      if (!vueloPendiente()) {
+        map.fitBounds(frame, { padding: [40, 40], maxZoom: 14 })
+      }
     }
 
     // La ficha abierta puede ser de un inmueble que ya no esta en la lista.
@@ -321,12 +334,20 @@ export function PropertiesMap({
     const nodo = container.current
     if (!nodo) return
     let cancelado = false
-    // Tres cuadros: montar, colocar el panel y dejar que el encuadre de la
-    // pagina termine. Midiendo antes, el clon aterrizaba desplazado.
+    /*
+      Tres cuadros: montar el mapa, colocar el panel y dejar que el encuadre de
+      la pagina termine. Midiendo antes, el vuelo aterrizaba desplazado.
+
+      El encuadre se lee de `encuadre.current`, que lo deja el efecto de los
+      marcadores: es a donde el mapa iba a ir por su cuenta, y por tanto a donde
+      tiene que llegar volando.
+    */
     const id = requestAnimationFrame(() =>
       requestAnimationFrame(() =>
         requestAnimationFrame(() => {
-          if (!cancelado) terminarVueloMapa(nodo)
+          if (!cancelado) {
+            terminarVueloMapa(nodo, mapa.current, encuadre.current)
+          }
         }),
       ),
     )

@@ -1,58 +1,93 @@
+import type L from 'leaflet'
+
 /**
  * El vuelo del mapa: de la portada al panel del buscador.
  *
  * Al buscar desde la portada, el mapa grande de arriba se convierte en el panel
  * de la derecha de `/buscar`. No es un adorno: es lo que dice que el mapa que
  * estabas usando y el que vas a usar son el MISMO mapa, mirado desde otro sitio.
- * Sin esto, la portada se apaga y medio segundo despues aparece un mapa gris que
- * hay que volver a situar desde cero.
  *
- * ¿POR QUE UN CLON Y NO EL MAPA DE VERDAD?
+ * ────────────────────────────────────────────────────────────────────────────
+ * LAS TRES REGLAS DE LAS QUE DEPENDE QUE ESTO SE VEA CARO
+ * ────────────────────────────────────────────────────────────────────────────
  *
- * Lo ideal seria llevarse la instancia de Leaflet viva de una pantalla a otra, y
- * es lo primero que se intento. No se puede sin sacar el mapa del arbol de React
- * y ponerlo en una capa fija por encima del router: a partir de ahi hay que
- * reimplementar a mano donde cae el mapa en cada pantalla —la portada lo lleva en
- * el flujo, el buscador lo tiene `sticky`— y seguir su caja en cada scroll y cada
- * cambio de tamaño. Mucha maquinaria, y dos pantallas que hoy funcionan puestas a
- * depender de ella.
+ * 1. NO SE DEFORMA NADA, NUNCA.
  *
- * Para un vuelo de 700 ms no hace falta un mapa vivo: hace falta que se VEA el
- * mapa. Asi que se clona el nodo. Las teselas del clon son las mismas imagenes ya
- * descargadas —salen del cache del navegador, sin una peticion ni un cuadro
- * gris—, y como el clon no es interactivo no importa que Leaflet no sepa nada de
- * el. Debajo, mientras vuela, se monta el mapa de verdad del buscador.
+ *    La primera version escalaba una copia del mapa con `transform: scale`. La
+ *    portada mide ~2,9:1 y el panel ~0,6:1, asi que el escalado no uniforme
+ *    APLASTABA las teselas a mitad de vuelo: calles ovaladas, tipografia
+ *    estirada. Se tapaba con un desenfoque, que es justo la clase de parche que
+ *    delata el truco — cuando algo se desenfoca al moverse es porque debajo
+ *    esta pasando algo que no aguanta que lo mires.
  *
- * ¿POR QUE NO LA API DE VIEW TRANSITIONS?
+ *    Aqui no se escala: se anima LA VENTANA por la que se ve el mapa
+ *    (`clip-path: inset()`), y el mapa se desplaza para que su centro siga al
+ *    centro de esa ventana. Un pixel de mapa por cada pixel de pantalla, de
+ *    principio a fin. El efecto es de iris abriendose, que ademas es lo que un
+ *    mapa hace de verdad: enseñar mas o menos territorio, no estirarlo.
  *
- * Porque el destino no es un elemento que exista todavia cuando arranca la
- * navegacion: el panel del mapa del buscador nace suspendido, detras de los
- * resultados. Una transicion de vista congela el antes y el despues en el mismo
- * cuadro, y aqui el "despues" aparece 300 ms mas tarde. Se hace a mano, que
- * ademas deja elegir la curva y el desenfoque.
+ * 2. EL MAPA QUE VUELA ES EL DE VERDAD, VIVO.
  *
- * Todo lo que sigue es opcional por diseño: si el clon no se pudo hacer, si el
- * destino no llega, o si el sistema pide menos movimiento, no pasa nada y la
- * navegacion es la de siempre.
+ *    Lo que se mueve no es una foto: es el contenedor del mapa de destino, con
+ *    Leaflet dentro, dibujando. Durante el vuelo se le fija el tamaño UNION de
+ *    las dos cajas —lo mas ancho y lo mas alto de ambas— para que tenga teselas
+ *    en todo lo que cualquiera de los dos encuadres va a necesitar, y ese tamaño
+ *    NO cambia mientras vuela: asi no hay `invalidateSize` a media animacion ni
+ *    un reflow por cuadro, y el `flyTo` simultaneo calcula bien su trayectoria
+ *    (la captura una sola vez, al arrancar).
+ *
+ * 3. EL FUNDIDO OCURRE CUANDO LAS DOS IMAGENES SON IGUALES.
+ *
+ *    Antes el clon se desvanecia sobre un mapa que ya estaba en OTRO encuadre:
+ *    dos imagenes distintas cruzandose, o sea un salto disimulado. Ahora el mapa
+ *    de destino arranca exactamente en el centro y el zoom que tenia la portada,
+ *    asi que durante ese primer instante el clon y el mapa vivo son la misma
+ *    imagen y el relevo es literalmente invisible. Solo despues empieza a
+ *    moverse. El clon existe unicamente para cubrir los milisegundos en los que
+ *    el mapa nuevo todavia no ha pintado.
+ *
+ * Todo es opcional por diseño: si no hay mapa de origen, si el destino no llega,
+ * o si el sistema pide menos movimiento, no pasa nada y la navegacion es la de
+ * siempre.
  */
 
-/** Cuanto dura el vuelo. Mas de esto se siente lento; menos, brusco. */
-const DURACION_MS = 720
+/**
+ * La curva. Sale muy decidida y frena largo, casi parandose sin llegar a rebotar.
+ * Es lo que hace que un movimiento se lea como algo con peso en vez de como una
+ * interpolacion lineal disfrazada.
+ */
+const CURVA = 'cubic-bezier(0.32, 0.72, 0, 1)'
 
-/** Si el destino no aparece en este tiempo, el clon se retira solo. */
+/** Por debajo de 500 ms no se lee como transformacion; por encima de 800 cansa. */
+const DURACION_MS = 640
+
+/** Si el destino no aparece en este tiempo, lo que haya montado se retira. */
 const PACIENCIA_MS = 2000
 
-/** El atributo con el que las dos pantallas marcan su mapa. */
+/** El radio del panel de destino, para redondear la ventana al llegar. */
+const RADIO_FINAL = 16
+
 export const HERO_MAP_ATTR = 'data-hero-map'
 
-interface Vuelo {
-  capa: HTMLElement
+interface Origen {
+  rect: DOMRect
+  /** Donde estaba mirando el mapa de la portada: el destino nace aqui. */
+  centro: { lat: number; lng: number }
+  zoom: number
+  /** La foto de cortesia que cubre mientras el mapa nuevo pinta. */
   clon: HTMLElement
-  desde: DOMRect
+  capa: HTMLElement
   temporizador: number
 }
 
-let vuelo: Vuelo | null = null
+let origen: Origen | null = null
+
+/** El mapa que hay ahora mismo en pantalla, para poder preguntarle donde mira. */
+let vivo: L.Map | null = null
+
+export function registrarMapaVivo(map: L.Map | null): void {
+  vivo = map
+}
 
 function menosMovimiento(): boolean {
   return (
@@ -61,194 +96,258 @@ function menosMovimiento(): boolean {
   )
 }
 
-function mapaEnPantalla(): HTMLElement | null {
-  return document.querySelector<HTMLElement>(`[${HERO_MAP_ATTR}]`)
-}
-
 /**
- * Congela el mapa que hay en pantalla y lo deja flotando donde estaba.
+ * Congela lo que hay en pantalla y guarda a donde miraba.
  *
  * Se llama justo ANTES de navegar: en ese instante el mapa de la portada todavia
- * existe y se puede medir. Devuelve `false` si no habia nada que congelar, para
- * que quien llama no se quede esperando un vuelo que no va a pasar.
+ * existe y se puede medir. Devuelve `false` si no habia nada que congelar.
  */
 export function empezarVueloMapa(): boolean {
   if (typeof document === 'undefined' || menosMovimiento()) return false
 
-  const origen = mapaEnPantalla()
-  if (!origen) return false
+  const nodo = document.querySelector<HTMLElement>(`[${HERO_MAP_ATTR}]`)
+  if (!nodo || !vivo) return false
 
-  const desde = origen.getBoundingClientRect()
-  // Un mapa que ya esta fuera de la pantalla no tiene nada que contar: volar
-  // desde arriba del documento se ve como un elemento que entra de la nada.
-  if (desde.bottom < 40 || desde.top > window.innerHeight - 40) return false
+  const rect = nodo.getBoundingClientRect()
+  // Un mapa que ya esta fuera de la pantalla no tiene nada que contar.
+  if (rect.bottom < 40 || rect.top > window.innerHeight - 40) return false
+  // Y en movil el panel de destino esta aparcado fuera de la pantalla.
+  if (window.innerWidth < 992) return false
 
   cancelarVueloMapa()
 
-  const clon = origen.cloneNode(true) as HTMLElement
+  const clon = nodo.cloneNode(true) as HTMLElement
   clon.removeAttribute(HERO_MAP_ATTR)
-  clon.setAttribute('aria-hidden', 'true')
-  // El clon no participa de nada: ni foco, ni raton, ni lectores de pantalla.
-  clon.style.pointerEvents = 'none'
-  clon.style.margin = '0'
-  clon.style.width = `${desde.width}px`
-  clon.style.height = `${desde.height}px`
+  clon.style.cssText = `width:${rect.width}px;height:${rect.height}px;margin:0`
 
   const capa = document.createElement('div')
   capa.setAttribute('aria-hidden', 'true')
   capa.style.cssText = [
     'position:fixed',
-    'z-index:60',
+    // Por debajo de la cabecera pegajosa y del boton del chat, que son z-40.
+    'z-index:30',
     'pointer-events:none',
     'overflow:hidden',
-    'will-change:transform,opacity,border-radius',
-    'contain:paint',
-    `left:${desde.left}px`,
-    `top:${desde.top}px`,
-    `width:${desde.width}px`,
-    `height:${desde.height}px`,
-    'transform-origin:top left',
-    'box-shadow:0 24px 60px -24px rgb(0 0 0 / .45)',
+    'contain:strict',
+    `left:${rect.left}px`,
+    `top:${rect.top}px`,
+    `width:${rect.width}px`,
+    `height:${rect.height}px`,
   ].join(';')
   capa.appendChild(clon)
   document.body.appendChild(capa)
 
-  vuelo = {
-    capa,
+  ultimoVuelo = Date.now()
+  const centro = vivo.getCenter()
+  origen = {
+    rect,
+    centro: { lat: centro.lat, lng: centro.lng },
+    zoom: vivo.getZoom(),
     clon,
-    desde,
+    capa,
     temporizador: window.setTimeout(cancelarVueloMapa, PACIENCIA_MS),
   }
   return true
 }
 
 /**
- * Lleva el clon hasta el mapa de la pantalla nueva y lo retira.
+ * El zoom que haria falta para que una caja encuadre unos limites.
  *
- * Se llama cuando el mapa de destino ya tiene su caja definitiva. La caja es lo
- * unico que hace falta: el clon se mueve y se escala hasta encajar en ella, y al
- * llegar se desvanece dejando debajo el mapa de verdad, que para entonces ya
- * pinto sus teselas.
- *
- * Se anima `transform` y no `width`/`height` a proposito: escalar lo hace la GPU
- * sin volver a maquetar nada, y eso es la diferencia entre 60 cuadros por segundo
- * y un salto a mitad de camino.
+ * Se necesita porque durante el vuelo el contenedor NO mide lo que va a medir al
+ * aterrizar: mide la union. Preguntarle a Leaflet por el encuadre daria el zoom
+ * de la caja equivocada y el mapa llegaria a su sitio con dos pasos de zoom de
+ * mas. Se calcula proyectando los limites y comparando con la caja de verdad.
  */
-export function terminarVueloMapa(destino: HTMLElement | null): void {
-  const actual = vuelo
-  if (!actual) return
-  if (!destino) {
+function zoomParaCaja(
+  map: L.Map,
+  limites: L.LatLngBounds,
+  caja: { ancho: number; alto: number },
+  margen = 40,
+): number {
+  const z = map.getZoom()
+  const ne = map.project(limites.getNorthEast(), z)
+  const sw = map.project(limites.getSouthWest(), z)
+  const necesita = {
+    x: Math.abs(ne.x - sw.x) || 1,
+    y: Math.abs(ne.y - sw.y) || 1,
+  }
+  const util = {
+    x: Math.max(caja.ancho - margen * 2, 1),
+    y: Math.max(caja.alto - margen * 2, 1),
+  }
+  const escala = Math.min(util.x / necesita.x, util.y / necesita.y)
+  return Math.min(Math.floor(map.getScaleZoom(escala, z)), map.getMaxZoom())
+}
+
+/** La ventana recortada, en coordenadas del viewport. */
+function ventana(r: DOMRect, radio: number) {
+  return `inset(${r.top}px ${window.innerWidth - r.right}px ${window.innerHeight - r.bottom}px ${r.left}px round ${radio}px)`
+}
+
+/**
+ * Trae el mapa de destino volando desde donde estaba el de la portada.
+ *
+ * `nodo` es el contenedor de Leaflet del buscador y `map` su instancia, ya
+ * montada. `limites` es el encuadre al que tiene que llegar.
+ */
+export function terminarVueloMapa(
+  nodo: HTMLElement | null,
+  map: L.Map | null,
+  limites: L.LatLngBounds | null,
+): void {
+  const salida = origen
+  if (!salida) return
+  if (!nodo || !map) {
     cancelarVueloMapa()
     return
   }
 
-  const hasta = destino.getBoundingClientRect()
-  if (hasta.width < 8 || hasta.height < 8) {
-    desvanecerVuelo()
-    return
-  }
-
-  /*
-    Un destino fuera de la pantalla no es un destino.
-
-    En movil el panel del mapa del buscador se aparca en `left:-200vw` mientras
-    se mira la lista: volar hasta ahi seria mandar el clon a un sitio que nadie
-    ve, y lo que se veria es el mapa saliendo disparado hacia la izquierda. En
-    ese caso el clon se queda donde esta y se apaga, que es lo que hace cualquier
-    transicion cuando no tiene a donde ir.
-  */
+  const destino = nodo.getBoundingClientRect()
   const fuera =
-    hasta.right < 0 ||
-    hasta.left > window.innerWidth ||
-    hasta.bottom < 0 ||
-    hasta.top > window.innerHeight
+    destino.width < 8 ||
+    destino.height < 8 ||
+    destino.right < 0 ||
+    destino.left > window.innerWidth ||
+    destino.bottom < 0 ||
+    destino.top > window.innerHeight
   if (fuera) {
-    desvanecerVuelo()
+    desvanecerCobertura()
     return
   }
 
-  window.clearTimeout(actual.temporizador)
-  vuelo = null
+  window.clearTimeout(salida.temporizador)
+  origen = null
 
-  const { capa, clon, desde } = actual
-  const escalaX = hasta.width / desde.width
-  const escalaY = hasta.height / desde.height
+  const { rect: desde, capa } = salida
 
   /*
-    El clon se contra-escala.
+    La union de las dos cajas.
 
-    La capa se estira hasta la caja destino, y sin esto las teselas se estirarian
-    con ella: un mapa achatado a mitad de vuelo. Contra-escalando el contenido,
-    las teselas conservan su proporcion y lo que cambia es cuanto mapa se ve por
-    la ventana — que es exactamente lo que hace un mapa al cambiar de tamaño.
+    Es el tamaño que tiene el contenedor durante todo el vuelo, y la razon de
+    que no haga falta escalar nada: contenga lo que contenga la ventana en cada
+    instante, los pixeles ya estan ahi dibujados.
   */
-  const animacionClon = clon.animate(
-    [
-      { transform: 'scale(1, 1)' },
-      { transform: `scale(${1 / escalaX}, ${1 / escalaY})` },
-    ],
-    {
-      duration: DURACION_MS,
-      easing: 'cubic-bezier(.22,.61,.36,1)',
-      fill: 'forwards',
-    },
-  )
-  clon.style.transformOrigin = 'top left'
-
-  const animacionCapa = capa.animate(
-    [
-      {
-        transform: 'translate3d(0,0,0) scale(1,1)',
-        borderRadius: '0px',
-        opacity: 1,
-        filter: 'blur(0px)',
-      },
-      {
-        // A mitad de camino se levanta un poco y se desenfoca lo justo: es lo
-        // que hace que se lea como un objeto que viaja y no como una caja que
-        // cambia de tamaño.
-        offset: 0.55,
-        filter: 'blur(1.5px)',
-        opacity: 1,
-      },
-      {
-        transform: `translate3d(${hasta.left - desde.left}px, ${hasta.top - desde.top}px, 0) scale(${escalaX}, ${escalaY})`,
-        borderRadius: `${16 / Math.max(escalaX, escalaY)}px`,
-        opacity: 0,
-        filter: 'blur(0px)',
-      },
-    ],
-    {
-      duration: DURACION_MS,
-      easing: 'cubic-bezier(.22,.61,.36,1)',
-      fill: 'forwards',
-    },
-  )
-
-  const limpiar = () => {
-    animacionClon.cancel()
-    animacionCapa.cancel()
-    capa.remove()
+  const union = {
+    ancho: Math.max(desde.width, destino.width),
+    alto: Math.max(desde.height, destino.height),
   }
-  animacionCapa.addEventListener('finish', limpiar, { once: true })
-  animacionCapa.addEventListener('cancel', limpiar, { once: true })
+
+  /*
+    Lo que vuela es el propio contenedor de Leaflet, sacado del flujo con
+    `position: fixed`. El panel del buscador se queda donde estaba, vacio: es el
+    hueco al que el mapa aterriza. Y como el panel es `sticky` y no tiene
+    `transform`, no crea bloque contenedor, asi que su `overflow: hidden` no
+    recorta al que vuela.
+  */
+  const estiloPrevio = nodo.getAttribute('style') ?? ''
+  const centrar = (r: DOMRect) => ({
+    x: (r.left + r.right) / 2 - union.ancho / 2,
+    y: (r.top + r.bottom) / 2 - union.alto / 2,
+  })
+  const a = centrar(desde)
+  const b = centrar(destino)
+
+  nodo.style.position = 'fixed'
+  nodo.style.left = '0'
+  nodo.style.top = '0'
+  nodo.style.width = `${union.ancho}px`
+  nodo.style.height = `${union.alto}px`
+  nodo.style.zIndex = '31'
+  nodo.style.willChange = 'transform, clip-path'
+  nodo.style.transform = `translate3d(${a.x}px, ${a.y}px, 0)`
+  nodo.style.clipPath = ventana(desde, 0)
+
+  // Una sola vez, ANTES de animar: durante el vuelo el tamaño ya no cambia.
+  map.invalidateSize({ animate: false, pan: false })
+  // Y arranca mirando exactamente a donde miraba la portada. Este es el
+  // fotograma en el que el clon y el mapa vivo son la misma imagen.
+  map.setView([salida.centro.lat, salida.centro.lng], salida.zoom, {
+    animate: false,
+  })
+
+  const centroFinal = limites ? limites.getCenter() : map.getCenter()
+  const zoomFinal = limites
+    ? zoomParaCaja(map, limites, {
+        ancho: destino.width,
+        alto: destino.height,
+      })
+    : map.getZoom()
+
+  const animaciones = [
+    nodo.animate(
+      {
+        transform: [
+          `translate3d(${a.x}px, ${a.y}px, 0)`,
+          `translate3d(${b.x}px, ${b.y}px, 0)`,
+        ],
+        clipPath: [ventana(desde, 0), ventana(destino, RADIO_FINAL)],
+      },
+      { duration: DURACION_MS, easing: CURVA, fill: 'forwards' },
+    ),
+  ]
+
+  /*
+    El relevo del clon.
+
+    Corto y al principio, no al final: mientras las dos imagenes coinciden. Un
+    fundido largo sobre un mapa que ya se movio es lo que se ve como un corte
+    disimulado.
+  */
+  const relevo = capa.animate([{ opacity: 1 }, { opacity: 0 }], {
+    duration: 180,
+    easing: 'linear',
+    fill: 'forwards',
+  })
+  relevo.addEventListener('finish', () => capa.remove(), { once: true })
+
+  // El territorio se mueve a la vez que la ventana, con la misma duracion.
+  map.flyTo(centroFinal, zoomFinal, {
+    duration: DURACION_MS / 1000,
+    easeLinearity: 0.2,
+  })
+
+  const animacion = animaciones[0]
+  let aterrizado = false
+
+  const aterrizar = () => {
+    // `cancel()` vuelve a disparar el evento: sin esta guarda, aterrizar se
+    // llamaria dos veces y la segunda encontraria un mapa ya recolocado.
+    if (aterrizado) return
+    aterrizado = true
+
+    /*
+      Cancelar la animacion ANTES de devolver el estilo.
+
+      Va con `fill: 'forwards'`, que es lo que evita el parpadeo del ultimo
+      cuadro — sin el, la caja salta a su estado sin animar justo antes de que
+      el estilo se restaure—. Pero un relleno hacia delante sigue mandando sobre
+      el estilo calculado aunque se borre el atributo `style`: el mapa se
+      quedaba con el `transform` y el `clip-path` del vuelo pegados, aterrizando
+      trescientos pixeles fuera de su panel y recortado en diagonal.
+    */
+    animacion.cancel()
+    nodo.setAttribute('style', estiloPrevio)
+    capa.remove()
+
+    map.invalidateSize({ animate: false, pan: false })
+    // Se clava el encuadre: el `flyTo` volo con la caja de la union, y al
+    // volver a la caja de verdad el centro puede quedar a unos pixeles.
+    map.setView(centroFinal, zoomFinal, { animate: false })
+  }
+
+  animacion.addEventListener('finish', aterrizar)
+  animacion.addEventListener('cancel', aterrizar)
 }
 
-/**
- * Apaga el clon donde esta, sin moverlo.
- *
- * Para cuando el destino existe pero no sirve —esta fuera de pantalla, o mide
- * cero—. Quitarlo de golpe deja un parpadeo; apagarlo se lee como el final de
- * algo.
- */
-function desvanecerVuelo(): void {
-  const actual = vuelo
+/** Apaga la cobertura donde esta: el vuelo no tenia a donde ir. */
+function desvanecerCobertura(): void {
+  const actual = origen
   if (!actual) return
   window.clearTimeout(actual.temporizador)
-  vuelo = null
+  origen = null
 
   const salida = actual.capa.animate([{ opacity: 1 }, { opacity: 0 }], {
-    duration: 260,
+    duration: 240,
     easing: 'ease-out',
     fill: 'forwards',
   })
@@ -257,15 +356,34 @@ function desvanecerVuelo(): void {
   salida.addEventListener('cancel', limpiar, { once: true })
 }
 
-/** Retira el clon sin animar: el vuelo no llego a ninguna parte. */
+/** Retira la cobertura sin animar. */
 export function cancelarVueloMapa(): void {
-  if (!vuelo) return
-  window.clearTimeout(vuelo.temporizador)
-  vuelo.capa.remove()
-  vuelo = null
+  if (!origen) return
+  window.clearTimeout(origen.temporizador)
+  origen.capa.remove()
+  origen = null
 }
 
-/** Si ahora mismo hay un clon flotando esperando destino. */
+/** Si ahora mismo hay un vuelo esperando destino. */
 export function vueloPendiente(): boolean {
-  return vuelo !== null
+  return origen !== null
+}
+
+/** Cuando arranco el ultimo vuelo, para coreografiar lo que llega con el. */
+let ultimoVuelo = 0
+
+/**
+ * Si esta pantalla se esta abriendo a raiz de un vuelo del mapa.
+ *
+ * Sirve para que la lista de resultados no aparezca de golpe mientras el mapa
+ * viaja. Sin esto, lo que se ve es: pagina en blanco con un mapa flotando
+ * encima, y de pronto doce tarjetas. Con esto, las tarjetas suben a su sitio
+ * mientras el mapa entra en el suyo, y las dos cosas se leen como una sola
+ * llegada.
+ *
+ * La ventana es generosa porque entre el clic y el primer pintado de los
+ * resultados hay una peticion de por medio.
+ */
+export function entradaCoreografiada(): boolean {
+  return Date.now() - ultimoVuelo < 2500
 }

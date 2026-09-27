@@ -1,3 +1,4 @@
+import type React from 'react'
 import { useEffect, useRef } from 'react'
 
 import { PropertyCard } from '@/components/property/property-card'
@@ -19,6 +20,7 @@ export function PropertyGrid({
   eager = 0,
   onVisibleChange,
   onHoverChange,
+  entrada = false,
 }: {
   properties: Property[]
   className?: string
@@ -29,6 +31,8 @@ export function PropertyGrid({
   onVisibleChange?: (ids: string[]) => void
   /** Sobre qué tarjeta está el ratón. */
   onHoverChange?: (id: string | null) => void
+  /** Las tarjetas suben a su sitio escalonadas, acompañando al mapa que llega. */
+  entrada?: boolean
 }) {
   const contenedor = useRef<HTMLDivElement>(null)
   /* Se avisa por referencia: si el callback entrara en las dependencias del
@@ -90,7 +94,18 @@ export function PropertyGrid({
       )}
     >
       {properties.map((property, index) => (
-        <div key={property.id} data-property-id={property.id}>
+        <div
+          key={property.id}
+          data-property-id={property.id}
+          className={entrada ? 'tarjeta-entra' : undefined}
+          /* El escalon se corta a las seis: mas alla, la ultima tarjeta
+             llegaria cuando el mapa ya lleva rato quieto. */
+          style={
+            entrada
+              ? ({ '--retraso': `${Math.min(index, 5) * 55}ms` } as React.CSSProperties)
+              : undefined
+          }
+        >
           <PropertyCard
             property={property}
             priority={index < eager}

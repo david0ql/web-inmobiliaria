@@ -5,7 +5,6 @@ import { useLoaderData, useNavigation, useSearchParams } from 'react-router-dom'
 import { SectionHeading } from '@/components/common/section-heading'
 import {
   PropertyGrid,
-  PropertyGridSkeleton,
 } from '@/components/property/property-grid'
 import { AdvancedSearch } from '@/components/search/advanced-search'
 import { ResultsPager } from '@/components/search/results-pager'
@@ -16,6 +15,7 @@ import { number } from '@/lib/format'
 import { useIdioma, useT } from '@/lib/i18n'
 import { useSeo } from '@/lib/use-seo'
 import { SORTS, countActive, writeFilters, type Filters } from '@/lib/search-params'
+import { entradaCoreografiada } from '@/lib/hero-map'
 import { useListAnchor, useSettleOnList } from '@/lib/scroll'
 import type { SearchData } from '@/routes/loaders'
 import type { Paginated, Property } from '@/lib/types'
@@ -140,6 +140,9 @@ function Results({
   */
   const [visibles, setVisibles] = useState<string[]>([])
   const [destacado, setDestacado] = useState<string | null>(null)
+  /* Se pregunta UNA vez, al montar: si se leyera en cada repintado, ordenar o
+     paginar volveria a animar la entrada de una lista que ya estaba puesta. */
+  const [coreografiada] = useState(entradaCoreografiada)
 
   // La lista ya existe: el encuadre de entrada puede medir sobre ella.
   useEffect(() => {
@@ -218,6 +221,7 @@ function Results({
               compact
               onVisibleChange={setVisibles}
               onHoverChange={setDestacado}
+              entrada={coreografiada}
             />
           </div>
           <div
@@ -269,6 +273,19 @@ function Results({
   )
 }
 
+/**
+ * El hueco mientras llegan los resultados, con la forma que van a tener.
+ *
+ * Antes era una rejilla de seis tarjetas a tres columnas, o sea la forma de
+ * OTRA pantalla: al llegar los datos, la mitad derecha se convertia de golpe en
+ * un mapa y todo lo demas se recolocaba. Con el mapa entrando volando encima,
+ * ese salto era lo unico que se veia.
+ *
+ * Ahora reserva la vista partida entera —lista estrecha a la izquierda, el
+ * hueco del panel a la derecha—, asi que cuando los datos llegan no se mueve
+ * nada: se rellena lo que ya estaba dibujado, y el mapa aterriza en un panel
+ * que el visitante lleva viendo desde el primer cuadro.
+ */
 function ResultsSkeleton() {
   return (
     <>
@@ -276,7 +293,25 @@ function ResultsSkeleton() {
         <Skeleton className="h-4 w-48" />
         <Skeleton className="h-9 w-64" />
       </div>
-      <PropertyGridSkeleton count={6} />
+      <div className="relative lg:grid lg:grid-cols-[minmax(0,55%)_minmax(360px,45%)] lg:gap-6">
+        <div className="grid grid-cols-1 gap-5 2xl:grid-cols-2">
+          {Array.from({ length: 4 }, (_, index) => (
+            <div key={index} className="overflow-hidden rounded-lg border">
+              <Skeleton className="h-[280px] rounded-none" />
+              <div className="space-y-3 p-4">
+                <Skeleton className="h-3 w-20" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-2/3" />
+                <Skeleton className="h-6 w-32" />
+              </div>
+            </div>
+          ))}
+        </div>
+        {/* El hueco del mapa. Sin esqueleto dentro a proposito: lo que va a
+            ocupar esa caja es un mapa que llega volando, y un rectangulo
+            latiendo debajo se leeria como un segundo elemento cargando. */}
+        <div className="hidden overflow-hidden rounded-2xl border bg-secondary shadow-sm lg:sticky lg:top-20 lg:block lg:h-[calc(100vh-6rem)]" />
+      </div>
     </>
   )
 }
