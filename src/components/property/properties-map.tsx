@@ -88,12 +88,21 @@ export function PropertiesMap({
   const capas = useRef<Map<string, { capa: L.Marker | L.Circle; posicion: L.LatLngExpression }>>(
     new Map(),
   )
+  const grupo = useRef<L.MarkerClusterGroup | null>(null)
+  /* Si el encuadre inicial ya se hizo. Solo se encuadra la primera vez que
+     llegan inmuebles: despues, reencuadrar en cada pagina le quitaria a quien
+     mira el sitio donde estaba. */
+  const encuadrado = useRef(false)
   /* El encuadre al que se vuelve cuando el raton sale de una tarjeta: el de lo
      visible en la lista, no el del inventario entero. */
   const encuadreVisible = useRef<L.LatLngBounds | null>(null)
 
   /** El inmueble cuya ficha esta abierta; `null` con el popup cerrado. */
   const [ficha, setFicha] = useState<Property | null>(null)
+  /* El mismo dato, por referencia: el efecto que sincroniza marcadores lo
+     consulta sin querer volver a correr cada vez que se abre una ficha. */
+  const fichaId = useRef<string | null>(null)
+  fichaId.current = ficha?.id ?? null
 
   /* El hueco del portal: vive lo que viva el componente y no se vuelve a crear
      en cada render, porque su identidad es lo que Leaflet guarda como
@@ -133,6 +142,14 @@ export function PropertiesMap({
       // En pantallas de alta densidad pide un zoom mas y las dibuja a la mitad:
       // sin esto las teselas se ven borrosas en cualquier movil.
       detectRetina: true,
+      /*
+        Dos anillos de teselas de mas alrededor de lo que se ve (por defecto es
+        uno). Ahora que el mapa sobrevive a los cambios de pagina y que el raton
+        lo hace volar de una tarjeta a otra, el encuadre se mueve mucho mas: con
+        el margen de serie, cada vuelo corto descubria un borde gris que se
+        rellenaba despues.
+      */
+      keepBuffer: 4,
       attribution: '&copy; OpenStreetMap',
       maxZoom: 19,
     }).addTo(map)
@@ -184,15 +201,58 @@ export function PropertiesMap({
       showCoverageOnHover: false,
       maxClusterRadius: 50,
     })
+    map.addLayer(cluster)
+    grupo.current = cluster
 
-    const bounds: L.LatLngExpression[] = []
-    /* Cada capa, con su inmueble y su posicion: es lo que despues permite
-       apagar las que no se estan mirando y volar a la que se señala sin
-       rehacer el mapa. */
+    return () => {
+      map.remove()
+      mapa.current = null
+      globo.current = null
+      capas.current = new Map()
+      grupo.current = null
+      encuadrado.current = false
+      // El popup se fue con el mapa: si el estado siguiera apuntando a un
+      // inmueble, la ficha quedaria pintada en un hueco que ya no cuelga de
+      // ninguna parte.
+      setFicha(null)
+    }
+    /*
+      El mapa se crea UNA vez.
+
+      Antes estaban aqui tambien `properties` e `idioma`, con lo que el mapa se
+      destruia y se volvia a construir entero cada vez que cambiaba la lista: en
+      el buscador, eso es en cada filtro, en cada orden y en cada pagina. Se
+      perdian el encuadre y el zoom que habia elegido quien miraba, y las
+      teselas se volvian a pedir todas —un parpadeo gris de medio segundo sobre
+      un mapa que ya estaba pintado—. Los marcadores se sincronizan aparte, en
+      el efecto de abajo, que es lo unico que de verdad cambia.
+    */
+  }, [hueco])
+
+  /*
+    Los marcadores, sincronizados: se vacia el grupo y se vuelve a llenar.
+
+    `clearLayers` + `addLayers` en bloque, y no capa a capa: el plugin de
+    agrupacion recalcula los grupos una sola vez al final en lugar de una por
+    chincheta, que con seiscientos inmuebles es la diferencia entre un repintado
+    y un tiron.
+
+    `idioma` esta en las dependencias porque el nombre accesible de cada
+    chincheta se traduce y solo se escribe al crearla.
+  */
+  useEffect(() => {
+    const map = mapa.current
+    const cluster = grupo.current
+    const popup = globo.current
+    if (!map || !cluster || !popup) return
+
+    cluster.clearLayers()
     const porInmueble = new Map<
       string,
       { capa: L.Marker | L.Circle; posicion: L.LatLngExpression }
     >()
+    const nuevas: L.Layer[] = []
+    const bounds: L.LatLngExpression[] = []
 
     for (const property of properties) {
       if (property.mapPublication === 'HIDDEN') continue
@@ -219,7 +279,7 @@ export function PropertiesMap({
           weight: 1,
           fillOpacity: 0.12,
         }).on('click', abrir)
-        cluster.addLayer(circulo)
+        nuevas.push(circulo)
         porInmueble.set(property.id, { capa: circulo, posicion: position })
       } else {
         // El `title` es lo que da nombre al marcador: Leaflet le pone
@@ -228,31 +288,26 @@ export function PropertiesMap({
           icon: pin(),
           title: textos.current.titulo(property),
         }).on('click', abrir)
-        cluster.addLayer(chincheta)
+        nuevas.push(chincheta)
         porInmueble.set(property.id, { capa: chincheta, posicion: position })
       }
     }
 
-    map.addLayer(cluster)
+    cluster.addLayers(nuevas)
     capas.current = porInmueble
 
     const frame = coreBounds(bounds)
     encuadre.current = frame
-    if (frame) map.fitBounds(frame, { padding: [40, 40], maxZoom: 14 })
-
-    return () => {
-      map.remove()
-      mapa.current = null
-      globo.current = null
-      capas.current = new Map()
-      // El popup se fue con el mapa: si el estado siguiera apuntando a un
-      // inmueble, la ficha quedaria pintada en un hueco que ya no cuelga de
-      // ninguna parte.
-      setFicha(null)
+    // Solo el primer encuadre. Despues manda quien mira: reencuadrar al cambiar
+    // de pagina le arrancaria el mapa de donde lo habia dejado.
+    if (frame && !encuadrado.current) {
+      encuadrado.current = true
+      map.fitBounds(frame, { padding: [40, 40], maxZoom: 14 })
     }
-    // `idioma` esta aqui porque el nombre accesible de las chinchetas se
-    // traduce y solo se escribe al crearlas.
-  }, [properties, idioma, hueco])
+
+    // La ficha abierta puede ser de un inmueble que ya no esta en la lista.
+    if (!properties.some((p) => p.id === fichaId.current)) map.closePopup()
+  }, [properties, idioma])
 
   /*
     El aterrizaje del vuelo.
@@ -395,7 +450,7 @@ export function PropertiesMap({
     const map = mapa.current
     if (!map || !visibles) return
 
-    const quieto = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    const sinMovimiento = quieto()
 
     for (const [id, { capa }] of capas.current) {
       if (!(capa instanceof L.Marker)) continue
@@ -420,14 +475,14 @@ export function PropertiesMap({
     if (objetivo) {
       const centro = L.latLng(objetivo.posicion as [number, number])
       const zoom = Math.max(map.getZoom(), 16)
-      if (quieto) map.setView(centro, zoom)
+      if (sinMovimiento) map.setView(centro, zoom)
       else map.flyTo(centro, zoom, { duration: 0.6, easeLinearity: 0.25 })
       return
     }
 
     const volver = encuadreVisible.current
     if (!volver) return
-    if (quieto) map.fitBounds(volver, { padding: [56, 56], maxZoom: 16 })
+    if (sinMovimiento) map.fitBounds(volver, { padding: [56, 56], maxZoom: 16 })
     else
       map.flyToBounds(volver, {
         padding: [56, 56],
@@ -459,11 +514,15 @@ export function PropertiesMap({
       // Al quitar la geocerca se vuelve al encuadre de siempre, volando: un
       // salto seco deja sin saber si el mapa cambio de sitio o de escala.
       if (encuadre.current) {
-        map.flyToBounds(encuadre.current, {
-          padding: [40, 40],
-          maxZoom: 14,
-          duration: 1.2,
-        })
+        if (quieto()) {
+          map.fitBounds(encuadre.current, { padding: [40, 40], maxZoom: 14 })
+        } else {
+          map.flyToBounds(encuadre.current, {
+            padding: [40, 40],
+            maxZoom: 14,
+            duration: 1.2,
+          })
+        }
       }
       return
     }
@@ -494,7 +553,15 @@ export function PropertiesMap({
       no se pinta.
     */
     const marco = L.latLng(centro).toBounds(radioKm * 2000)
-    map.flyToBounds(marco, { padding: [24, 24], duration: 1.8 })
+    /*
+      Quien pide menos movimiento no ve el vuelo.
+
+      Un `flyToBounds` de 1,8 segundos es la pantalla entera desplazandose y
+      cambiando de escala: de los disparadores vestibulares mas claros que hay.
+      No se acorta, se apaga — el mapa se coloca y ya.
+    */
+    if (quieto()) map.fitBounds(marco, { padding: [24, 24] })
+    else map.flyToBounds(marco, { padding: [24, 24], duration: 1.8 })
     /*
       `properties` esta en las dependencias aunque no se use: al llegar los
       inmuebles del radio, el efecto de arriba rehace el mapa entero, y sin
@@ -526,6 +593,14 @@ export function PropertiesMap({
           )
         : null}
     </>
+  )
+}
+
+/** Si el sistema pide menos movimiento, preguntado en el momento de usarlo. */
+function quieto(): boolean {
+  return (
+    typeof window !== 'undefined' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches
   )
 }
 

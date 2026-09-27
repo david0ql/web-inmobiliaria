@@ -34,6 +34,9 @@ export function PropertyMapCanvas({ property }: { property: Property }) {
     })
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      // Como en el mapa del inventario: sin esto, en cualquier movil las
+      // teselas de la ficha se ven borrosas. Faltaba aqui por descuido.
+      detectRetina: true,
       attribution: '&copy; OpenStreetMap',
       maxZoom: 19,
     }).addTo(map)
