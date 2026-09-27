@@ -1,5 +1,5 @@
 import { ArrowDown, ArrowUp, Clock3, List, Map, SearchX, SlidersHorizontal } from 'lucide-react'
-import { Suspense, use, useRef, useState } from 'react'
+import { Suspense, use, useEffect, useRef, useState } from 'react'
 import { useLoaderData, useNavigation, useSearchParams } from 'react-router-dom'
 
 import { SectionHeading } from '@/components/common/section-heading'
@@ -16,7 +16,7 @@ import { number } from '@/lib/format'
 import { useIdioma, useT } from '@/lib/i18n'
 import { useSeo } from '@/lib/use-seo'
 import { SORTS, countActive, writeFilters, type Filters } from '@/lib/search-params'
-import { useListAnchor } from '@/lib/scroll'
+import { useListAnchor, useSettleOnList } from '@/lib/scroll'
 import type { SearchData } from '@/routes/loaders'
 import type { Paginated, Property } from '@/lib/types'
 import { cn } from '@/lib/utils'
@@ -52,6 +52,10 @@ export function SearchResults() {
   // El ancla vive fuera del `Suspense`: mientras carga la pagina nueva el
   // interior se sustituye por el esqueleto, pero este titular no se mueve.
   const [anchor, scrollToResults] = useListAnchor()
+  /* Los resultados llegan suspendidos: hasta que existen no hay nada que
+     encuadrar, y medir antes dejaba el ancla en un hueco vacio. */
+  const [listo, setListo] = useState(false)
+  useSettleOnList(anchor.current, listo)
 
   return (
     <div className="container-site relative py-6 lg:py-8" aria-busy={searching}>
@@ -102,7 +106,11 @@ export function SearchResults() {
         />
 
         <Suspense fallback={<ResultsSkeleton />}>
-          <Results promise={data.results} onNavigate={scrollToResults} />
+          <Results
+            promise={data.results}
+            onNavigate={scrollToResults}
+            onReady={() => setListo(true)}
+          />
         </Suspense>
       </div>
     </div>
@@ -112,9 +120,11 @@ export function SearchResults() {
 function Results({
   promise,
   onNavigate,
+  onReady,
 }: {
   promise: Promise<{ filters: Filters; results: Paginated<Property> }>
   onNavigate: () => void
+  onReady: () => void
 }) {
   const { filters, results } = use(promise)
   const [, setSearchParams] = useSearchParams()
@@ -122,6 +132,19 @@ function Results({
   const { idioma } = useIdioma()
   const [mobileView, setMobileView] = useState<'list' | 'map'>('list')
   const mapPanel = useRef<HTMLDivElement>(null)
+  /*
+    Lo que el ojo tiene delante y lo que el raton esta señalando.
+
+    Vive aqui, entre la rejilla y el mapa, porque es el unico punto del que
+    cuelgan los dos: la rejilla lo mide con un observador y el mapa lo obedece.
+  */
+  const [visibles, setVisibles] = useState<string[]>([])
+  const [destacado, setDestacado] = useState<string | null>(null)
+
+  // La lista ya existe: el encuadre de entrada puede medir sobre ella.
+  useEffect(() => {
+    onReady()
+  }, [onReady])
 
   /*
    * Ordenar y paginar rehacen la lista entera, asi que en ambos casos se sube
@@ -189,7 +212,13 @@ function Results({
       ) : (
         <div className="relative lg:grid lg:grid-cols-[minmax(0,55%)_minmax(360px,45%)] lg:gap-6">
           <div className={cn(mobileView === 'map' && 'hidden', 'lg:block')}>
-            <PropertyGrid properties={results.data} eager={2} compact />
+            <PropertyGrid
+              properties={results.data}
+              eager={2}
+              compact
+              onVisibleChange={setVisibles}
+              onHoverChange={setDestacado}
+            />
           </div>
           <div
             ref={mapPanel}
@@ -203,6 +232,8 @@ function Results({
           >
             <PropertiesMap
               properties={results.data}
+              visibles={visibles}
+              destacado={destacado}
               className="h-[calc(100dvh-11rem)] min-h-[420px] sm:h-[calc(100dvh-10rem)] lg:h-full"
             />
           </div>

@@ -25,6 +25,7 @@ import {
   type Filters,
 } from '@/lib/search-params'
 import { getFacets, type FacetOption, type Facets } from '@/lib/api'
+import { empezarVueloMapa } from '@/lib/hero-map'
 import { useT } from '@/lib/i18n'
 import { ROUTES } from '@/lib/site'
 import { useSiteData } from '@/lib/site-data'
@@ -152,6 +153,16 @@ function AdvancedSearchForm({ initial }: { initial?: Filters }) {
 
   const submit = (event: React.FormEvent) => {
     event.preventDefault()
+    /*
+      Se congela el mapa que hay en pantalla justo antes de navegar.
+
+      Tiene que ser aqui y no en el buscador: en este instante el mapa de la
+      portada existe todavia y se puede medir. Un cuadro despues, React ya lo ha
+      desmontado. Si no hay mapa a la vista —el formulario tambien vive en
+      `/buscar`, donde el que manda es el panel de la derecha— la llamada no hace
+      nada y la navegacion es la de siempre.
+    */
+    empezarVueloMapa()
     navigate(`${ROUTES.search}?${writeFilters({ ...filters, page: 1 })}`)
   }
 

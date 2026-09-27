@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef } from 'react'
 import { useLocation, useNavigationType } from 'react-router-dom'
 
+import { vueloPendiente } from '@/lib/hero-map'
+
 /**
  * Llevar la vista al arranque de una lista al cambiar de pagina.
  *
@@ -22,7 +24,11 @@ function stickyOffset(): number {
   return (header?.offsetHeight ?? 0) + GAP
 }
 
-export function scrollToListTop(anchor: HTMLElement | null): void {
+export function scrollToListTop(
+  anchor: HTMLElement | null,
+  /** Sin animar, para cuando otra animacion depende de que la pagina ya este quieta. */
+  instantaneo = false,
+): void {
   if (!anchor) return
 
   const top = Math.max(
@@ -40,6 +46,7 @@ export function scrollToListTop(anchor: HTMLElement | null): void {
      * mismo si el sistema pide menos movimiento.
      */
     behavior:
+      instantaneo ||
       distance > window.innerHeight * 2 ||
       window.matchMedia('(prefers-reduced-motion: reduce)').matches
         ? 'auto'
@@ -61,6 +68,50 @@ export function useListAnchor<T extends HTMLElement = HTMLDivElement>() {
   }, [])
 
   return [ref, scroll] as const
+}
+
+/**
+ * Al llegar a una lista, dejarla encuadrada de entrada.
+ *
+ * `useSmoothScrollTop` sube al top en cada navegacion, y en el buscador eso
+ * deja la pantalla en el formulario de filtros: quien acaba de pedir unos
+ * resultados tiene que bajar a mano para verlos. Esto los coloca justo debajo
+ * de la cabecera —"Resultados de la busqueda" arriba, los filtros ya por
+ * encima del borde— en cuanto la lista existe.
+ *
+ * Solo al ENTRAR, y nunca al volver atras: quien pulsa atras espera aparecer
+ * donde estaba, no reencuadrado. Y una sola vez por navegacion, para que
+ * ordenar o cambiar de pagina siga siendo cosa de `useListAnchor`.
+ */
+export function useSettleOnList(anchor: HTMLElement | null, listo: boolean): void {
+  const { key } = useLocation()
+  const navigationType = useNavigationType()
+  const hecho = useRef<string | null>(null)
+
+  useEffect(() => {
+    if (!listo || !anchor) return
+    if (navigationType === 'POP') return
+    if (hecho.current === key) return
+    hecho.current = key
+
+    /*
+      Dos cuadros de espera, no uno: el primero pinta la lista y el segundo deja
+      que el mapa mida su caja. Midiendo antes, el ancla estaba donde iba a
+      estar el hueco vacio y el encuadre salia corto.
+    */
+    /*
+      Con un vuelo del mapa en marcha, el encuadre es instantaneo.
+
+      El clon aterriza midiendo la caja del mapa de destino, y una pagina
+      desplazandose suavemente mueve esa caja mientras se mide: el clon caia un
+      par de dedos por debajo de su sitio. Colocando la pagina de golpe —antes de
+      que el vuelo mida— las dos cosas coinciden, y lo que se ve es un mapa que
+      va a su hueco mientras la pagina ya esta quieta.
+    */
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => scrollToListTop(anchor, vueloPendiente())),
+    )
+  }, [anchor, listo, key, navigationType])
 }
 
 /**

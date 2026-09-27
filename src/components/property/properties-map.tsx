@@ -3,21 +3,15 @@ import 'leaflet/dist/leaflet.css'
 import 'leaflet.markercluster'
 import 'leaflet.markercluster/dist/MarkerCluster.css'
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css'
-import { Bath, BedDouble, Car, ChevronLeft, ChevronRight, Ruler } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 
-import { SpecRow } from '@/components/common/spec-row'
-import { prefetchProperty } from '@/lib/api'
+import { PropertyCard } from '@/components/property/property-card'
+import { HERO_MAP_ATTR, terminarVueloMapa } from '@/lib/hero-map'
 import { useCatalogo } from '@/lib/catalog-i18n'
-import { useCurrency } from '@/lib/currency'
-import { area as fmtArea } from '@/lib/format'
 import { useIdioma, useT } from '@/lib/i18n'
-import { Link } from '@/lib/nav'
 import { MAP_CENTER, MAP_ZOOM } from '@/lib/site'
-import { propertyPath } from '@/lib/slug'
 import type { Property } from '@/lib/types'
-import { soloFotos } from '@/lib/projects'
 import { cn } from '@/lib/utils'
 
 /**
@@ -57,6 +51,8 @@ export function PropertiesMap({
   radioKm = 5,
   cerca = true,
   className,
+  visibles,
+  destacado,
 }: {
   properties: Property[]
   /** Donde esta quien mira, si lo concedio. */
@@ -66,6 +62,20 @@ export function PropertiesMap({
   cerca?: boolean
   /** Permite que el buscador use el mapa a la altura completa del viewport. */
   className?: string
+  /**
+   * Los inmuebles que ahora mismo caben en la pantalla de quien mira la lista.
+   *
+   * El mapa dibujaba las doce chinchetas de la pagina mientras el ojo estaba en
+   * cuatro tarjetas: para saber donde queda lo que se esta leyendo habia que
+   * comparar precios entre la lista y el globo. Con esto, lista y mapa miran lo
+   * mismo — el resto de la pagina sigue dibujado, apagado, para no perder de
+   * vista que hay mas un poco mas alla.
+   *
+   * `undefined` apaga la sincronia: es lo que usa la portada.
+   */
+  visibles?: string[]
+  /** El inmueble sobre el que esta el raton en la lista. */
+  destacado?: string | null
 }) {
   const t = useT()
   const { idioma } = useIdioma()
@@ -75,6 +85,12 @@ export function PropertiesMap({
   const cerca_ = useRef<L.LayerGroup | null>(null)
   const encuadre = useRef<L.LatLngBounds | null>(null)
   const globo = useRef<L.Popup | null>(null)
+  const capas = useRef<Map<string, { capa: L.Marker | L.Circle; posicion: L.LatLngExpression }>>(
+    new Map(),
+  )
+  /* El encuadre al que se vuelve cuando el raton sale de una tarjeta: el de lo
+     visible en la lista, no el del inventario entero. */
+  const encuadreVisible = useRef<L.LatLngBounds | null>(null)
 
   /** El inmueble cuya ficha esta abierta; `null` con el popup cerrado. */
   const [ficha, setFicha] = useState<Property | null>(null)
@@ -128,8 +144,8 @@ export function PropertiesMap({
       contenido, que es foto contenida + cuatro lineas.
     */
     const popup = L.popup({
-      maxWidth: 264,
-      minWidth: 264,
+      maxWidth: 300,
+      minWidth: 300,
       autoPanPadding: [24, 24],
       // La ficha ya lleva su propio cierre visual; el aspa de Leaflet se queda
       // porque en movil es lo unico que se busca para cerrarla.
@@ -170,6 +186,13 @@ export function PropertiesMap({
     })
 
     const bounds: L.LatLngExpression[] = []
+    /* Cada capa, con su inmueble y su posicion: es lo que despues permite
+       apagar las que no se estan mirando y volar a la que se señala sin
+       rehacer el mapa. */
+    const porInmueble = new Map<
+      string,
+      { capa: L.Marker | L.Circle; posicion: L.LatLngExpression }
+    >()
 
     for (const property of properties) {
       if (property.mapPublication === 'HIDDEN') continue
@@ -190,27 +213,28 @@ export function PropertiesMap({
       }
 
       if (property.mapPublication === 'APPROXIMATE') {
-        cluster.addLayer(
-          L.circle(position, {
-            radius: 400,
-            color: '#0d0d0d',
-            weight: 1,
-            fillOpacity: 0.12,
-          }).on('click', abrir),
-        )
+        const circulo = L.circle(position, {
+          radius: 400,
+          color: '#0d0d0d',
+          weight: 1,
+          fillOpacity: 0.12,
+        }).on('click', abrir)
+        cluster.addLayer(circulo)
+        porInmueble.set(property.id, { capa: circulo, posicion: position })
       } else {
-        cluster.addLayer(
-          // El `title` es lo que da nombre al marcador: Leaflet le pone
-          // role="button" y sin texto queda mudo para un lector de pantalla.
-          L.marker(position, {
-            icon: pin(),
-            title: textos.current.titulo(property),
-          }).on('click', abrir),
-        )
+        // El `title` es lo que da nombre al marcador: Leaflet le pone
+        // role="button" y sin texto queda mudo para un lector de pantalla.
+        const chincheta = L.marker(position, {
+          icon: pin(),
+          title: textos.current.titulo(property),
+        }).on('click', abrir)
+        cluster.addLayer(chincheta)
+        porInmueble.set(property.id, { capa: chincheta, posicion: position })
       }
     }
 
     map.addLayer(cluster)
+    capas.current = porInmueble
 
     const frame = coreBounds(bounds)
     encuadre.current = frame
@@ -220,6 +244,7 @@ export function PropertiesMap({
       map.remove()
       mapa.current = null
       globo.current = null
+      capas.current = new Map()
       // El popup se fue con el mapa: si el estado siguiera apuntando a un
       // inmueble, la ficha quedaria pintada en un hueco que ya no cuelga de
       // ninguna parte.
@@ -230,14 +255,187 @@ export function PropertiesMap({
   }, [properties, idioma, hueco])
 
   /*
+    El aterrizaje del vuelo.
+
+    Se hace despues de montar el mapa y en dos cuadros: el primero deja que el
+    navegador coloque el panel —en el buscador es `sticky` dentro de una rejilla,
+    y medido antes da la caja equivocada—, y el segundo mide ya sobre el layout
+    definitivo. Si no venia ningun vuelo, no hace nada.
+  */
+  useEffect(() => {
+    const nodo = container.current
+    if (!nodo) return
+    let cancelado = false
+    // Tres cuadros: montar, colocar el panel y dejar que el encuadre de la
+    // pagina termine. Midiendo antes, el clon aterrizaba desplazado.
+    const id = requestAnimationFrame(() =>
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => {
+          if (!cancelado) terminarVueloMapa(nodo)
+        }),
+      ),
+    )
+    return () => {
+      cancelado = true
+      cancelAnimationFrame(id)
+    }
+  }, [])
+
+  /*
     Leaflet mide el popup al abrirlo, y en ese instante el hueco todavia esta
     vacio: el contenido lo pinta React un tick despues. `update()` vuelve a
     medir y a decidir el desplazamiento del mapa, que es lo que evita que la
     ficha nazca medio fuera de la pantalla.
   */
   useEffect(() => {
-    if (ficha) globo.current?.update()
+    if (!ficha) return
+    const map = mapa.current
+    const popup = globo.current
+    popup?.update()
+
+    /*
+      Y despues de medir, hacer sitio.
+
+      `update()` recoloca la ventanita, pero no mueve el mapa: con la chincheta
+      pegada al borde izquierdo del panel, media tarjeta quedaba fuera y el panel
+      —que recorta lo que se sale— la cortaba por la mitad. Se ve en cuanto el
+      mapa es una columna estrecha al lado de la lista, que es justo como se usa
+      en el buscador.
+
+      `panInside` mueve lo justo para que quepa, y nada si ya cabia. El cuadro de
+      espera es porque React acaba de pintar la tarjeta dentro del hueco: antes
+      de eso, el alto que se mide es cero.
+    */
+    if (!map || !popup) return
+    const id = requestAnimationFrame(() => {
+      const donde = popup.getLatLng()
+      if (!donde) return
+      const marco = popup.getElement()
+      const alto = marco?.offsetHeight ?? 0
+      const ancho = marco?.offsetWidth ?? 0
+      map.panInside(donde, {
+        // El alto entero por arriba: la ventanita nace sobre la chincheta.
+        paddingTopLeft: [ancho / 2 + 16, alto + 16],
+        paddingBottomRight: [ancho / 2 + 16, 16],
+        animate: true,
+        duration: 0.35,
+      })
+    })
+    return () => cancelAnimationFrame(id)
   }, [ficha])
+
+  /*
+    Lista y mapa mirando lo mismo.
+
+    Las chinchetas de lo que no cabe en pantalla no se quitan: se apagan. Es la
+    diferencia entre "ahi no hay nada" y "eso no es lo que estas leyendo ahora",
+    y quitarlas del todo hacia que el mapa pareciera vaciarse al bajar la lista.
+
+    El encuadre se hace con `flyToBounds` y una duracion corta: bajar la lista
+    mueve el mapa acompañando el gesto, no como un salto que obliga a volver a
+    situarse. Con una sola tarjeta visible no hay caja que encuadrar, asi que se
+    usa un cuadro de 700 m alrededor.
+  */
+  useEffect(() => {
+    const map = mapa.current
+    if (!map || !visibles) return
+
+    const activos = new Set(visibles)
+    const puntos: L.LatLngExpression[] = []
+
+    for (const [id, { capa, posicion }] of capas.current) {
+      const encendida = activos.size === 0 || activos.has(id)
+      if (encendida) puntos.push(posicion)
+      if (capa instanceof L.Marker) {
+        const elemento = capa.getElement()
+        if (elemento) {
+          elemento.style.transition = 'opacity .35s ease, filter .35s ease'
+          elemento.style.opacity = encendida ? '1' : '0.28'
+          elemento.style.filter = encendida ? 'none' : 'grayscale(1)'
+        }
+      } else {
+        capa.setStyle({
+          opacity: encendida ? 1 : 0.25,
+          fillOpacity: encendida ? 0.12 : 0.04,
+        })
+      }
+    }
+
+    if (!puntos.length) return
+    const marco =
+      puntos.length === 1
+        ? L.latLng(puntos[0] as [number, number]).toBounds(700)
+        : L.latLngBounds(puntos)
+    encuadreVisible.current = marco
+    // Con el raton sobre una tarjeta manda el hover: reencuadrar aqui le
+    // quitaria el mapa de debajo a mitad de gesto.
+    if (destacado) return
+    map.flyToBounds(marco, {
+      padding: [56, 56],
+      maxZoom: 16,
+      duration: 0.7,
+      easeLinearity: 0.25,
+    })
+    // `destacado` se lee pero no dispara: el vuelo del hover tiene su propio
+    // efecto, y reaccionar aqui volveria a encuadrar al soltar el raton.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visibles, properties])
+
+  /*
+    El acercamiento al pasar el raton por una tarjeta.
+
+    Es lo que convierte la lista y el mapa en una sola pantalla: se apunta a una
+    tarjeta y el mapa va a ese inmueble, con la chincheta crecida. Al salir, se
+    vuelve al encuadre de lo visible —no al del inventario—, que es de donde se
+    venia.
+
+    Quien pidio no ver animaciones no las ve: el mapa se coloca de golpe.
+  */
+  useEffect(() => {
+    const map = mapa.current
+    if (!map || !visibles) return
+
+    const quieto = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+    for (const [id, { capa }] of capas.current) {
+      if (!(capa instanceof L.Marker)) continue
+      const elemento = capa.getElement()
+      if (!elemento) continue
+      const punta = elemento.firstElementChild as HTMLElement | null
+      if (!punta) continue
+      punta.style.transition = 'transform .25s cubic-bezier(.2,.8,.2,1), background-color .25s ease'
+      punta.style.transformOrigin = 'center'
+      if (id === destacado) {
+        punta.style.transform = 'scale(1.9)'
+        punta.style.backgroundColor = 'var(--color-primary, #0d0d0d)'
+        elemento.style.zIndex = '1000'
+      } else {
+        punta.style.transform = 'scale(1)'
+        punta.style.backgroundColor = '#0d0d0d'
+        elemento.style.zIndex = ''
+      }
+    }
+
+    const objetivo = destacado ? capas.current.get(destacado) : null
+    if (objetivo) {
+      const centro = L.latLng(objetivo.posicion as [number, number])
+      const zoom = Math.max(map.getZoom(), 16)
+      if (quieto) map.setView(centro, zoom)
+      else map.flyTo(centro, zoom, { duration: 0.6, easeLinearity: 0.25 })
+      return
+    }
+
+    const volver = encuadreVisible.current
+    if (!volver) return
+    if (quieto) map.fitBounds(volver, { padding: [56, 56], maxZoom: 16 })
+    else
+      map.flyToBounds(volver, {
+        padding: [56, 56],
+        maxZoom: 16,
+        duration: 0.6,
+        easeLinearity: 0.25,
+      })
+  }, [destacado, visibles])
 
   /*
     El vuelo hasta quien mira, con su geocerca.
@@ -311,6 +509,9 @@ export function PropertiesMap({
         ref={container}
         role="application"
         aria-label={t('property.map.label')}
+        /* La marca con la que el vuelo encuentra el mapa: de aqui sale el clon
+           en la portada, y aqui aterriza en el buscador. */
+        {...{ [HERO_MAP_ATTR]: '' }}
         className={cn('h-[300px] w-full sm:h-[380px] lg:h-[450px]', className)}
       />
 
@@ -319,180 +520,12 @@ export function PropertiesMap({
           inmueble: asi el carrusel empieza por la portada y no por la foto
           numero cuatro de la chincheta anterior. */}
       {hueco && ficha
-        ? createPortal(<FichaMapa key={ficha.id} property={ficha} />, hueco)
+        ? createPortal(
+            <PropertyCard key={ficha.id} property={ficha} dense />,
+            hueco,
+          )
         : null}
     </>
-  )
-}
-
-/**
- * La ficha de la ventanita: la tarjeta del listado en pequeño.
- *
- * Enseña lo mismo y en el mismo orden que `PropertyCard` —foto, franja de
- * cifras, tipo y titulo, codigo, precio y el enlace al detalle— porque quien
- * pulsa una chincheta y quien mira el listado estan decidiendo lo mismo, y dos
- * lenguajes distintos para la misma decision solo obligan a releer.
- *
- * La foto va a 264x150: contenida a proposito, para que la ventanita no tape
- * el mapa que la persona esta usando para elegir.
- */
-function FichaMapa({ property }: { property: Property }) {
-  const t = useT()
-  const { idioma } = useIdioma()
-  const { precio, moneda } = useCurrency()
-  const { tipo, titulo } = useCatalogo()
-  const [indice, setIndice] = useState(0)
-
-  /* Sin planos, igual que la tarjeta del listado: en un globo de mapa de 200
-     px, un plano no dice nada de donde esta el inmueble. */
-  const fotos = soloFotos(property.images)
-  const foto = fotos[indice] ?? fotos[0]
-  const to = propertyPath(property)
-  const nombre = titulo(property)
-  const built = property.builtArea ?? property.area
-
-  // El giro es circular: con cuatro fotos y una flecha a cada lado, toparse
-  // con un boton apagado en el extremo es peor que dar la vuelta.
-  const mover = (paso: number) =>
-    setIndice((n) => (n + paso + fotos.length) % fotos.length)
-
-  const warm = () => {
-    void import('@/routes/property')
-    prefetchProperty(property.code)
-  }
-
-  return (
-    <article className="w-[264px] font-sans text-foreground">
-      <div className="relative h-[150px] overflow-hidden bg-secondary">
-        {foto ? (
-          <img
-            src={foto.url}
-            alt={t('property.gallery.photo_alt', {
-              title: nombre,
-              index: indice + 1,
-            })}
-            width={264}
-            height={150}
-            loading="lazy"
-            decoding="async"
-            className="size-full object-cover"
-          />
-        ) : (
-          <div className="flex size-full items-center justify-center text-xs text-muted-foreground">
-            {t('property.card.no_photo')}
-          </div>
-        )}
-
-        {fotos.length > 1 && (
-          <>
-            <button
-              type="button"
-              onClick={() => mover(-1)}
-              aria-label={t('property.gallery.previous')}
-              className="absolute top-1/2 left-1 flex size-7 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white transition-colors hover:bg-black/70"
-            >
-              <ChevronLeft className="size-4" aria-hidden="true" />
-            </button>
-            <button
-              type="button"
-              onClick={() => mover(1)}
-              aria-label={t('property.gallery.next')}
-              className="absolute top-1/2 right-1 flex size-7 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white transition-colors hover:bg-black/70"
-            >
-              <ChevronRight className="size-4" aria-hidden="true" />
-            </button>
-
-            {/*
-              Contador y puntitos a la vez, y no uno de los dos: los puntos
-              dicen de un vistazo cuantas fotos quedan y dejan saltar a una,
-              pero con seis ya no se sabe en cual se esta sin contarlos. El
-              numero lo dice sin mirar.
-            */}
-            <span className="tabular absolute right-1.5 bottom-1.5 rounded-full bg-black/55 px-1.5 py-0.5 text-[10px] leading-none text-white">
-              {indice + 1}/{fotos.length}
-            </span>
-            <div className="absolute bottom-1.5 left-1.5 flex gap-1">
-              {fotos.map((imagen, n) => (
-                <button
-                  key={imagen.id}
-                  type="button"
-                  onClick={() => setIndice(n)}
-                  aria-label={t('property.gallery.go_to_photo', { index: n + 1 })}
-                  aria-current={n === indice}
-                  className={`size-1.5 rounded-full transition-colors ${
-                    n === indice ? 'bg-white' : 'bg-white/45 hover:bg-white/75'
-                  }`}
-                />
-              ))}
-            </div>
-          </>
-        )}
-      </div>
-
-      <SpecRow
-        specs={[
-          { icon: Ruler, value: built ? fmtArea(built, idioma) : null },
-          {
-            icon: BedDouble,
-            value: property.bedrooms,
-            unit:
-              property.bedrooms === 1
-                ? t('property.spec.bedrooms.one')
-                : t('property.spec.bedrooms.other'),
-          },
-          {
-            icon: Bath,
-            value: property.bathrooms,
-            unit:
-              property.bathrooms === 1
-                ? t('property.spec.bathrooms.one')
-                : t('property.spec.bathrooms.other'),
-          },
-          {
-            icon: Car,
-            value: property.garages,
-            unit:
-              property.garages === 1
-                ? t('property.spec.garages.one')
-                : t('property.spec.garages.other'),
-          },
-        ]}
-      />
-
-      <div className="flex flex-col gap-1 p-3">
-        <p className="text-[10px] tracking-wide text-muted-foreground uppercase">
-          {tipo(property.propertyType) ?? t('property.fallback.type')}
-        </p>
-        <h3 className="line-clamp-2-title m-0 text-[13px] leading-snug font-semibold uppercase">
-          <Link to={to} onMouseEnter={warm} onFocus={warm} className="text-foreground no-underline hover:underline">
-            {nombre}
-          </Link>
-        </h3>
-        <p className="m-0 text-[11px] text-muted-foreground">
-          {t('property.card.code', { code: property.code })}
-        </p>
-        {property.mapPublication === 'APPROXIMATE' && (
-          <p className="m-0 text-[11px] text-muted-foreground">
-            {t('property.map.popup.approximate')}
-          </p>
-        )}
-        <p className="tabular m-0 text-lg leading-none font-normal tracking-tight">
-          {precio(property.salePrice ?? property.rentPrice)}{' '}
-          <small className="text-[10px] tracking-widest text-muted-foreground uppercase">
-            {moneda}
-          </small>
-        </p>
-      </div>
-
-      <Link
-        to={to}
-        onMouseEnter={warm}
-        onFocus={warm}
-        className="block border-t bg-primary px-3 py-2.5 text-center text-[11px] font-bold tracking-widest text-primary-foreground uppercase no-underline transition-opacity hover:opacity-90"
-      >
-        {t('property.card.view_details')}
-      </Link>
-    </article>
   )
 }
 

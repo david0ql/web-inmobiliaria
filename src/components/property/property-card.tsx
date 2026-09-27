@@ -12,6 +12,7 @@ import { useIdioma, useT } from '@/lib/i18n'
 import { propertyPath } from '@/lib/slug'
 import type { Property, PropertyImage } from '@/lib/types'
 import { soloFotos } from '@/lib/projects'
+import { cn } from '@/lib/utils'
 
 /**
  * La tarjeta del listado, calcada de la del tema: foto con la etiqueta de estado
@@ -24,10 +25,25 @@ import { soloFotos } from '@/lib/projects'
 export function PropertyCard({
   property,
   priority = false,
+  dense = false,
+  onHoverChange,
 }: {
   property: Property
   /** La portada de las primeras tarjetas suele ser el LCP: esa no se difiere. */
   priority?: boolean
+  /**
+   * La misma tarjeta, apretada, para la ventanita del mapa.
+   *
+   * Antes el globo del mapa llevaba una tarjeta propia —otra foto, otros
+   * cuerpos de letra, otro boton— y quien pulsaba una chincheta tenia que
+   * volver a leerlo todo para comparar con lo que ya habia visto en la lista.
+   * Es la misma decision, asi que es la misma tarjeta: solo cambia el alto de
+   * la foto y el aire, porque el globo no puede tapar el mapa que se esta
+   * usando para elegir.
+   */
+  dense?: boolean
+  /** Para que el mapa sepa que tarjeta esta mirando el raton. */
+  onHoverChange?: (hovering: boolean) => void
 }) {
   const t = useT()
   const { idioma } = useIdioma()
@@ -71,7 +87,7 @@ export function PropertyCard({
       ]
         .filter(Boolean)
         .join(', ')}
-      sizes="(min-width: 992px) 360px, (min-width: 576px) 50vw, 100vw"
+      sizes={dense ? '300px' : '(min-width: 992px) 360px, (min-width: 576px) 50vw, 100vw'}
       alt={
         image.description ??
         (indice === 0
@@ -81,8 +97,8 @@ export function PropertyCard({
               index: indice + 1,
             }))
       }
-      width={560}
-      height={280}
+      width={dense ? 300 : 560}
+      height={dense ? 160 : 280}
       loading={priority && indice === 0 ? 'eager' : 'lazy'}
       fetchPriority={priority && indice === 0 ? 'high' : 'auto'}
       decoding="async"
@@ -92,12 +108,26 @@ export function PropertyCard({
 
   return (
     <article
-      onMouseEnter={warm}
+      onMouseEnter={() => {
+        warm()
+        onHoverChange?.(true)
+      }}
+      onMouseLeave={() => onHoverChange?.(false)}
+      onFocusCapture={() => onHoverChange?.(true)}
+      onBlurCapture={() => onHoverChange?.(false)}
       onTouchStart={warm}
-      className="group flex flex-col overflow-hidden rounded-lg border bg-card shadow-sm transition-shadow hover:shadow-md"
+      className={cn(
+        'group flex flex-col overflow-hidden rounded-lg border bg-card shadow-sm transition-shadow hover:shadow-md',
+        dense && 'w-[300px] text-foreground',
+      )}
     >
       <figure className="relative m-0">
-        <div className="relative h-[280px] overflow-hidden bg-secondary">
+        <div
+          className={cn(
+            'relative overflow-hidden bg-secondary',
+            dense ? 'h-[160px]' : 'h-[280px]',
+          )}
+        >
           {fotos.length > 1 ? (
             <CardCarousel
               total={fotos.length}
@@ -181,7 +211,7 @@ export function PropertyCard({
         ]}
       />
 
-      <div className="flex flex-1 flex-col gap-2 p-4">
+      <div className={cn('flex flex-1 flex-col', dense ? 'gap-1 p-3' : 'gap-2 p-4')}>
         <p className="text-xs tracking-wide text-muted-foreground uppercase">
           {tipo(property.propertyType) ?? t('property.card.fallback_type')}
         </p>
@@ -204,7 +234,12 @@ export function PropertyCard({
         pixeles de portada para no decir nada nuevo.
       */}
       <div className="flex items-stretch border-t">
-        <p className="tabular flex-1 px-4 py-3 text-xl leading-none font-normal tracking-tight">
+        <p
+          className={cn(
+            'tabular flex-1 leading-none font-normal tracking-tight',
+            dense ? 'px-3 py-2.5 text-lg' : 'px-4 py-3 text-xl',
+          )}
+        >
           {precio(property.salePrice ?? property.rentPrice)}{' '}
           <small className="text-[0.625rem] tracking-widest text-muted-foreground uppercase">
             {moneda}
@@ -212,7 +247,10 @@ export function PropertyCard({
         </p>
         <Link
           to={to}
-          className="flex shrink-0 items-center border-l bg-primary px-5 text-xs font-bold tracking-widest text-primary-foreground uppercase transition-opacity hover:opacity-90"
+          className={cn(
+            'flex shrink-0 items-center border-l bg-primary text-xs font-bold tracking-widest text-primary-foreground uppercase transition-opacity hover:opacity-90',
+            dense ? 'px-3.5' : 'px-5',
+          )}
         >
           {t('property.card.detail')}
         </Link>
