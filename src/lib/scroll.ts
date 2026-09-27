@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react'
 import { useLocation, useNavigationType } from 'react-router-dom'
 
-import { reservarScroll, vueloPendiente } from '@/lib/hero-map'
+import { entradaCoreografiada, reservarScroll } from '@/lib/hero-map'
 
 /**
  * Llevar la vista al arranque de una lista al cambiar de pagina.
@@ -117,7 +117,21 @@ export function useSettleOnList(anchor: HTMLElement | null, listo: boolean): voi
     */
     requestAnimationFrame(() =>
       requestAnimationFrame(() => {
-        if (vueloPendiente()) reservarScroll(destinoDeLista(anchor))
+        /*
+          `entradaCoreografiada` y no `vueloPendiente`.
+
+          `vueloPendiente` mira si el vuelo sigue esperando destino, y para
+          cuando esto corre puede que el mapa ya lo haya reclamado: el efecto del
+          mapa es hijo y corre antes. Entonces esto creia que no habia vuelo, se
+          desplazaba por su cuenta con una animacion suave, y el vuelo —que ya
+          habia medido su destino— se encontraba la pagina moviendose debajo. De
+          ahi los trescientos pixeles de desfase.
+
+          `entradaCoreografiada` responde a otra pregunta, que es la que importa
+          aqui: "¿se ha llegado a esta pantalla desde un vuelo?". Eso no deja de
+          ser cierto porque el mapa haya empezado a trabajar.
+        */
+        if (entradaCoreografiada()) reservarScroll(destinoDeLista(anchor))
         else scrollToListTop(anchor)
       }),
     )

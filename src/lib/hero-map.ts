@@ -273,17 +273,26 @@ function esperarTeselas(map: L.Map, topeMs: number): Promise<void> {
       }
       const reloj = window.setTimeout(acabar, topeMs)
       /*
-        `load` y no `idle`.
+        `idle`, y no `load`.
 
-        `idle` significa "no queda nada por cargar NI por dibujar", y sobre un
-        mapa vectorial eso llega tarde: la etiqueta de la ultima calle de la
-        esquina cuenta. Mientras tanto, quien pulso Buscar se queda mirando el
-        mapa de la portada congelado casi dos segundos. `load` es "el estilo
-        esta y hay un primer dibujado", que es justo lo que hace falta para que
-        el relevo no se note.
+        Esta es LA razon de que se viera "media pantalla gris que luego se
+        rellena". `load` significa "el estilo esta cargado y hubo un primer
+        dibujado" — de la caja que el mapa tenia ENTONCES, que es la del panel—.
+        Pero justo antes de esperar, la caja se ha agrandado al tamaño union:
+        de 450 px de alto a 800 y pico. Esa franja nueva no la habia dibujado
+        nadie, y `load` ya habia saltado, asi que se descubria el mapa con la
+        mitad inferior en blanco. Al avanzar el vuelo, esa mitad entraba en la
+        ventana y se rellenaba a la vista.
+
+        `idle` es "no queda nada por cargar ni por dibujar", que es la unica
+        garantia de que la franja nueva ya esta. Y se pide SIEMPRE, aunque el
+        mapa diga estar cargado: `loaded()` habla del estado anterior al cambio
+        de tamaño.
+
+        Mientras se espera no hay nada roto: se ve el mapa de la portada,
+        quieto, que es de donde se venia.
       */
-      if (gl.loaded?.()) requestAnimationFrame(acabar)
-      else gl.once('load', acabar)
+      gl.once('idle', acabar)
       return
     }
 
@@ -359,35 +368,17 @@ export function terminarVueloMapa(
     return
   }
 
-  const rectAhora = nodo.getBoundingClientRect()
-
   /*
-    Donde va a estar el panel CUANDO la pagina termine de desplazarse.
+    El hueco al que se aterriza: el panel del buscador.
 
-    Se predice en vez de medirse: el destino todavia esta en su sitio de ahora,
-    y si volaramos hacia ahi, la pagina se movera debajo y el mapa aterrizaria
-    fuera. Restando el desplazamiento pendiente se obtiene la caja final, que es
-    la unica que importa.
+    Se guarda la referencia ahora porque en cuanto el mapa salga del flujo con
+    `position: fixed`, el panel se queda vacio y es EL quien dice donde hay que
+    posarse. Su tamaño no depende de donde este la pagina; su posicion si, y por
+    eso se mide mas tarde.
   */
-  const desplazamiento =
-    scrollReservado === null ? 0 : scrollReservado - window.scrollY
-  scrollReservado = null
-  const destino = new DOMRect(
-    rectAhora.left,
-    rectAhora.top - desplazamiento,
-    rectAhora.width,
-    rectAhora.height,
-  )
-
-  const fuera =
-    destino.width < 8 ||
-    destino.height < 8 ||
-    destino.right < 0 ||
-    destino.left > window.innerWidth ||
-    destino.bottom < 0 ||
-    destino.top > window.innerHeight
-  if (fuera) {
-    if (desplazamiento) window.scrollBy({ top: desplazamiento, behavior: 'auto' })
+  const hueco = nodo.parentElement
+  const medida = nodo.getBoundingClientRect()
+  if (!hueco || medida.width < 8 || medida.height < 8) {
     desvanecerCobertura()
     return
   }
@@ -396,33 +387,24 @@ export function terminarVueloMapa(
   origen = null
 
   const { rect: desde, capa } = salida
+  const estiloPrevio = nodo.getAttribute('style') ?? ''
 
   /*
-    La union de las dos cajas.
-
-    Es el tamaño que tiene el contenedor durante todo el vuelo, y la razon de
-    que no haga falta escalar nada: contenga lo que contenga la ventana en cada
-    instante, los pixeles ya estan ahi dibujados.
+    La union de las dos cajas: el tamaño que tiene el contenedor durante todo el
+    vuelo. Es la razon de que no haga falta escalar nada — contenga lo que
+    contenga la ventana en cada instante, los pixeles ya estan dibujados— y de
+    que el tamaño no cambie a mitad de animacion, que es lo que obligaria a
+    remedir y a repintar por cuadro.
   */
   const union = {
-    ancho: Math.max(desde.width, destino.width),
-    alto: Math.max(desde.height, destino.height),
+    ancho: Math.max(desde.width, medida.width),
+    alto: Math.max(desde.height, medida.height),
   }
-
-  /*
-    Lo que vuela es el propio contenedor de Leaflet, sacado del flujo con
-    `position: fixed`. El panel del buscador se queda donde estaba, vacio: es el
-    hueco al que el mapa aterriza. Y como el panel es `sticky` y no tiene
-    `transform`, no crea bloque contenedor, asi que su `overflow: hidden` no
-    recorta al que vuela.
-  */
-  const estiloPrevio = nodo.getAttribute('style') ?? ''
   const centrar = (r: DOMRect) => ({
     x: (r.left + r.right) / 2 - union.ancho / 2,
     y: (r.top + r.bottom) / 2 - union.alto / 2,
   })
   const a = centrar(desde)
-  const b = centrar(destino)
 
   nodo.style.position = 'fixed'
   nodo.style.left = '0'
@@ -437,147 +419,176 @@ export function terminarVueloMapa(
   // Una sola vez, ANTES de animar: durante el vuelo el tamaño ya no cambia.
   map.invalidateSize({ animate: false, pan: false })
   // Y arranca mirando exactamente a donde miraba la portada. Este es el
-  // fotograma en el que el clon y el mapa vivo son la misma imagen.
+  // fotograma en el que la copia y el mapa vivo son la misma imagen.
   map.setView([salida.centro.lat, salida.centro.lng], salida.zoom, {
     animate: false,
   })
 
+  const curvaMuelle = muelle()
+  const duracion = curvaMuelle.length * (1000 / 60)
+
+  const arrancar = () => {
+    /*
+      AQUI se decide a donde se vuela, y no antes.
+
+      Este era el bug de fondo. El destino se medía al principio, y despues se
+      esperaba a que el mapa terminara de dibujarse: cientos de milisegundos. En
+      ese hueco la pagina se desplazaba por su cuenta, asi que cuando el vuelo
+      arrancaba apuntaba a un sitio donde el panel ya no estaba —trescientos
+      pixeles mas abajo—. El primer fotograma y el ultimo salian bien, porque al
+      aterrizar se devuelve el estilo y manda el layout, pero todo el trayecto
+      iba torcido.
+
+      Se mide con la pagina puesta EN SU SITIO FINAL: se salta alli, se mide y se
+      vuelve, seguido y sin ceder el hilo. El navegador no pinta entre medias,
+      asi que ese ir y venir no se ve. Y hace falta medir de verdad, no calcular:
+      el panel es `sticky`, y a un elemento pegajoso no se le puede predecir la
+      posicion restando scroll.
+    */
+    const objetivo = scrollReservado ?? window.scrollY
+    scrollReservado = null
+    const inicio = window.scrollY
+    const desplazamiento = objetivo - inicio
+
+    if (desplazamiento) window.scrollTo({ top: objetivo, behavior: 'auto' })
+    const r = hueco.getBoundingClientRect()
+    const destino = new DOMRect(r.left, r.top, r.width, r.height)
+    if (desplazamiento) window.scrollTo({ top: inicio, behavior: 'auto' })
+
+    const fuera =
+      destino.width < 8 ||
+      destino.height < 8 ||
+      destino.right < 0 ||
+      destino.left > window.innerWidth ||
+      destino.bottom < 0 ||
+      destino.top > window.innerHeight
+    if (fuera) {
+      // Sin sitio donde posarse: se deja todo como estaba, sin numeros de circo.
+      nodo.setAttribute('style', estiloPrevio)
+      map.invalidateSize({ animate: false, pan: false })
+      if (desplazamiento) window.scrollTo({ top: objetivo, behavior: 'auto' })
+      return
+    }
+
+    const b = centrar(destino)
+
+    /*
+      Un fotograma por muestra del muelle, con `easing: linear`.
+
+      El navegador interpola entre keyframes; la forma del movimiento la pone la
+      lista de muestras. Asi la caja, el recorte y el scroll comparten curva
+      EXACTA —son la misma lista— y ninguno puede resbalar respecto de otro.
+    */
+    const fotogramas = curvaMuelle.map((e) => {
+      const paso = {
+        x: a.x + (b.x - a.x) * e,
+        y: a.y + (b.y - a.y) * e,
+      }
+      return {
+        transform: `translate3d(${paso.x}px, ${paso.y}px, 0)`,
+        clipPath: ventana(
+          new DOMRect(
+            desde.left + (destino.left - desde.left) * e,
+            desde.top + (destino.top - desde.top) * e,
+            desde.width + (destino.width - desde.width) * e,
+            desde.height + (destino.height - desde.height) * e,
+          ),
+          RADIO_FINAL * e,
+          paso,
+          union,
+        ),
+      }
+    })
+
+    const animacion = nodo.animate(fotogramas, {
+      duration: duracion,
+      easing: 'linear',
+      fill: 'forwards',
+    })
+
+    /*
+      EL MAPA NO SE MUEVE MIENTRAS VUELA. Solo cambia su ventana.
+
+      El territorio moviendose mientras la caja se encoge son dos historias a la
+      vez, y ninguna se entiende. Quieto, la transicion dice una sola cosa, que
+      ademas es verdad: es el MISMO mapa, mirado por una ventana de otra forma.
+      Lo que hay debajo no se ha movido un pixel.
+
+      El encuadre sobre los resultados llega despues, con la caja ya parada, y lo
+      hace el seguimiento de la lista, que existe de todas formas.
+    */
+    let cuadro = 0
+    if (desplazamiento) {
+      /*
+        El scroll se lee del RELOJ DE LA ANIMACION, no de uno propio.
+
+        Un reloj propio empieza a contar al crear la animacion; la animacion no
+        cuenta hasta el siguiente cuadro que el navegador pinta de verdad. Y
+        justo antes de esto se le ha cambiado el tamaño al mapa y se ha
+        redibujado entero, con lo que el hilo principal se queda ocupado un buen
+        rato. La pagina salia con cien milisegundos de ventaja sobre la caja, y
+        con un recorrido de trescientos pixeles esa ventaja es la diferencia
+        entre "todo llega junto" y "algo se descoloca y el resto lo alcanza".
+
+        Leyendo `currentTime`, los dos comparten reloj por construccion: si el
+        navegador se atasca, se atascan los dos.
+      */
+      const paso = () => {
+        const t = Math.min(Number(animacion.currentTime ?? 0) / duracion, 1)
+        const indice = Math.min(
+          curvaMuelle.length - 1,
+          Math.round(t * (curvaMuelle.length - 1)),
+        )
+        window.scrollTo({
+          top: inicio + desplazamiento * curvaMuelle[indice],
+          behavior: 'auto',
+        })
+        if (t < 1) cuadro = requestAnimationFrame(paso)
+      }
+      cuadro = requestAnimationFrame(paso)
+    }
+
+    let aterrizado = false
+    const aterrizar = () => {
+      // `cancel()` vuelve a disparar el evento: sin esta guarda, aterrizar se
+      // llamaria dos veces.
+      if (aterrizado) return
+      aterrizado = true
+      cancelAnimationFrame(cuadro)
+
+      /*
+        Cancelar la animacion ANTES de devolver el estilo. Va con
+        `fill: 'forwards'`, que evita el parpadeo del ultimo cuadro, pero un
+        relleno hacia delante sigue mandando sobre el estilo calculado aunque se
+        borre el atributo `style`: el mapa se quedaba con el `transform` y el
+        `clip-path` del vuelo pegados, fuera de su panel y recortado en diagonal.
+      */
+      animacion.cancel()
+      nodo.setAttribute('style', estiloPrevio)
+      capa.remove()
+      if (desplazamiento) window.scrollTo({ top: objetivo, behavior: 'auto' })
+
+      const centroActual = map.getCenter()
+      map.invalidateSize({ animate: false, pan: false })
+      map.setView(centroActual, map.getZoom(), { animate: false })
+      reciénAterrizado = Date.now()
+    }
+
+    animacion.addEventListener('finish', aterrizar)
+    animacion.addEventListener('cancel', aterrizar)
+  }
+
   /*
-    Se espera a que el mapa vivo tenga teselas ANTES de descubrirlo.
-
-    Mientras se espera, la copia lo tapa por completo: lo que se ve es el mapa de
-    la portada, quieto en su sitio, exactamente como estaba. Cuando las teselas
-    estan, la copia se retira DE GOLPE — sin fundido— y no se nota, porque
-    debajo hay la misma imagen: mismo centro, mismo zoom y la misma ventana.
-
-    Un fundido aqui seria peor: la curva avanza muy deprisa al principio, asi que
-    a mitad del fundido el mapa vivo ya se ha movido y lo que se cruzan son dos
-    encuadres distintos. Dos imagenes iguales se relevan sin transicion; dos
-    distintas no hay transicion que las salve.
-
-    El tope existe porque las teselas vienen de un servidor ajeno: mas vale
-    descubrir un borde a medio pintar que dejar la pantalla congelada. Es
-    generoso —casi un segundo— porque mientras se espera no hay nada roto: se ve
-    el mapa de la portada, quieto, que es de donde se venia.
+    Se espera a que el mapa vivo tenga dibujada TODA la caja de la union antes de
+    descubrirlo. Mientras tanto la copia lo tapa: lo que se ve es el mapa de la
+    portada, quieto en su sitio, exactamente como estaba. Cuando esta listo, la
+    copia se retira de golpe —sin fundido— y no se nota, porque debajo hay la
+    misma imagen: mismo centro, mismo zoom, misma ventana.
   */
-  esperarTeselas(map, 900).then(() => {
+  esperarTeselas(map, 1800).then(() => {
     capa.remove()
     arrancar()
   })
-
-  const arrancar = () => {
-  /*
-    Un fotograma por muestra del muelle, con `easing: linear`.
-
-    El navegador interpola entre keyframes; la forma del movimiento la pone la
-    lista de muestras. Asi la caja, el recorte y el scroll comparten curva EXACTA
-    —son la misma lista— y no hay manera de que uno resbale respecto del otro.
-  */
-  const curvaMuelle = muelle()
-  const duracion = curvaMuelle.length * (1000 / 60)
-  const fotogramas = curvaMuelle.map((e) => ({
-    transform: `translate3d(${a.x + (b.x - a.x) * e}px, ${a.y + (b.y - a.y) * e}px, 0)`,
-    clipPath: ventana(
-      new DOMRect(
-        desde.left + (destino.left - desde.left) * e,
-        desde.top + (destino.top - desde.top) * e,
-        desde.width + (destino.width - desde.width) * e,
-        desde.height + (destino.height - desde.height) * e,
-      ),
-      RADIO_FINAL * e,
-      {
-        x: a.x + (b.x - a.x) * e,
-        y: a.y + (b.y - a.y) * e,
-      },
-      union,
-    ),
-  }))
-
-  const animacion = nodo.animate(fotogramas, {
-    duration: duracion,
-    easing: 'linear',
-    fill: 'forwards',
-  })
-
-  /*
-    EL MAPA NO SE MUEVE MIENTRAS VUELA. Solo cambia su ventana.
-
-    Antes se interpolaba tambien el centro y el zoom, y era un error por dos
-    razones. La de bulto: cambiar el zoom cuadro a cuadro obliga a Leaflet a
-    rehacer la piramide de teselas en cada paso, asi que a mitad de vuelo lo que
-    se veia era un rectangulo gris con unas chinchetas encima. Y la de fondo: el
-    territorio moviendose mientras la caja se encoge son dos historias a la vez,
-    y ninguna de las dos se entiende.
-
-    Quieto, la transicion dice una sola cosa, que ademas es la verdadera: es el
-    MISMO mapa, mirandose por una ventana de otra forma. Lo que hay debajo no se
-    ha movido ni un pixel —eso es literalmente cierto— y por eso se lee como un
-    objeto y no como una animacion.
-
-    El encuadre sobre los resultados llega despues, ya con la caja parada, y lo
-    hace el seguimiento de la lista que existia de todas formas.
-  */
-  const scrollInicial = window.scrollY
-  let cuadro = 0
-  if (desplazamiento) {
-    // El scroll comparte la curva del muelle, muestra a muestra.
-    const arranque = performance.now()
-    const paso = (ahora: number) => {
-      const t = Math.min((ahora - arranque) / duracion, 1)
-      const indice = Math.min(
-        curvaMuelle.length - 1,
-        Math.round(t * (curvaMuelle.length - 1)),
-      )
-      window.scrollTo({
-        top: scrollInicial + desplazamiento * curvaMuelle[indice],
-        behavior: 'auto',
-      })
-      if (t < 1) cuadro = requestAnimationFrame(paso)
-    }
-    cuadro = requestAnimationFrame(paso)
-  }
-
-  let aterrizado = false
-
-  const aterrizar = () => {
-    // `cancel()` vuelve a disparar el evento: sin esta guarda, aterrizar se
-    // llamaria dos veces y la segunda encontraria un mapa ya recolocado.
-    if (aterrizado) return
-    aterrizado = true
-    cancelAnimationFrame(cuadro)
-
-    /*
-      Cancelar la animacion ANTES de devolver el estilo.
-
-      Va con `fill: 'forwards'`, que es lo que evita el parpadeo del ultimo
-      cuadro. Pero un relleno hacia delante sigue mandando sobre el estilo
-      calculado aunque se borre el atributo `style`: el mapa se quedaba con el
-      `transform` y el `clip-path` del vuelo pegados, aterrizando trescientos
-      pixeles fuera de su panel y recortado en diagonal.
-    */
-    animacion.cancel()
-    nodo.setAttribute('style', estiloPrevio)
-    capa.remove()
-
-    if (desplazamiento) {
-      window.scrollTo({ top: scrollInicial + desplazamiento, behavior: 'auto' })
-    }
-    /*
-      La caja vuelve a su tamaño real y el mapa se recentra sobre el MISMO punto
-      que venia mirando. No se cambia el encuadre aqui: el vuelo ha terminado y
-      lo que toca ahora es que se quede quieto.
-    */
-    const centroActual = map.getCenter()
-    map.invalidateSize({ animate: false, pan: false })
-    map.setView(centroActual, map.getZoom(), { animate: false })
-    // El seguimiento de la lista encuadra sobre los resultados un instante
-    // despues, ya en reposo: una cosa detras de otra, no dos a la vez.
-    reciénAterrizado = Date.now()
-  }
-
-  animacion.addEventListener('finish', aterrizar)
-  animacion.addEventListener('cancel', aterrizar)
-  }
 }
 
 /** Apaga la cobertura donde esta: el vuelo no tenia a donde ir. */
