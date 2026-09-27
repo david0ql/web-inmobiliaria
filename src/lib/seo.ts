@@ -40,7 +40,7 @@ export function applyMeta(meta: Meta) {
   const description = meta.description.slice(0, MAX_DESCRIPTION)
   const image = meta.image
     ? new URL(meta.image, SITE.url).toString()
-    : `${SITE.url}/logo.png`
+    : `${SITE.url}/logo-wordmark.png`
 
   document.title = meta.title
 
@@ -131,7 +131,7 @@ export function organizationJsonLd(t: Traducir) {
     name: SITE.name,
     url: SITE.url,
     logo: `${SITE.url}/logo.png`,
-    image: `${SITE.url}/logo.png`,
+    image: `${SITE.url}/logo-wordmark.png`,
     description: t(SITE.description),
     telephone: SITE.phone,
     email: SITE.email,

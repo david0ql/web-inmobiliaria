@@ -65,6 +65,8 @@ export function rootLoader(): RootData {
 export interface HomeData {
   projects: Promise<ProjectSummary[]>
   showcase: Promise<Showcase>
+  /** Lo ultimo que entro al inventario, sin pasar por el panel. */
+  novedades: Promise<Property[]>
 }
 
 export function homeLoader(): HomeData {
@@ -81,6 +83,17 @@ export function homeLoader(): HomeData {
     // Que inmuebles salen, cuantos y como se mueven lo decide la agencia desde
     // el panel; la API lo resuelve y aqui solo se pinta.
     showcase: getShowcase(),
+    /*
+      Las novedades ocupan el hueco que dejo "Cerca de ti".
+
+      Aquella seccion pedia la ubicacion del visitante para ensenarle lo que
+      tenia al lado, y el trato solo salia a cuenta para quien ya estaba en la
+      ciudad: al resto le cobraba un permiso a cambio de un bloque vacio. Lo
+      ultimo publicado, en cambio, le sirve a todo el que entra y no pide nada.
+
+      Sin `sort`: el orden por defecto de la API ya es el mas reciente primero.
+    */
+    novedades: searchProperties({ limit: 6 }).then((page) => page.data),
   }
 }
 

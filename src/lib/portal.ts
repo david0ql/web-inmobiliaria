@@ -329,8 +329,8 @@ export const portal = {
       method: 'POST',
     }),
   deactivateProperty: (propertyId: string) =>
-    request<{ publicationStatus: string }>(`/portal/properties/${propertyId}/deactivate`, {
-      method: 'PATCH',
+    request<PropertyChangeRequest>(`/portal/properties/${propertyId}/deactivate`, {
+      method: 'POST',
     }),
   createConsignment: (body: FormData) =>
     request<ConsignmentResult>('/portal/consignments', {

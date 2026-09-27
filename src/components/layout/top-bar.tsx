@@ -49,8 +49,9 @@ export function TopBar() {
             centrado se lee como una barra, pegado a la derecha como un descuido. */}
         <div className="flex flex-1 items-center justify-center gap-3 md:justify-end">
           {/* Lo unico de esta barra que cambia lo que se lee en el resto del
-              sitio: el idioma, que arrastra tambien la moneda. */}
-          <LanguageSwitch />
+              sitio: el idioma, que arrastra tambien la moneda. Por debajo de md
+              baja al menu hamburguesa: aqui dejaba el telefono descentrado. */}
+          <LanguageSwitch className="hidden md:flex" />
           <a
             href={SITE.phoneHref}
             className="flex items-center gap-1.5 text-xs font-medium tracking-wide transition-opacity hover:opacity-80"

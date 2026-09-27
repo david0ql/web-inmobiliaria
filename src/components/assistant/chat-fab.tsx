@@ -92,10 +92,23 @@ export function ChatFab() {
           </p>
           <button
             type="button"
-            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium hover:bg-secondary"
+            className="flex w-full items-start gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium hover:bg-secondary"
             onClick={() => { setChooser(false); setOpen(true) }}
           >
-            <MessageSquareText className="size-5" /> {t('chat.channel.online')}
+            <MessageSquareText className="mt-0.5 size-5 shrink-0" />
+            <span>
+              {t('chat.channel.online')}
+              {/*
+                Avisado con tiempo, no retirado de golpe. La atencion se va a
+                concentrar en WhatsApp —es donde el asesor ya contesta y donde
+                queda el historial—, y quien lleva meses escribiendo por aqui
+                tiene derecho a enterarse antes de que un dia el boton lleve a
+                otro sitio.
+              */}
+              <span className="mt-0.5 block text-[11px] leading-snug font-normal text-muted-foreground">
+                {t('chat.channel.sunset')}
+              </span>
+            </span>
           </button>
           <a
             href={`https://wa.me/${SITE.phone.replace(/\D/g, '')}`}

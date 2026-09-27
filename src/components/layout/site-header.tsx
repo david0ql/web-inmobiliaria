@@ -70,8 +70,10 @@ export function SiteHeader() {
         <Link to={ROUTES.home} className="shrink-0">
           <img
             src={SITE.logo}
-            width={250}
-            height={90}
+            /* La marca nueva es la S, cuadrada: con 250x90 el navegador
+               reservaba una caja apaisada y el logo saltaba al cargar. */
+            width={128}
+            height={128}
             alt={SITE.name}
             /* El logo es lo primero que se ve: no se difiere. */
             fetchPriority="high"

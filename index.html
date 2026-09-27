@@ -57,7 +57,7 @@
     />
     <meta
       property="og:image"
-      content="https://web-clientes-inmobiliaria.nordikhat.com/logo.png"
+      content="https://web-clientes-inmobiliaria.nordikhat.com/logo-wordmark.png"
     />
     <meta name="twitter:card" content="summary_large_image" />
   </head>
@@ -83,14 +83,16 @@
           </div>
         </section>
         <header class="border-b bg-background">
-          <div class="container-site flex items-center gap-4 py-3">
+          <!-- Las medidas son las de la cabecera de React, al pixel: si no
+               coinciden, el logo cambia de tamano en cuanto monta la app. -->
+          <div class="container-site flex min-h-16 items-center gap-3 py-2.5 lg:min-h-20 lg:gap-4">
             <img
               src="/logo.png"
-              width="250"
-              height="90"
+              width="128"
+              height="128"
               alt="Serrano Inmobiliaria"
               fetchpriority="high"
-              class="h-11 w-auto lg:h-14"
+              class="h-10 w-auto lg:h-12"
             />
           </div>
         </header>

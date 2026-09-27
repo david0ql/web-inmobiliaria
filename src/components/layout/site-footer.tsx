@@ -4,7 +4,7 @@ import { Link } from '@/lib/nav'
 import { CreditButton } from '@/components/credit/credit-button'
 import { SocialLinks } from '@/components/layout/social-links'
 import { useT } from '@/lib/i18n'
-import { PANEL_URL, ROUTES, SITE } from '@/lib/site'
+import { ROUTES, SITE } from '@/lib/site'
 
 /**
  * Dos bloques y nada mas: quienes somos y como contactar.
@@ -43,15 +43,12 @@ export function SiteFooter() {
 
         <section>
           <FooterHeading>{t('nav.contact')}</FooterHeading>
+          {/*
+            El telefono primero, y despues el correo: en una inmobiliaria se
+            llama, no se escribe. La direccion baja al final porque es lo que se
+            mira una sola vez, cuando ya se decidio ir.
+          */}
           <address className="flex min-w-0 flex-col gap-3 text-sm not-italic">
-            <span className="flex gap-2">
-              <MapPin className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-              <span>
-                {SITE.address}
-                <br />
-                <strong className="font-medium">{SITE.city}</strong>
-              </span>
-            </span>
             <a href={SITE.phoneHref} className="flex gap-2 hover:underline">
               <Phone className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
               <span className="tabular">{SITE.phone}</span>
@@ -64,6 +61,14 @@ export function SiteFooter() {
               <Mail className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
               <span className="truncate">{SITE.email}</span>
             </a>
+            <span className="flex gap-2">
+              <MapPin className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+              <span>
+                {SITE.address}
+                <br />
+                <strong className="font-medium">{SITE.city}</strong>
+              </span>
+            </span>
           </address>
         </section>
 
@@ -75,13 +80,14 @@ export function SiteFooter() {
           que espera un buscador —enlaces internos al final— y lo que hace
           cualquier inmobiliaria.
 
-          A dos columnas en movil para no dejar una lista larguisima, y a una
-          en escritorio, donde la columna ya es estrecha.
+          Una sola columna, tambien en movil: a dos, los cinco rotulos caian de
+          forma irregular —dos, dos y uno suelto— y no habia manera de recorrer
+          la lista de arriba abajo de un solo barrido.
         */}
         <section className="sm:col-span-2 lg:col-span-1">
           <FooterHeading>{t('footer.links.title')}</FooterHeading>
           <nav aria-label={t('footer.links.nav')}>
-            <ul className="grid grid-cols-2 gap-x-6 gap-y-2.5 text-sm lg:grid-cols-1">
+            <ul className="grid gap-x-6 gap-y-2.5 text-sm">
               <li>
                 <Link to={ROUTES.projects} className="hover:underline">
                   {t('nav.projects')}
@@ -115,22 +121,16 @@ export function SiteFooter() {
           </p>
           {/* La politica de privacidad se queda: es un enlace exigible, no
               navegacion, y esta indexado desde el sitio anterior. */}
+          {/*
+            Sin el acceso del equipo. El panel es otra aplicacion, con su propia
+            direccion, y quien trabaja aqui la tiene guardada: anunciarla en
+            todas las paginas del sitio publico solo servia para que la
+            encontrara quien no debe entrar.
+          */}
           <div className="flex flex-wrap items-center gap-4">
             <Link to={ROUTES.privacy} className="hover:underline">
               {t('nav.privacy')}
             </Link>
-            {/* El acceso del equipo vive aqui y no en la cabecera: arriba,
-                "Entrar" es de los propietarios. En otra pestaña porque el panel
-                es otra aplicacion y quien entra a trabajar no tiene por que
-                perder el sitio publico. */}
-            <a
-              href={PANEL_URL}
-              target="_blank"
-              rel="noreferrer noopener"
-              className="hover:underline"
-            >
-              {t('footer.staff')}
-            </a>
           </div>
         </div>
       </div>

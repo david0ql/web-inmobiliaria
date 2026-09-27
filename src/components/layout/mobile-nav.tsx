@@ -2,6 +2,7 @@ import { LogIn, Mail, Phone } from 'lucide-react'
 import { Link } from '@/lib/nav'
 
 import { AccountButton } from '@/components/layout/account-button'
+import { LanguageSwitch } from '@/components/layout/language-switch'
 import { CreditButton } from '@/components/credit/credit-button'
 import { OfferButton } from '@/components/layout/offer-button'
 import { SocialLinks } from '@/components/layout/social-links'
@@ -65,19 +66,33 @@ export function MobileNav({
               que es de donde se venia. */}
           <CreditButton className={`${ITEM} w-full text-left`} />
 
-          <Accordion type="single" collapsible defaultValue="ventas">
+          {/*
+            Cerrado al abrir el menu. Con la lista desplegada, los doce tipos
+            empujaban el telefono, el correo y los botones por debajo del borde
+            de la pantalla: quien abria el menu para llamar tenia que hacer
+            scroll dentro de un panel que no parecia tener nada mas.
+
+            Y el titulo se separa del chevron: "Ventas" es un enlace a todo el
+            inventario —como en escritorio— y el chevron despliega los tipos.
+            Antes habia dentro un "Todos los inmuebles" que hacia justo lo que
+            hace el titulo, dos caminos al mismo sitio y uno escondido.
+          */}
+          <Accordion type="single" collapsible>
             <AccordionItem value="ventas">
-              <AccordionTrigger className="text-[0.8125rem] tracking-wide uppercase">
-                {t('nav.sales')}
-              </AccordionTrigger>
-              <AccordionContent className="flex flex-col">
+              <div className="flex items-center">
                 <Link
                   to={ROUTES.sales}
                   onClick={close}
-                  className="rounded-md px-2 py-2 font-medium hover:bg-secondary"
+                  className="flex-1 py-4 text-[0.8125rem] font-medium tracking-wide uppercase"
                 >
-                  {t('nav.sales.all')}
+                  {t('nav.sales')}
                 </Link>
+                <AccordionTrigger
+                  aria-label={t('nav.sales.types')}
+                  className="w-auto flex-none py-4 pl-3"
+                />
+              </div>
+              <AccordionContent className="flex flex-col">
                 {types.map((type) => (
                   <Link
                     key={type.id}
@@ -134,6 +149,13 @@ export function MobileNav({
             <Mail className="size-4 shrink-0" />
             {SITE.email}
           </a>
+          {/*
+            El idioma vive aqui en movil: arriba compartia una barra de 32 px
+            con el telefono y el buscador, y las dos banderas dejaban el numero
+            descentrado. Es ademas la decision que arrastra la moneda, asi que
+            gana estando donde se mira el menu y no en una esquina.
+          */}
+          <LanguageSwitch tone="light" className="-ml-1" />
           <SocialLinks className="-ml-2 text-foreground" />
         </div>
       </SheetContent>

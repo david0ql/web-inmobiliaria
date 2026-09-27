@@ -300,8 +300,8 @@ function PropertyManager({ property, open, onOpenChange, pending, onChanged }: {
     setBusy(true)
     try {
       await portal.deactivateProperty(property.id)
-      toast.success(t('account.property.deactivate.done'))
-      onChanged(); onOpenChange(false)
+      toast.success(t('account.property.deactivate.sent'))
+      onChanged()
     } finally { setBusy(false) }
   }
   const archive = async () => {
@@ -322,7 +322,10 @@ function PropertyManager({ property, open, onOpenChange, pending, onChanged }: {
         </DialogHeader>
         {pending && (
           <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950">
-            {t('account.property.pending', { action: pending.action, status: pending.status })}
+            {t('account.property.pending', {
+              action: t(`account.property.action.${pending.action}`),
+              status: t(`account.property.changeStatus.${pending.status}`),
+            })}
           </div>
         )}
         {editing ? (
@@ -357,7 +360,7 @@ function PropertyManager({ property, open, onOpenChange, pending, onChanged }: {
             <div className="grid gap-2 sm:grid-cols-2">
               <Button asChild variant="outline"><Link to={path} target="_blank"><ExternalLink />{t('account.property.publicUrl')}</Link></Button>
               <Button variant="outline" onClick={beginEdit} disabled={Boolean(pending)}><Pencil />{t('account.property.edit')}</Button>
-              <Button variant="outline" onClick={() => void deactivate()} disabled={busy || property.publicationStatus === 'INACTIVE'}><EyeOff />{t('account.property.deactivate')}</Button>
+              <Button variant="outline" onClick={() => void deactivate()} disabled={busy || Boolean(pending) || property.publicationStatus === 'INACTIVE'}><EyeOff />{t('account.property.deactivate')}</Button>
               <Button variant="outline" onClick={() => void archive()} disabled={busy || Boolean(pending)}><Archive />{t('account.property.archive')}</Button>
             </div>
           </>
