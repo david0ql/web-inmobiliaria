@@ -458,6 +458,9 @@ export function ProjectPage() {
               </section>
             </>
           ) : sobrePlanos ? (
+            /* Sobre planos el selector no puede vivir dentro del bloque de la
+               unidad —no hay unidad—, asi que se pinta aqui con las tipologias
+               que SI existen. */
             /*
               OBRA NUEVA: la tipologia se vende sola, sin unidades detras.
 
@@ -472,6 +475,48 @@ export function ProjectPage() {
               disponibles", que es exactamente lo contrario de lo que pasa.
             */
             <>
+              {grupos.length > 1 && (
+                <div className="rounded-lg border bg-card p-5 shadow-sm">
+                  <label
+                    htmlFor="tipologia-planos"
+                    className="mb-1.5 block text-xs tracking-widest text-muted-foreground uppercase"
+                  >
+                    {t('project.units.label')}
+                  </label>
+                  <Select
+                    value={String(grupos.indexOf(grupo))}
+                    onValueChange={setTipologiaId}
+                  >
+                    <SelectTrigger
+                      id="tipologia-planos"
+                      aria-label={t('project.unitType.aria')}
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {grupos.map((g, i) => (
+                        <SelectItem key={i} value={String(i)}>
+                          {etiquetaTipologia(g, t, idioma, tipo)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {oferta && (
+                    <p className="mt-2.5 text-xs text-muted-foreground">{oferta}</p>
+                  )}
+                </div>
+              )}
+
+              {/* Los planos de la tipologia, que sobre planos son lo unico que
+                  hay que enseñar del apartamento. */}
+              {grupo.tipologia.planos.length > 0 && (
+                <TypologyPlan
+                  plans={grupo.tipologia.planos}
+                  title={grupo.tipologia.name ?? family.name}
+                  owner="unitType"
+                />
+              )}
+
               {grupo.tipologia.description && (
                 <p className="text-sm leading-relaxed whitespace-pre-line text-muted-foreground">
                   {grupo.tipologia.description}

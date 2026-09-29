@@ -522,10 +522,25 @@ export function agruparPorTipologia(
     else sueltas.push(property)
   }
 
-  const conUnidades = grupos.filter((g) => g.unidades.length)
-  conUnidades.forEach(completar)
+  /*
+    Se queda la tipologia que tenga unidades O precio propio.
 
-  return [...conUnidades, ...derivarTipologias(sueltas)]
+    El filtro era solo "que tenga unidades", y para segunda mano es correcto:
+    una tipologia de un edificio entregado sin ningun apartamento cargado no
+    tiene nada que enseñar. Pero sobre planos NO HAY unidades —ni las habra
+    hasta que alguien compre— y lo que se vende es justo eso: "Tipo A, 58 m²,
+    desde $320.000.000, quedan 14". Con el filtro viejo, un proyecto en
+    construccion con sus cuatro tipologias cargadas salia vacio.
+
+    `completar` solo se llama sobre las que tienen unidades: rellena huecos
+    leyendolas, y sin ellas no tiene de donde.
+  */
+  const visibles = grupos.filter(
+    (g) => g.unidades.length > 0 || g.tipologia.minPrice !== null,
+  )
+  visibles.filter((g) => g.unidades.length).forEach(completar)
+
+  return [...visibles, ...derivarTipologias(sueltas)]
 }
 
 /**
