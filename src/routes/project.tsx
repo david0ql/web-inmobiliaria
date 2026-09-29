@@ -89,6 +89,17 @@ export function ProjectPage() {
   const grupo = grupos[Number(tipologiaId)] ?? grupos[0]
 
   /*
+    Una tipologia sin unidades pero CON precio es obra nueva sobre planos.
+
+    Es la unica forma de distinguir "todavia no se ha vendido nada porque no
+    existe" de "se vendio todo": la primera tiene precio y unidades escritas a
+    mano, la segunda no tiene nada.
+  */
+  const sobrePlanos = Boolean(
+    grupo && grupo.unidades.length === 0 && grupo.tipologia.minPrice !== null,
+  )
+
+  /*
     La unidad elegida, o la que abre la tipologia.
 
     Al cambiar de tipologia la anterior deja de existir en la nueva, y en vez de
@@ -446,6 +457,72 @@ export function ProjectPage() {
                 <SpecTable property={selected} />
               </section>
             </>
+          ) : sobrePlanos ? (
+            /*
+              OBRA NUEVA: la tipologia se vende sola, sin unidades detras.
+
+              Esta pantalla se escribio para segunda mano, donde un proyecto es
+              un edificio entregado y cada apartamento tiene su ficha. Sobre
+              planos no existe esa ficha —ni existira hasta que alguien compre—
+              y lo que se vende es la tipologia: "Tipo A, 58 m², 2 alcobas,
+              desde $320.000.000, quedan 14".
+
+              Sin esto, un proyecto en construccion con sus cuatro tipologias
+              perfectamente cargadas enseñaba "ahora mismo no hay unidades
+              disponibles", que es exactamente lo contrario de lo que pasa.
+            */
+            <>
+              {grupo.tipologia.description && (
+                <p className="text-sm leading-relaxed whitespace-pre-line text-muted-foreground">
+                  {grupo.tipologia.description}
+                </p>
+              )}
+
+              <section>
+                <h2 className="mb-3 text-xs font-bold tracking-widest uppercase">
+                  {t('project.section.unitDetails')}
+                </h2>
+                <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-3">
+                  {[
+                    [t('project.spec.price'), rangoPrecio(grupo.tipologia, precio)],
+                    [t('project.spec.area'), rangoArea(grupo.tipologia, idioma)],
+                    [t('property.spec.bedrooms.other'), grupo.tipologia.bedrooms],
+                    [t('property.spec.bathrooms.other'), grupo.tipologia.bathrooms],
+                    [t('property.spec.garages.other'), grupo.tipologia.garages],
+                    [
+                      t('project.spec.units'),
+                      grupo.tipologia.units
+                        ? `${fmtNumber(grupo.tipologia.available, idioma)} / ${fmtNumber(grupo.tipologia.units, idioma)}`
+                        : null,
+                    ],
+                  ]
+                    .filter(([, valor]) => valor !== null && valor !== undefined)
+                    .map(([etiqueta, valor]) => (
+                      <div key={String(etiqueta)}>
+                        <dt className="text-xs text-muted-foreground">{etiqueta}</dt>
+                        <dd className="tabular font-medium">{valor}</dd>
+                      </div>
+                    ))}
+                </dl>
+              </section>
+
+              {family.description && (
+                <section>
+                  <h2 className="mb-3 text-xs font-bold tracking-widest uppercase">
+                    {t('property.section.description')}
+                  </h2>
+                  <p className="text-sm leading-relaxed whitespace-pre-line text-muted-foreground">
+                    {family.description}
+                  </p>
+                </section>
+              )}
+
+              {/* Sobre planos no hay visita que agendar: hay una conversacion
+                  con el asesor que lleva el proyecto. */}
+              <p className="rounded-lg border bg-secondary/40 p-4 text-sm text-muted-foreground">
+                {t('project.offplan.note')}
+              </p>
+            </>
           ) : (
             <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed px-5 py-16 text-center">
               <p className="text-sm text-muted-foreground">
@@ -633,6 +710,23 @@ function habitable(
  * en el segundo piso y 75 en el octavo. Cuando los dos extremos coinciden se
  * escribe una sola vez — "73 – 73 m²" se lee como un error.
  */
+/**
+ * "Desde $320.000.000" o "$320.000.000 – $345.000.000".
+ *
+ * El rango solo se pinta cuando el techo aporta algo: si las dos cifras
+ * coinciden, repetirlas hace dudar de si son dos precios distintos.
+ */
+function rangoPrecio(
+  tipologia: UnitTypeSummary,
+  precio: (valor: number | null) => string,
+): string | null {
+  if (tipologia.minPrice === null) return null
+  if (tipologia.maxPrice === null || tipologia.maxPrice === tipologia.minPrice) {
+    return precio(tipologia.minPrice)
+  }
+  return `${precio(tipologia.minPrice)} – ${precio(tipologia.maxPrice)}`
+}
+
 function rangoArea(tipologia: UnitTypeSummary, idioma: Idioma): string | null {
   const { minArea, maxArea } = tipologia
   if (minArea === null && maxArea === null) return null
