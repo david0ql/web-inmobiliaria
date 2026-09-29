@@ -524,16 +524,19 @@ export function ProjectPage() {
               )}
 
               <section>
+                {/* "De la tipologia" y no "de la unidad": sobre planos no hay
+                    unidad todavia, y llamarla asi promete una puerta concreta
+                    que nadie puede enseñar. */}
                 <h2 className="mb-3 text-xs font-bold tracking-widest uppercase">
-                  {t('project.section.unitDetails')}
+                  {t('project.section.typologyDetails')}
                 </h2>
                 <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-3">
                   {[
                     [t('project.spec.price'), rangoPrecio(grupo.tipologia, precio)],
                     [t('project.spec.area'), rangoArea(grupo.tipologia, idioma)],
-                    [t('property.spec.bedrooms.other'), grupo.tipologia.bedrooms],
-                    [t('property.spec.bathrooms.other'), grupo.tipologia.bathrooms],
-                    [t('property.spec.garages.other'), grupo.tipologia.garages],
+                    [t('project.spec.bedrooms'), grupo.tipologia.bedrooms],
+                    [t('project.spec.bathrooms'), grupo.tipologia.bathrooms],
+                    [t('project.spec.garages'), grupo.tipologia.garages],
                     [
                       t('project.spec.units'),
                       grupo.tipologia.units
