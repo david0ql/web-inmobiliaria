@@ -1,4 +1,4 @@
-import { Eraser, Search } from 'lucide-react'
+import { Eraser, Search, SlidersHorizontal } from 'lucide-react'
 import { Suspense, useEffect, useMemo, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useNavigate } from '@/lib/nav'
@@ -7,6 +7,13 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/misc'
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet'
 import {
   Select,
   SelectContent,
@@ -28,6 +35,7 @@ import { getFacets, type FacetOption, type Facets } from '@/lib/api'
 import { empezarVueloMapa } from '@/lib/hero-map'
 import { useT } from '@/lib/i18n'
 import { ROUTES } from '@/lib/site'
+import { usePantallaEstrecha } from '@/lib/pantalla'
 import { useSiteData } from '@/lib/site-data'
 
 /** Radix no admite `value=""`; el "Todos" necesita un centinela propio. */
@@ -98,6 +106,8 @@ function AdvancedSearchForm({ initial }: { initial?: Filters }) {
   const { pathname } = useLocation()
   const { catalogs } = useSiteData()
   const [filters, setFilters] = useState<Filters>(initial ?? EMPTY_FILTERS)
+  const compacto = usePantallaEstrecha()
+  const [filtrosAbiertos, setFiltrosAbiertos] = useState(false)
   const [facets, setFacets] = useState<Facets | null>(null)
 
   const set = <K extends keyof Filters>(key: K, value: Filters[K]) =>
@@ -162,16 +172,21 @@ function AdvancedSearchForm({ initial }: { initial?: Filters }) {
       `/buscar`, donde el que manda es el panel de la derecha— la llamada no hace
       nada y la navegacion es la de siempre.
     */
+    setFiltrosAbiertos(false)
     empezarVueloMapa()
     navigate(`${ROUTES.search}?${writeFilters({ ...filters, page: 1 })}`)
   }
 
-  return (
-    <form
-      onSubmit={submit}
-      className={REJILLA}
-      aria-label={t('search.form.aria')}
-    >
+  /*
+    Los campos, una sola vez.
+
+    Se declaran aqui y se colocan donde toque: en escritorio dentro de la
+    rejilla, en movil dentro de la hoja de filtros. Pintarlos en los dos sitios
+    duplicaria los identificadores de los desplegables y, sobre todo, el estado
+    interno de cada buscador de opciones.
+  */
+  const campos = (
+    <>
       <FieldShell label={t('search.field.country')} className={CELDA}>
         <Select
           value={filters.countryId || ANY}
@@ -356,6 +371,128 @@ function AdvancedSearchForm({ initial }: { initial?: Filters }) {
           onChange={(event) => set('maxPrice', digits(event.target.value))}
         />
       </FieldShell>
+    </>
+  )
+
+  /*
+    EN MOVIL, LA BUSQUEDA SE PARTE EN DOS.
+
+    Antes el formulario entero —diez desplegables, uno debajo de otro— era lo
+    primero de la portada y lo primero del buscador. En un telefono eso son casi
+    dos pantallas de casillas vacias antes de ver un solo inmueble, y para
+    buscar "apartamento en Cabecera" habia que pasar por pais, departamento,
+    zona, estado, alcobas, baños y dos precios.
+
+    Ahora hay una linea: la ciudad y el boton. Es lo que de verdad usa casi
+    todo el mundo, y lo demas se pide detras de un boton de filtros que dice
+    cuantos hay puestos. Los filtros se abren en una hoja a pantalla completa,
+    con secciones y con el resumen abajo, donde el pulgar llega.
+
+    En escritorio no cambia nada: ahi caben los diez campos en dos filas y
+    esconderlos seria quitar algo que ya funcionaba.
+  */
+  if (compacto) {
+    return (
+      <form onSubmit={submit} aria-label={t('search.form.aria')}>
+        <div className="flex items-end gap-2">
+          <FieldShell label={t('search.field.city')} className="min-w-0 flex-1">
+            <Select
+              value={filters.cityId || ANY}
+              onValueChange={(value) =>
+                setFilters((current) => ({
+                  ...current,
+                  cityId: value === ANY ? '' : value,
+                  zoneId: '',
+                }))
+              }
+            >
+              <SelectTrigger className={CONTROL} aria-label={t('search.field.city')}>
+                <SelectValue placeholder={t('search.option.all.f')} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ANY}>{t('search.option.all.f')}</SelectItem>
+                <Opciones lista={opciones.cities} buscable />
+              </SelectContent>
+            </Select>
+          </FieldShell>
+
+          <Button type="submit" className="h-9 shrink-0 px-4 font-bold tracking-widest">
+            <Search />
+            {t('search.submit')}
+          </Button>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setFiltrosAbiertos(true)}
+          className="mt-2 flex h-10 w-full items-center justify-center gap-2 rounded-md border text-sm font-medium"
+        >
+          <SlidersHorizontal className="size-4" />
+          {t('search.more_filters')}
+          {activos > 0 && (
+            <span className="grid size-5 place-items-center rounded-full bg-primary text-[11px] text-primary-foreground">
+              {activos}
+            </span>
+          )}
+        </button>
+
+        <Sheet open={filtrosAbiertos} onOpenChange={setFiltrosAbiertos}>
+          <SheetContent
+            side="bottom"
+            className="flex h-[92dvh] flex-col gap-0 p-0"
+          >
+            <SheetHeader className="border-b">
+              <SheetTitle>{t('search.filters.title')}</SheetTitle>
+              <SheetDescription>{t('search.filters.detail')}</SheetDescription>
+            </SheetHeader>
+
+            {/* Los mismos campos, a una columna y con sitio para desplazarse. */}
+            <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 overflow-y-auto p-4">
+              {campos}
+            </div>
+
+            {/*
+              El pie se queda fijo: en una hoja de diez campos, un boton al
+              final del scroll es un boton que no se encuentra.
+            */}
+            <div className="flex items-center gap-2 border-t bg-background p-4">
+              {activos > 0 && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-11"
+                  onClick={() => {
+                    setFilters({ ...EMPTY_FILTERS, businessType: filters.businessType })
+                    navigate(pathname)
+                  }}
+                >
+                  <Eraser className="size-4" />
+                  {t('search.clear.title')}
+                </Button>
+              )}
+              <Button type="submit" className="h-11 flex-1 font-bold tracking-widest">
+                <Search />
+                {t('search.submit')}
+              </Button>
+            </div>
+          </SheetContent>
+        </Sheet>
+      </form>
+    )
+  }
+
+  return (
+    <form
+      onSubmit={submit}
+      className={REJILLA}
+      aria-label={t('search.form.aria')}
+    >
+      {/*
+        Los campos se pintan UNA vez y se colocan en dos sitios distintos:
+        en escritorio, dentro de la rejilla; en movil, dentro de la hoja de
+        filtros. Pintarlos dos veces duplicaria identificadores y estado.
+      */}
+      {campos}
 
       {/*
         El boton mide lo que un campo, ni mas. Buscar no es una decision que

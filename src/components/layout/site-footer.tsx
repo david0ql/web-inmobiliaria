@@ -44,23 +44,14 @@ export function SiteFooter() {
         <section>
           <FooterHeading>{t('nav.contact')}</FooterHeading>
           {/*
-            El telefono primero, y despues el correo: en una inmobiliaria se
-            llama, no se escribe. La direccion baja al final porque es lo que se
-            mira una sola vez, cuando ya se decidio ir.
+            Direccion, correo y telefono, en ese orden.
+
+            Es el orden de una tarjeta de visita y el que la agencia usa en todo
+            lo suyo: primero donde esta, luego como escribirle y por ultimo el
+            numero. Y es el mismo en el pie y en el menu del movil, que antes
+            iban cada uno por su lado.
           */}
           <address className="flex min-w-0 flex-col gap-3 text-sm not-italic">
-            <a href={SITE.phoneHref} className="flex gap-2 hover:underline">
-              <Phone className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-              <span className="tabular">{SITE.phone}</span>
-            </a>
-            <a
-              href={`mailto:${SITE.email}`}
-              title={SITE.email}
-              className="flex min-w-0 gap-2 hover:underline"
-            >
-              <Mail className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-              <span className="truncate">{SITE.email}</span>
-            </a>
             <span className="flex gap-2">
               <MapPin className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
               <span>
@@ -69,6 +60,18 @@ export function SiteFooter() {
                 <strong className="font-medium">{SITE.city}</strong>
               </span>
             </span>
+            <a
+              href={`mailto:${SITE.email}`}
+              title={SITE.email}
+              className="flex min-w-0 gap-2 hover:underline"
+            >
+              <Mail className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+              <span className="truncate">{SITE.email}</span>
+            </a>
+            <a href={SITE.phoneHref} className="flex gap-2 hover:underline">
+              <Phone className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+              <span className="tabular">{SITE.phone}</span>
+            </a>
           </address>
         </section>
 

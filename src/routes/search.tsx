@@ -13,6 +13,7 @@ import { breadcrumbJsonLd } from '@/lib/seo'
 import { ROUTES, SITE } from '@/lib/site'
 import { number } from '@/lib/format'
 import { useIdioma, useT } from '@/lib/i18n'
+import { usePantallaEstrecha } from '@/lib/pantalla'
 import { useSeo } from '@/lib/use-seo'
 import { SORTS, countActive, writeFilters, type Filters } from '@/lib/search-params'
 import { entradaCoreografiada } from '@/lib/hero-map'
@@ -26,6 +27,8 @@ export function SearchResults() {
   const data = useLoaderData() as SearchData
   const [params] = useSearchParams()
   const t = useT()
+  /* En movil el formulario visible es el simple; el avanzado vive en la hoja. */
+  const compacto = usePantallaEstrecha()
   const navigation = useNavigation()
   const searching = navigation.state !== 'idle'
   const [filtersOpen, setFiltersOpen] = useState(false)
@@ -73,7 +76,7 @@ export function SearchResults() {
           as="h2"
           size="sm"
           light={t('search.heading.light')}
-          strong={t('search.heading.strong')}
+          strong={compacto ? t('search.heading.simple') : t('search.heading.strong')}
         />
         <button
           type="button"

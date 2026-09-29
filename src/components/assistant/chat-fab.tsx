@@ -2,6 +2,7 @@ import { MessageCircle, MessageSquareText } from 'lucide-react'
 import { lazy, Suspense, useEffect, useState } from 'react'
 
 import { useT } from '@/lib/i18n'
+import { usePantallaEstrecha } from '@/lib/pantalla'
 import { useAssistant } from '@/lib/use-assistant'
 import { cn } from '@/lib/utils'
 import { SITE } from '@/lib/site'
@@ -41,7 +42,7 @@ export function ChatFab() {
   const assistant = useAssistant()
   const [open, setOpen] = useState(false)
   const [chooser, setChooser] = useState(false)
-  const isMobile = useIsMobile()
+  const isMobile = usePantallaEstrecha()
 
   // En móvil, con el panel a pantalla completa, se bloquea el scroll de detrás.
   useEffect(() => {
@@ -171,17 +172,4 @@ function PanelLoading() {
       </div>
     </div>
   )
-}
-
-/** ¿Estamos por debajo del breakpoint `sm` (576px, el de Bootstrap del tema)? */
-function useIsMobile(): boolean {
-  const [mobile, setMobile] = useState(false)
-  useEffect(() => {
-    const query = window.matchMedia('(max-width: 575px)')
-    const update = () => setMobile(query.matches)
-    update()
-    query.addEventListener('change', update)
-    return () => query.removeEventListener('change', update)
-  }, [])
-  return mobile
 }

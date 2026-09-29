@@ -1,4 +1,4 @@
-import { LogIn, Mail, Phone } from 'lucide-react'
+import { Mail, MapPin, Phone } from 'lucide-react'
 import { Link } from '@/lib/nav'
 
 import { AccountButton } from '@/components/layout/account-button'
@@ -6,7 +6,6 @@ import { LanguageSwitch } from '@/components/layout/language-switch'
 import { CreditButton } from '@/components/credit/credit-button'
 import { OfferButton } from '@/components/layout/offer-button'
 import { SocialLinks } from '@/components/layout/social-links'
-import { Button } from '@/components/ui/button'
 import {
   Accordion,
   AccordionContent,
@@ -22,7 +21,7 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet'
 import { useT } from '@/lib/i18n'
-import { PANEL_URL, ROUTES, SITE } from '@/lib/site'
+import { ROUTES, SITE } from '@/lib/site'
 import { menuTypes, typePath, useSiteData } from '@/lib/site-data'
 
 /** Mismo trato tipografico que la barra de escritorio: versalitas. */
@@ -51,6 +50,27 @@ export function MobileNav({
         <SheetHeader>
           <SheetTitle>{SITE.name}</SheetTitle>
           <SheetDescription>{t(SITE.tagline)}</SheetDescription>
+
+          {/*
+            El idioma, arriba del todo.
+
+            Estaba al final del panel, por debajo de las doce tipologias, los
+            botones de cuenta y el telefono: para cambiar de idioma habia que
+            recorrer el menu entero y encontrarselo entre los datos de contacto,
+            que es el ultimo sitio donde alguien lo busca. Y ahi ademas se leia
+            como un dato mas de la agencia, no como algo que se pulsa.
+
+            Arriba es donde vive en cualquier aplicacion: junto al nombre, a la
+            vista en cuanto se abre el menu, y separado de la navegacion porque
+            no es un sitio al que se va, es como se lee todo lo demas. Arrastra
+            tambien la moneda, asi que cuanto antes se vea, mejor.
+          */}
+          <div className="mt-3 flex items-center justify-between gap-3 rounded-lg bg-secondary/60 px-3 py-2">
+            <span className="text-xs font-medium text-muted-foreground">
+              {t('switch.language.aria')}
+            </span>
+            <LanguageSwitch tone="light" />
+          </div>
         </SheetHeader>
 
         {/* Mismo orden que en la barra de escritorio. Sin "Inicio": el logo de
@@ -118,46 +138,49 @@ export function MobileNav({
               telefono y el correo siguen ahi abajo, a un toque. */}
           <div className="flex flex-col gap-2 py-4">
             <OfferButton className="w-full tracking-wide uppercase" />
+            {/*
+              Solo la cuenta del cliente.
+
+              Aqui abajo habia tambien un "Entrar" que llevaba al panel del
+              equipo. Dos botones de acceso seguidos, uno para propietarios y
+              otro para empleados, y ninguna forma de saber cual es cual: el
+              visitante pulsaba el que le sonaba y acababa en una pantalla de
+              login que no es la suya. El panel tiene su propia direccion y quien
+              trabaja aqui la tiene guardada.
+            */}
             <AccountButton className="w-full tracking-wide uppercase" />
-            <Button
-              asChild
-              variant="outline"
-              className="w-full tracking-wide uppercase"
-            >
-              <a href={PANEL_URL} target="_blank" rel="noreferrer noopener">
-                <LogIn />
-                {t('nav.signin')}
-              </a>
-            </Button>
           </div>
         </nav>
 
         <Separator />
 
         <div className="flex flex-col gap-3 px-4 pb-6">
-          <a
-            href={SITE.phoneHref}
-            className="flex items-center gap-2 text-sm hover:underline"
-          >
-            <Phone className="size-4 shrink-0" />
-            {SITE.phone}
-          </a>
+          {/* El mismo orden que el pie: direccion, correo y telefono. */}
+          <p className="flex items-start gap-2 text-sm">
+            <MapPin className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+            <span>
+              {SITE.address}
+              <br />
+              <strong className="font-medium">{SITE.city}</strong>
+            </span>
+          </p>
           <a
             href={`mailto:${SITE.email}`}
             className="flex items-center gap-2 text-sm break-all hover:underline"
           >
-            <Mail className="size-4 shrink-0" />
+            <Mail className="size-4 shrink-0 text-muted-foreground" />
             {SITE.email}
           </a>
-          {/*
-            El idioma vive aqui en movil: arriba compartia una barra de 32 px
-            con el telefono y el buscador, y las dos banderas dejaban el numero
-            descentrado. Es ademas la decision que arrastra la moneda, asi que
-            gana estando donde se mira el menu y no en una esquina.
-          */}
-          <LanguageSwitch tone="light" className="-ml-1" />
+          <a
+            href={SITE.phoneHref}
+            className="flex items-center gap-2 text-sm hover:underline"
+          >
+            <Phone className="size-4 shrink-0 text-muted-foreground" />
+            {SITE.phone}
+          </a>
           <SocialLinks className="-ml-2 text-foreground" />
         </div>
+
       </SheetContent>
     </Sheet>
   )

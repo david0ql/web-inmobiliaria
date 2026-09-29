@@ -14,6 +14,7 @@ import {
 } from '@/lib/seo'
 import { ROUTES, SITE } from '@/lib/site'
 import { useIdioma, useT } from '@/lib/i18n'
+import { usePantallaEstrecha } from '@/lib/pantalla'
 import { useSeo } from '@/lib/use-seo'
 import { ProjectCard } from '@/components/project/project-card'
 import { RecentCarousel } from '@/components/property/recent-carousel'
@@ -25,6 +26,8 @@ import type { HomeData } from '@/routes/loaders'
 export function Home() {
   const data = useLoaderData() as HomeData
   const t = useT()
+  /* En movil el formulario visible es el simple; el avanzado vive en la hoja. */
+  const compacto = usePantallaEstrecha()
   const { idioma } = useIdioma()
 
   useSeo(
@@ -58,7 +61,7 @@ export function Home() {
             as="h2"
             size="sm"
             light={t('search.heading.light')}
-            strong={t('search.heading.strong')}
+            strong={compacto ? t('search.heading.simple') : t('search.heading.strong')}
           />
           <AdvancedSearch />
         </div>
