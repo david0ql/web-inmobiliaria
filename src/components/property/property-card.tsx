@@ -2,6 +2,7 @@ import { Bath, BedDouble, Car, Ruler } from 'lucide-react'
 import { Link } from '@/lib/nav'
 
 import { CardCarousel } from '@/components/common/card-carousel'
+import { cuerpoDelPrecio } from '@/lib/precio-tipografia'
 import { UnaLinea } from '@/components/common/una-linea'
 import { BotonMeGusta } from '@/components/property/boton-me-gusta'
 import { SpecRow } from '@/components/common/spec-row'
@@ -57,6 +58,7 @@ export function PropertyCard({
   const fotos = soloFotos(property.images)
   const cover = fotos[0]
   const built = property.builtArea ?? property.area
+  const importe = precio(property.salePrice ?? property.rentPrice)
   /* El estrato, con su separador. */
   const estrato = stratumLabel(property.stratum, t)
   /* Codigo, barrio, ciudad y estrato en una sola cadena: va a una linea y el
@@ -251,14 +253,32 @@ export function PropertyCard({
         otra: la tarjeta era mas alta y en una rejilla de tres eso son casi cien
         pixeles de portada para no decir nada nuevo.
       */}
-      <div className="flex items-stretch border-t">
+      {/*
+        La franja mide siempre lo mismo, y el precio nunca parte.
+
+        Con el precio y la moneda en una linea normal, "$1.450.000.000 COP" no
+        cabia y la moneda bajaba sola: esa tarjeta quedaba 20 px mas alta que la
+        de al lado y la fila volvia a verse como un diente de sierra, justo lo
+        que se arreglo arriba poniendo el titulo a una linea.
+
+        El tamaño lo decide la propia cifra: casi todo el inventario entra
+        holgado y se lee grande, y solo los pocos de cuatro cifras de millones
+        bajan un punto. Encoger todos por igual —que es lo que hace un `clamp`
+        sobre el ancho de la tarjeta— dejaba "$550.000.000" en 15 px por culpa
+        de un inmueble de 18.000 millones que nadie esta mirando.
+
+        El alto va fijado aparte de todos modos: es la garantia de que la fila
+        se alinea aunque algun dia cambie la tipografia o la moneda.
+      */}
+      <div className={cn('flex items-stretch border-t', dense ? 'min-h-12' : 'min-h-14')}>
         <p
           className={cn(
-            'tabular flex-1 leading-none font-normal tracking-tight',
-            dense ? 'px-3 py-2.5 text-lg' : 'px-4 py-3 text-xl',
+            'tabular flex-1 leading-none font-normal tracking-tight whitespace-nowrap',
+            dense ? 'px-3 py-2.5' : 'px-4 py-3',
+            cuerpoDelPrecio(importe, dense),
           )}
         >
-          {precio(property.salePrice ?? property.rentPrice)}{' '}
+          {importe}{' '}
           <small className="text-[0.625rem] tracking-widest text-muted-foreground uppercase">
             {moneda}
           </small>

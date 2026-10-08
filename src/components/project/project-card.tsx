@@ -3,6 +3,8 @@ import { Link } from '@/lib/nav'
 
 import { CardCarousel } from '@/components/common/card-carousel'
 import { UnaLinea } from '@/components/common/una-linea'
+import { cuerpoDelPrecio } from '@/lib/precio-tipografia'
+import { cn } from '@/lib/utils'
 import { SpecRow } from '@/components/common/spec-row'
 import { Badge } from '@/components/ui/misc'
 import { useCurrency } from '@/lib/currency'
@@ -28,6 +30,8 @@ export function ProjectCard({ project }: { project: ProjectSummary }) {
   const t = useT()
   const { precio } = useCurrency()
   const to = projectPath(project)
+  /* El "desde", ya formateado: el tamaño de letra depende de cuanto ocupa. */
+  const desde = project.fromPrice ? precio(project.fromPrice) : null
   const place = [project.zone?.name, project.city?.name]
     .filter(Boolean)
     .join(' · ')
@@ -166,14 +170,23 @@ export function ProjectCard({ project }: { project: ProjectSummary }) {
       />
 
       <div className="flex flex-1 flex-col gap-2 p-4">
-        {/* La constructora, si se sabe. La clase de familia —"Conjunto",
-            "Edificio"— no aporta: quien mira ya sabe que esta en proyectos, y
-            la agencia prefiere hablar de proyectos y de nada mas. */}
-        {project.developer && (
-          <p className="truncate text-xs tracking-wide text-muted-foreground uppercase">
-            {project.developer}
-          </p>
-        )}
+        {/*
+          La constructora, si se sabe. La clase de familia —"Conjunto",
+          "Edificio"— no aporta: quien mira ya sabe que esta en proyectos, y la
+          agencia prefiere hablar de proyectos y de nada mas.
+
+          La linea se reserva aunque no se sepa, igual que la de ubicacion mas
+          abajo. Al ocultarla, la tarjeta de un proyecto sin constructora medi­a
+          24 px menos que la de al lado y el precio de cada una quedaba a una
+          altura distinta: la rejilla se compara con la vista, y para eso tiene
+          que alinearse. Un hueco vacio no se ve; un escalon, si.
+        */}
+        <p
+          className="truncate text-xs tracking-wide text-muted-foreground uppercase"
+          aria-hidden={project.developer ? undefined : true}
+        >
+          {project.developer || '\u00a0'}
+        </p>
         <UnaLinea
           as="h2"
           texto={project.name}
@@ -183,9 +196,13 @@ export function ProjectCard({ project }: { project: ProjectSummary }) {
             {project.name}
           </Link>
         </UnaLinea>
-        {place && (
-          <UnaLinea as="p" texto={place} className="text-xs text-muted-foreground" />
-        )}
+        <UnaLinea
+          as="p"
+          texto={place || ''}
+          className="text-xs text-muted-foreground"
+        >
+          {place || '\u00a0'}
+        </UnaLinea>
       </div>
 
       {/*
@@ -194,14 +211,22 @@ export function ProjectCard({ project }: { project: ProjectSummary }) {
         precio: dos tarjetas que van una al lado de la otra en la portada no
         pueden terminar de dos maneras distintas.
       */}
-      <div className="mt-auto flex items-stretch border-t">
-        <p className="flex-1 px-4 py-3">
-          {project.fromPrice ? (
-            <span className="tabular text-xl leading-none font-normal tracking-tight">
+      {/* Alto fijo y cifra que se encoge en vez de partirse, igual que en la
+          tarjeta de inmueble: las dos van una al lado de la otra en la portada
+          y tienen que terminar a la misma altura. */}
+      <div className="mt-auto flex min-h-14 items-stretch border-t">
+        <p className="flex-1 px-4 py-3 whitespace-nowrap">
+          {desde ? (
+            <span
+              className={cn(
+                'tabular leading-none font-normal tracking-tight',
+                cuerpoDelPrecio(desde, false),
+              )}
+            >
               <small className="mr-1 text-[0.625rem] tracking-widest text-muted-foreground uppercase">
                 {t('project.price.from')}
               </small>
-              {precio(project.fromPrice)}
+              {desde}
             </span>
           ) : (
             <span className="text-sm leading-none text-muted-foreground">
