@@ -9,6 +9,7 @@ import { UbicacionProvider } from '@/lib/ubicacion'
 import { I18nProvider, leerPreferencia, otroIdioma } from '@/lib/i18n'
 import { usePortalSession } from '@/lib/use-portal'
 import { ChatFab } from '@/components/assistant/chat-fab'
+import { PuertaMeGusta } from '@/components/property/puerta-me-gusta'
 import { SiteFooter } from '@/components/layout/site-footer'
 import { SiteHeader } from '@/components/layout/site-header'
 import { Toaster } from '@/components/ui/sonner'
@@ -65,6 +66,10 @@ export function Root() {
       {/* El asistente: flota en todas las pantallas, abajo a la derecha. Va
           después del pie a propósito, para que quede por encima en el apilado. */}
       <ChatFab />
+
+      {/* La entrada que abre el corazon de cualquier tarjeta. Una sola para
+          toda la pagina: ver `puerta-me-gusta.tsx`. */}
+      <PuertaMeGusta />
 
       <Toaster />
       </div>

@@ -1,30 +1,27 @@
 import { useSyncExternalStore } from 'react'
 
-import {
-  fetchLikes,
-  getClient,
-  mergeLikes,
-  subscribe as subscribirSesion,
-  toggleLike,
-} from './portal'
+import { fetchLikes, getClient, subscribe as subscribirSesion, toggleLike } from './portal'
 
 /**
  * Los inmuebles que alguien ha marcado con el corazon.
  *
  * ────────────────────────────────────────────────────────────────────────────
- * POR QUE EL CORAZON FUNCIONA SIN CUENTA
+ * EL CORAZON PIDE CUENTA, Y LA PIDE EN EL MOMENTO DE PULSARLO
  *
- * Lo evidente seria exigir sesion: el corazon vive en la cuenta, asi que sin
- * cuenta no hay corazon. Pero el corazon se pulsa en el minuto dos de la
- * primera visita, mirando la cuarta ficha, y ahi nadie se registra. Un boton que
- * contesta "crea una cuenta" es un boton que no se vuelve a pulsar, y entonces
- * la agencia no tiene ni la lista ni el ranking.
+ * Una lista de favoritos que solo vive en el navegador no es una lista: se
+ * pierde al cambiar de telefono, no la ve el asesor que atiende a esa persona y
+ * no se puede retomar desde el ordenador del trabajo. Guardar algo significa
+ * poder volver a buscarlo, y para eso tiene que haber un sitio donde esperarlo.
  *
- * Asi que el corazon marca siempre y el navegador es el primer sitio donde se
- * guarda. Cuando aparece una sesion —sea porque la persona entra o porque al
- * recargar se renueva sola— lo guardado sube a la cuenta y se une con lo que ya
- * hubiera. A partir de ahi manda el servidor, que es lo que se ve desde el
- * movil, desde el ordenador y desde el panel.
+ * Asi que sin sesion el corazon no marca: abre la entrada. Y no manda a otra
+ * pagina —es el mismo dialogo de "publicar inmueble", por el mismo motivo—,
+ * porque quien esta comparando doce fichas no quiere perder la lista que tiene
+ * delante.
+ *
+ * Lo que SI se guarda es el gesto: el codigo que se iba a marcar queda en
+ * `pendiente`, y en cuanto hay sesion se marca solo. Pedir la cuenta y despues
+ * obligar a buscar otra vez la ficha para repetir el clic es cobrar dos veces
+ * por lo mismo.
  *
  * ────────────────────────────────────────────────────────────────────────────
  * POR QUE UN MODULO CON ESTADO Y NO UN CONTEXTO
@@ -39,131 +36,162 @@ import {
  * compara por identidad y una mutacion in situ no se notaria.
  */
 
-const CLAVE = 'serrano.me-gusta'
+let codigos: ReadonlySet<string> = new Set()
 
-let codigos: ReadonlySet<string> = leerDelNavegador()
+/**
+ * Si la lista de la cuenta ya llego.
+ *
+ * Hace falta porque "todavia no se" y "no hay ninguno" se ven igual —un `Set`
+ * vacio— y no significan lo mismo. La pantalla de favoritos cruza la lista de
+ * fichas del servidor con estos codigos, y sin esto, cuando las fichas llegaban
+ * primero, enseñaba "no has guardado nada" durante un instante a alguien que
+ * tiene ocho guardados.
+ */
+let cargado = false
+
+/**
+ * Si hay que enseñar la entrada, y que se iba a marcar al terminar.
+ *
+ * Vive aqui y no en el boton porque en una pagina hay quince corazones: con el
+ * dialogo dentro de cada uno se montarian quince, y el que se abriera seria el
+ * de la tarjeta pulsada en lugar de "el" de la pagina. Uno solo, en la raiz,
+ * mandado desde aqui.
+ */
+let pendiente: string | null = null
 
 const oyentes = new Set<() => void>()
 const avisar = () => oyentes.forEach((oyente) => oyente())
-
-/**
- * Lo guardado en este navegador.
- *
- * Entre `try` porque `localStorage` lanza —no devuelve vacio— en modo privado de
- * Safari y con las cookies de terceros bloqueadas. Un corazon no es motivo para
- * dejar la pagina en blanco.
- */
-function leerDelNavegador(): ReadonlySet<string> {
-  if (typeof window === 'undefined') return new Set()
-  try {
-    const crudo = window.localStorage.getItem(CLAVE)
-    const lista: unknown = crudo ? JSON.parse(crudo) : []
-    return new Set(
-      Array.isArray(lista) ? lista.filter((x): x is string => typeof x === 'string') : [],
-    )
-  } catch {
-    return new Set()
-  }
-}
-
-function escribirEnNavegador(valor: ReadonlySet<string>): void {
-  try {
-    window.localStorage.setItem(CLAVE, JSON.stringify([...valor]))
-  } catch {
-    /* Sin sitio o sin permiso: el corazon sigue funcionando en esta pestaña. */
-  }
-}
-
-function fijar(valor: ReadonlySet<string>): void {
-  codigos = valor
-  escribirEnNavegador(valor)
-  avisar()
-}
-
-// --- lectura ---------------------------------------------------------------
 
 function suscribir(oyente: () => void): () => void {
   oyentes.add(oyente)
   return () => oyentes.delete(oyente)
 }
 
-const leer = () => codigos
+// --- lectura ---------------------------------------------------------------
 
-/** Los codigos marcados, para la pantalla de favoritos y para el contador. */
+const leerCodigos = () => codigos
+
+/** Los codigos marcados. Vacio mientras no haya sesion. */
 export function useMeGusta(): ReadonlySet<string> {
-  return useSyncExternalStore(suscribir, leer, leer)
+  return useSyncExternalStore(suscribir, leerCodigos, leerCodigos)
+}
+
+const leerCargado = () => cargado
+const sinCargar = () => false
+
+/** Si la lista de la cuenta ya llego. Ver `cargado`. */
+export function useMeGustaCargado(): boolean {
+  return useSyncExternalStore(suscribir, leerCargado, sinCargar)
+}
+
+const leerPuerta = () => pendiente !== null
+const puertaCerrada = () => false
+
+/** Si ahora mismo hay que enseñar la entrada por culpa de un corazon. */
+export function usePuertaMeGusta(): boolean {
+  // En el servidor nunca: el dialogo es consecuencia de un clic.
+  return useSyncExternalStore(suscribir, leerPuerta, puertaCerrada)
+}
+
+/** Cierra la entrada sin marcar nada: se pulso "cerrar", no "entrar". */
+export function cerrarPuertaMeGusta(): void {
+  pendiente = null
+  avisar()
 }
 
 // --- escritura -------------------------------------------------------------
 
+function fijar(valor: ReadonlySet<string>): void {
+  codigos = valor
+  avisar()
+}
+
+/** La lista que acaba de llegar de la cuenta. */
+function fijarCargado(valor: ReadonlySet<string>): void {
+  cargado = true
+  fijar(valor)
+}
+
 /**
- * Marca o desmarca, al instante.
+ * Marca o desmarca.
  *
- * El estado cambia antes de llamar a la API a proposito: el corazon tiene que
- * responder al dedo, no a la red. Si el servidor falla se deshace y se devuelve
- * `false`, para que quien llama pueda avisar.
+ * Sin sesion abre la entrada y deja el codigo apuntado; devuelve `false` para
+ * que quien llama sepa que no hay nada que celebrar todavia.
  *
- * Sin sesion no hay a quien llamar y se queda en el navegador: no es un fallo,
- * es el caso normal de la primera visita.
+ * Con sesion cambia el estado ANTES de llamar a la API: el corazon tiene que
+ * responder al dedo, no a la red. Si el servidor falla se deshace.
  */
 export async function alternarMeGusta(code: string): Promise<boolean> {
+  if (!getClient()) {
+    pendiente = code
+    avisar()
+    return false
+  }
+
   const antes = codigos
   const despues = new Set(antes)
   if (despues.has(code)) despues.delete(code)
   else despues.add(code)
   fijar(despues)
 
-  if (!getClient()) return true
-
   try {
     await toggleLike(code)
     return true
   } catch {
     fijar(antes)
-    return false
+    throw new Error('no se pudo guardar')
   }
-}
-
-/** Si un inmueble esta marcado, sin suscribirse. Para el render del servidor. */
-export function estaMarcado(code: string): boolean {
-  return codigos.has(code)
 }
 
 // --- sincronizacion con la cuenta -----------------------------------------
 
-/** Para no volver a unir en cada renovacion de token de la misma sesion. */
-let cuentaUnida: string | null = null
+/** Para no volver a pedir la lista en cada renovacion de token de la misma sesion. */
+let cuentaCargada: string | null = null
 
 /**
  * Engancha el corazon a la sesion del portal.
  *
- * Se llama una vez desde la raiz. Al aparecer una cuenta, sube lo que hubiera en
- * el navegador y se queda con lo que devuelve el servidor —la union—. Al
- * desaparecer, NO borra nada: lo marcado desde este navegador sigue siendo de
- * quien lo marco, y vaciarselo al salir seria castigarle por salir.
+ * Se llama una vez desde la raiz. Al aparecer una cuenta trae su lista y, si se
+ * habia quedado un corazon a medias, lo marca. Al desaparecer vacia la lista:
+ * los favoritos son de quien entro, y dejarlos pintados despues de salir seria
+ * enseñar lo que guardo el anterior en un ordenador compartido.
  */
 export function vigilarSesionMeGusta(): () => void {
   const alCambiar = () => {
     const cliente = getClient()
 
     if (!cliente) {
-      cuentaUnida = null
+      cuentaCargada = null
+      cargado = false
+      if (codigos.size) fijar(new Set())
       return
     }
-    if (cuentaUnida === cliente.id) return
-    cuentaUnida = cliente.id
+    if (cuentaCargada === cliente.id) return
+    cuentaCargada = cliente.id
 
-    const locales = [...codigos]
-    /*
-      Si no hay nada que subir se pregunta en lugar de unir: un `PUT` con lista
-      vacia hace lo mismo que el `GET`, pero escribe donde no hace falta.
-    */
-    const peticion = locales.length ? mergeLikes(locales) : fetchLikes()
-    peticion
-      .then((desdeElServidor) => fijar(new Set(desdeElServidor)))
+    const aMarcar = pendiente
+    pendiente = null
+
+    fetchLikes()
+      .then(async (desdeElServidor) => {
+        const lista = new Set(desdeElServidor)
+        /* El corazon que quedo a medias, ahora que ya hay donde guardarlo. */
+        if (aMarcar && !lista.has(aMarcar)) {
+          lista.add(aMarcar)
+          fijarCargado(lista)
+          await toggleLike(aMarcar).catch(() => {
+            const sinEl = new Set(lista)
+            sinEl.delete(aMarcar)
+            fijar(sinEl)
+          })
+          return
+        }
+        fijarCargado(lista)
+      })
       .catch(() => {
-        /* Se reintenta en el siguiente cambio de sesion; lo local sigue ahi. */
-        cuentaUnida = null
+        /* Se reintenta en el siguiente cambio de sesion. */
+        cuentaCargada = null
+        avisar()
       })
   }
 

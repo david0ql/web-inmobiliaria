@@ -25,7 +25,7 @@ import { area, fechaFormat, money } from '@/lib/format'
 import { useIdioma, useT } from '@/lib/i18n'
 import { logout, portal, type PortalProfile, type PortalProperty, type PortalRequest } from '@/lib/portal'
 import { usePortalData, usePortalSession } from '@/lib/use-portal'
-import { useMeGusta } from '@/lib/me-gusta'
+import { useMeGusta, useMeGustaCargado } from '@/lib/me-gusta'
 import { PropertyCard } from '@/components/property/property-card'
 import { cn } from '@/lib/utils'
 import { Link } from '@/lib/nav'
@@ -561,8 +561,11 @@ function LikesTab() {
   const t = useT()
   const guardados = usePortalData(portal.savedProperties)
   const marcados = useMeGusta()
+  /* Las dos peticiones van en paralelo: hasta que llegan las DOS no se puede
+     decir "no hay ninguno" sin arriesgarse a mentir. */
+  const listo = useMeGustaCargado()
 
-  if (guardados.loading) return <ListSkeleton />
+  if (guardados.loading || !listo) return <ListSkeleton />
 
   const visibles = (guardados.data ?? []).filter((property) =>
     marcados.has(property.code),

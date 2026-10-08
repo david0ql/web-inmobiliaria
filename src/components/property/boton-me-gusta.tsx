@@ -4,6 +4,7 @@ import { toast } from 'sonner'
 
 import { alternarMeGusta, useMeGusta } from '@/lib/me-gusta'
 import { useT } from '@/lib/i18n'
+import { usePortalClient } from '@/lib/use-portal'
 import { cn } from '@/lib/utils'
 
 /**
@@ -13,6 +14,11 @@ import { cn } from '@/lib/utils'
  * esquina libre (la de la izquierda la ocupa la etiqueta de disponibilidad) y es
  * donde la mano ya lo busca, porque es donde esta en todos los sitios donde se
  * elige algo mirando fotos.
+ *
+ * Sin sesion no marca: abre la entrada. El porque esta en `me-gusta.ts`; aqui
+ * solo cambia el rotulo, para que lo que va a pasar al pulsar no sea una
+ * sorpresa. El dialogo NO se monta aqui — hay quince de estos por pagina— sino
+ * una sola vez en la raiz, en `PuertaMeGusta`.
  *
  * Tres detalles que no son decorativos:
  *
@@ -33,23 +39,28 @@ export function BotonMeGusta({
   className?: string
 }) {
   const t = useT()
+  const cliente = usePortalClient()
   const marcados = useMeGusta()
   const [rebotando, setRebotando] = useState(false)
   const marcado = marcados.has(code)
+
+  const rotulo = !cliente
+    ? t('property.like.signin')
+    : marcado
+      ? t('property.like.remove')
+      : t('property.like.add')
 
   const pulsar = (evento: MouseEvent) => {
     evento.preventDefault()
     evento.stopPropagation()
 
-    /* Solo al marcar: quitar no se celebra. */
-    if (!marcado) {
+    /* Solo al marcar con sesion: ni quitar ni pedir cuenta se celebran. */
+    if (cliente && !marcado) {
       setRebotando(true)
       window.setTimeout(() => setRebotando(false), 220)
     }
 
-    void alternarMeGusta(code).then((bien) => {
-      if (!bien) toast.error(t('property.like.failed'))
-    })
+    void alternarMeGusta(code).catch(() => toast.error(t('property.like.failed')))
   }
 
   return (
@@ -57,8 +68,8 @@ export function BotonMeGusta({
       type="button"
       onClick={pulsar}
       aria-pressed={marcado}
-      aria-label={marcado ? t('property.like.remove') : t('property.like.add')}
-      title={marcado ? t('property.like.remove') : t('property.like.add')}
+      aria-label={rotulo}
+      title={rotulo}
       className={cn(
         'flex size-8 items-center justify-center rounded-full transition-transform',
         'hover:scale-110 active:scale-95',

@@ -17,13 +17,21 @@ import { useT } from '@/lib/i18n'
  *
  * No lleva callback de "ya entró": el estado de la sesión vive fuera de React
  * y quien abre esto lo está mirando igualmente, así que se entera solo.
+ *
+ * El subtítulo sí se pasa: el diálogo lo abren cosas distintas —publicar un
+ * inmueble, guardar un favorito— y "para publicar un inmueble necesitamos
+ * saber quién eres" delante de alguien que acaba de pulsar un corazón no
+ * explica nada, confunde. Quien pide la cuenta dice para qué la pide.
  */
 export function AccountDialog({
   open,
   onOpenChange,
+  motivo = 'account.dialog.subtitle',
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
+  /** Clave de la frase que explica por qué hace falta entrar. */
+  motivo?: string
 }) {
   const t = useT()
   return (
@@ -31,7 +39,7 @@ export function AccountDialog({
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{t('account.dialog.title')}</DialogTitle>
-          <DialogDescription>{t('account.dialog.subtitle')}</DialogDescription>
+          <DialogDescription>{t(motivo)}</DialogDescription>
         </DialogHeader>
 
         <AccountGate compact />

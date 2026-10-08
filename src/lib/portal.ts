@@ -204,16 +204,6 @@ export function toggleLike(
   })
 }
 
-/**
- * Sube lo marcado sin sesion y devuelve la union.
- *
- * Es lo primero que se hace al entrar: lo que la persona guardo desde el
- * navegador pasa a su cuenta en lugar de quedarse ahi suelto.
- */
-export function mergeLikes(codes: string[]): Promise<string[]> {
-  return request<string[]>('/portal/likes', { method: 'PUT', body: { codes } })
-}
-
 // --- datos -----------------------------------------------------------------
 
 export interface PortalProfile {
