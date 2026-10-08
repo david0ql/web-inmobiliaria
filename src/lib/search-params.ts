@@ -21,6 +21,9 @@ export interface Filters {
   businessType: string
   bedrooms: string
   bathrooms: string
+  garages: string
+  /** Lo que mueve a comprar, no lo que describe la casa. Ver "Más filtros". */
+  readyToMoveIn: string
   minPrice: string
   maxPrice: string
   sort: string
@@ -39,11 +42,51 @@ const PARAM = {
   businessType: 'business_type[0]',
   bedrooms: 'bedrooms',
   bathrooms: 'bathrooms',
+  garages: 'garages',
+  readyToMoveIn: 'ready',
   minPrice: 'min_price',
   maxPrice: 'max_price',
   sort: 'orden',
   page: 'pagina',
 } as const satisfies Record<keyof Filters, string>
+
+/**
+ * Donde opera la agencia.
+ *
+ * El formulario abria con "Todos" en pais y departamento, y en la practica eso
+ * es un paso de mas para todo el mundo: el inventario entero esta en Santander
+ * y quien entra ya sabe que busca aqui. Se arranca puesto y se puede quitar.
+ */
+export const PAIS_POR_DEFECTO = '1'
+export const DEPARTAMENTO_POR_DEFECTO = '29'
+
+/**
+ * "Todos", dicho en voz alta en la URL.
+ *
+ * Sin esto no se puede quitar el valor por defecto. Un campo vacio no se
+ * escribe en la URL —es lo que distingue "no me importa" de "esto"—, asi que
+ * quien pone el pais en "Todos" y busca se encuentra con que al recargar vuelve
+ * a poner Colombia: el parametro que faltaba se rellenaba otra vez con el
+ * defecto, y no habia forma de salir de Santander.
+ *
+ * Con un valor explicito, la URL puede decir las tres cosas que hacen falta:
+ * "no se ha tocado" (sin parametro, vale el defecto), "este" (el id) y "todos"
+ * (este cero, que ningun catalogo usa como id).
+ */
+const TODOS = '0'
+
+/**
+ * Lee un campo que arranca puesto: el parametro manda, y si no esta, el defecto.
+ */
+function conDefecto(
+  params: URLSearchParams,
+  nombre: string,
+  defecto: string,
+): string {
+  const valor = params.get(nombre)
+  if (valor === null) return defecto
+  return valor === TODOS ? '' : valor
+}
 
 export const EMPTY_FILTERS: Filters = {
   match: '',
@@ -56,6 +99,8 @@ export const EMPTY_FILTERS: Filters = {
   businessType: '',
   bedrooms: '',
   bathrooms: '',
+  garages: '',
+  readyToMoveIn: '',
   minPrice: '',
   maxPrice: '',
   sort: '',
@@ -66,8 +111,8 @@ export function readFilters(params: URLSearchParams): Filters {
   const page = Number(params.get(PARAM.page))
   return {
     match: params.get(PARAM.match) ?? '',
-    countryId: params.get(PARAM.countryId) ?? '',
-    regionId: params.get(PARAM.regionId) ?? '',
+    countryId: conDefecto(params, PARAM.countryId, PAIS_POR_DEFECTO),
+    regionId: conDefecto(params, PARAM.regionId, DEPARTAMENTO_POR_DEFECTO),
     cityId: params.get(PARAM.cityId) ?? '',
     zoneId: params.get(PARAM.zoneId) ?? '',
     propertyTypeId: params.get(PARAM.propertyTypeId) ?? '',
@@ -75,6 +120,8 @@ export function readFilters(params: URLSearchParams): Filters {
     businessType: params.get(PARAM.businessType) ?? '',
     bedrooms: params.get(PARAM.bedrooms) ?? '',
     bathrooms: params.get(PARAM.bathrooms) ?? '',
+    garages: params.get(PARAM.garages) ?? '',
+    readyToMoveIn: params.get(PARAM.readyToMoveIn) ?? '',
     minPrice: params.get(PARAM.minPrice) ?? '',
     maxPrice: params.get(PARAM.maxPrice) ?? '',
     sort: params.get(PARAM.sort) ?? '',
@@ -89,6 +136,17 @@ export function writeFilters(filters: Partial<Filters>): URLSearchParams {
     string,
   ][]) {
     const value = filters[key]
+    /*
+      Vaciar pais o departamento SI se escribe, como `0`: es la unica forma de
+      decir "todos" y que no se vuelva a poner el defecto al recargar.
+    */
+    if (
+      (key === 'countryId' || key === 'regionId') &&
+      (value === '' || value === null)
+    ) {
+      params.set(name, TODOS)
+      continue
+    }
     if (value === undefined || value === '' || value === null) continue
     if (key === 'page' && Number(value) <= 1) continue
     params.set(name, String(value))
@@ -134,7 +192,14 @@ export const CONDITIONS = [
  * `t('search.rooms.option', { count })`, que en cada idioma la ordena a su
  * manera.
  */
-export const ROOM_OPTIONS = [1, 2, 3, 4, 5, 6, 7].map((n) => ({
+/*
+  De una a cinco, no a siete.
+
+  Son minimos: "5" significa cinco o mas. Un sexto y un septimo escalon no
+  parten nada —en el inventario entero hay un puñado de fichas con seis
+  alcobas— y alargan un desplegable que se recorre con el pulgar.
+*/
+export const ROOM_OPTIONS = [1, 2, 3, 4, 5].map((n) => ({
   value: String(n),
   n,
 }))
@@ -170,6 +235,8 @@ export function toApiQuery(filters: Filters, limit = PAGE_SIZE): Query {
     condition: filters.condition || undefined,
     bedrooms: filters.bedrooms || undefined,
     bathrooms: filters.bathrooms || undefined,
+    garages: filters.garages || undefined,
+    readyToMoveIn: filters.readyToMoveIn || undefined,
     minPrice: filters.minPrice || undefined,
     maxPrice: filters.maxPrice || undefined,
     forSale: filters.businessType === 'for_sale' ? 'true' : undefined,
@@ -189,11 +256,24 @@ export function toApiQuery(filters: Filters, limit = PAGE_SIZE): Query {
  * el formulario desde que se quito el desplegable de tipo de negocio. Contarlo
  * hacia aparecer "limpiar filtros" nada mas entrar, ofreciendo deshacer algo
  * que nadie habia hecho.
+ *
+ * Por lo mismo, el pais y el departamento solo cuentan cuando NO son los que
+ * vienen puestos: Colombia y Santander estan ahi desde antes de que nadie toque
+ * nada.
  */
 const IMPLICITOS: (keyof Filters)[] = ['page', 'sort', 'businessType']
 
+/** Lo que ya viene puesto y por tanto no cuenta como filtro elegido. */
+const DE_FABRICA: Partial<Record<keyof Filters, string>> = {
+  countryId: PAIS_POR_DEFECTO,
+  regionId: DEPARTAMENTO_POR_DEFECTO,
+}
+
 export function countActive(filters: Filters): number {
   return (Object.keys(EMPTY_FILTERS) as (keyof Filters)[]).filter(
-    (key) => !IMPLICITOS.includes(key) && filters[key] !== '',
+    (key) =>
+      !IMPLICITOS.includes(key) &&
+      filters[key] !== '' &&
+      filters[key] !== DE_FABRICA[key],
   ).length
 }

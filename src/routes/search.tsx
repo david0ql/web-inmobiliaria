@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowUp, Clock3, List, Map, SearchX, SlidersHorizontal } from 'lucide-react'
+import { ArrowDown, ArrowUp, Clock3, List, Map, SearchX } from 'lucide-react'
 import { Suspense, use, useEffect, useRef, useState } from 'react'
 import { useLoaderData, useNavigation, useSearchParams } from 'react-router-dom'
 
@@ -15,7 +15,7 @@ import { number } from '@/lib/format'
 import { useIdioma, useT } from '@/lib/i18n'
 import { usePantallaEstrecha } from '@/lib/pantalla'
 import { useSeo } from '@/lib/use-seo'
-import { SORTS, countActive, writeFilters, type Filters } from '@/lib/search-params'
+import { SORTS, writeFilters, type Filters } from '@/lib/search-params'
 import { entradaCoreografiada } from '@/lib/hero-map'
 import { useListAnchor, useSettleOnList } from '@/lib/scroll'
 import type { SearchData } from '@/routes/loaders'
@@ -31,8 +31,6 @@ export function SearchResults() {
   const compacto = usePantallaEstrecha()
   const navigation = useNavigation()
   const searching = navigation.state !== 'idle'
-  const [filtersOpen, setFiltersOpen] = useState(false)
-  const activeFilters = countActive(data.initialFilters)
 
   // Una pagina 2 con los mismos inmuebles que la 1 es contenido duplicado: se
   // apunta la canonica al listado limpio y solo se indexa la primera.
@@ -78,23 +76,17 @@ export function SearchResults() {
           light={t('search.heading.light')}
           strong={compacto ? t('search.heading.simple') : t('search.heading.strong')}
         />
-        <button
-          type="button"
-          onClick={() => setFiltersOpen((open) => !open)}
-          className="mt-3 flex h-11 w-full items-center justify-between rounded-full border px-4 text-sm font-semibold sm:hidden"
-          aria-expanded={filtersOpen}
-        >
-          <span className="flex items-center gap-2">
-            <SlidersHorizontal className="size-4" />
-            {t('search.filters')}
-          </span>
-          {activeFilters > 0 && (
-            <span className="grid size-6 place-items-center rounded-full bg-primary text-xs text-primary-foreground">
-              {activeFilters}
-            </span>
-          )}
-        </button>
-        <div className={cn('mt-4 sm:block', filtersOpen ? 'block' : 'hidden')}>
+        {/*
+          El formulario se pinta siempre, tambien en movil.
+
+          Habia aqui un boton "Filtros" que plegaba el bloque entero. Tenia
+          sentido cuando debajo habia diez desplegables; desde que en movil el
+          formulario es una linea —palabra, ciudad y buscar— plegarlo es
+          esconder tres cosas detras de un boton para no enseñar tres cosas. Y
+          quedaban dos botones de filtros, uno encima del otro, que abrian
+          cosas distintas: este plegaba, el de dentro abre la hoja.
+        */}
+        <div className="mt-4">
           <AdvancedSearch initial={data.initialFilters} />
         </div>
       </div>
@@ -233,7 +225,20 @@ function Results({
               mobileView === 'list'
                 ? 'fixed top-0 -left-[200vw] w-full lg:left-auto'
                 : 'relative',
-              'overflow-hidden rounded-2xl border bg-secondary shadow-sm lg:sticky lg:top-20 lg:block lg:h-[calc(100vh-6rem)] lg:w-auto',
+              /*
+                Pegado, con el MISMO aire arriba que abajo.
+
+                Llevaba `top-20` —los 5rem que mide la cabecera— y alto
+                `100vh-6rem`: el mapa quedaba a ras de la cabecera y le sobraba
+                1rem solo por debajo. Al bajar la pagina parecia que el panel se
+                iba despegando hacia arriba, porque el unico margen visible
+                estaba en el borde de abajo.
+
+                Con 6rem de tope —cabecera mas 1rem— y 7rem de descuento, el
+                hueco es de 1rem por los dos lados y el panel se queda quieto en
+                el centro del alto libre.
+              */
+              'overflow-hidden rounded-2xl border bg-secondary shadow-sm lg:sticky lg:top-24 lg:block lg:h-[calc(100vh-7rem)] lg:w-auto',
             )}
             aria-hidden={mobileView === 'list' ? true : undefined}
           >
@@ -313,7 +318,7 @@ function ResultsSkeleton() {
         {/* El hueco del mapa. Sin esqueleto dentro a proposito: lo que va a
             ocupar esa caja es un mapa que llega volando, y un rectangulo
             latiendo debajo se leeria como un segundo elemento cargando. */}
-        <div className="hidden overflow-hidden rounded-2xl border bg-secondary shadow-sm lg:sticky lg:top-20 lg:block lg:h-[calc(100vh-6rem)]" />
+        <div className="hidden overflow-hidden rounded-2xl border bg-secondary shadow-sm lg:sticky lg:top-24 lg:block lg:h-[calc(100vh-7rem)]" />
       </div>
     </>
   )

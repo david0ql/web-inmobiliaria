@@ -10,6 +10,7 @@ import {
   EyeOff,
   Archive,
   Loader2,
+  Heart,
 } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -24,6 +25,8 @@ import { area, fechaFormat, money } from '@/lib/format'
 import { useIdioma, useT } from '@/lib/i18n'
 import { logout, portal, type PortalProfile, type PortalProperty, type PortalRequest } from '@/lib/portal'
 import { usePortalData, usePortalSession } from '@/lib/use-portal'
+import { useMeGusta } from '@/lib/me-gusta'
+import { PropertyCard } from '@/components/property/property-card'
 import { cn } from '@/lib/utils'
 import { Link } from '@/lib/nav'
 import { slugify } from '@/lib/slug'
@@ -85,6 +88,7 @@ const TABS = [
   { id: 'properties', label: 'account.tab.properties', icon: Building2 },
   { id: 'requests', label: 'account.tab.requests', icon: FileText },
   { id: 'visits', label: 'account.tab.visits', icon: CalendarClock },
+  { id: 'likes', label: 'account.likes.title', icon: Heart },
   { id: 'account', label: 'account.tab.account', icon: UserRound },
 ] as const
 
@@ -151,6 +155,7 @@ function Portal() {
       {tab === 'properties' && <PropertiesTab />}
       {tab === 'requests' && <RequestsTab />}
       {tab === 'visits' && <VisitsTab />}
+      {tab === 'likes' && <LikesTab />}
       {tab === 'account' && <AccountTab profile={profile.data} />}
     </div>
   )
@@ -540,6 +545,51 @@ function VisitsTab() {
         </article>
       ))}
     </div>
+  )
+}
+
+/**
+ * Los favoritos: lo que esta persona marco con el corazon.
+ *
+ * La lista viene del servidor —es la que se comparte entre el movil y el
+ * ordenador— pero se cruza con los corazones vivos del navegador. Asi, quitar el
+ * corazon de una tarjeta la saca de la lista en el momento, sin volver a pedir
+ * nada: si no, la tarjeta se quedaria ahi con el corazon apagado y habria que
+ * recargar para verla desaparecer.
+ */
+function LikesTab() {
+  const t = useT()
+  const guardados = usePortalData(portal.savedProperties)
+  const marcados = useMeGusta()
+
+  if (guardados.loading) return <ListSkeleton />
+
+  const visibles = (guardados.data ?? []).filter((property) =>
+    marcados.has(property.code),
+  )
+
+  if (!visibles.length) {
+    return (
+      <EmptyBlock
+        title={t('account.likes.title')}
+        detail={t('account.likes.empty')}
+      />
+    )
+  }
+
+  return (
+    <>
+      <p className="mb-4 text-sm text-muted-foreground">
+        {visibles.length === 1
+          ? t('account.likes.count.one')
+          : t('account.likes.count.other', { count: visibles.length })}
+      </p>
+      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        {visibles.map((property) => (
+          <PropertyCard key={property.id} property={property} />
+        ))}
+      </div>
+    </>
   )
 }
 

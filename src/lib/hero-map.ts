@@ -629,33 +629,30 @@ export function cancelarVueloMapa(): void {
   origen = null
 }
 
-/** Si una ruta es la portada, en cualquiera de los dos idiomas. */
-function esPortada(ruta: string): boolean {
-  return ruta === '/' || ruta === '/en' || ruta === '/en/'
-}
+/*
+  ────────────────────────────────────────────────────────────────────────────
+  POR QUE NO HAY VUELO DE VUELTA
 
-/**
- * El vuelo de vuelta: del buscador a la portada.
- *
- * Volver se hace de dos maneras y hay que atender las dos. Pulsando el logotipo
- —eso lo dispara el propio enlace— o con el boton atras del navegador, que no
- * pasa por ningun manejador nuestro: para eso esta `popstate`, que salta con la
- * direccion ya cambiada pero con la pantalla anterior todavia montada. Ese
- * instante es exactamente el que hace falta: se puede leer a donde vamos y
- * todavia se puede medir y fotografiar el mapa del que venimos.
- *
- * Solo hacia la portada. Volver a cualquier otra pantalla no tiene mapa donde
- * aterrizar, y dejar una copia flotando dos segundos hasta que se rinde es peor
- * que no hacer nada.
- */
-export function vigilarVueltaAtras(): () => void {
-  if (typeof window === 'undefined') return () => {}
-  const alVolver = () => {
-    if (esPortada(window.location.pathname)) empezarVueloMapa()
-  }
-  window.addEventListener('popstate', alVolver)
-  return () => window.removeEventListener('popstate', alVolver)
-}
+  Lo hubo: el logotipo y el boton atras devolvian el mapa del buscador al hueco
+  de la portada. Se quito, y no por capricho de codigo — se sentia mal y la
+  agencia lo reporto: "cuando de Ventas se pasa al Home el mapa queda lagueado".
+
+  El motivo es que los dos sentidos no son simetricos, aunque el codigo si lo
+  sea. Hacia el buscador, el mapa de destino es el mismo encuadre de ciudad que
+  ya se estaba viendo, asi que las teselas estan en cache y `esperarTeselas`
+  vuelve casi de inmediato: el vuelo arranca en el mismo fotograma del clic.
+
+  Hacia la portada, el destino es un mapa que no existe todavia: la pantalla se
+  monta, MapLibre arranca su contexto GL, pide el estilo, pide teselas. Son
+  cientos de milisegundos en los que la copia del mapa del buscador se queda
+  quieta y sin responder encima de una pagina a medio pintar. Ir hacia atras es,
+  ademas, el gesto en el que mas se espera que no pase nada: la persona ya
+  decidio irse.
+
+  Se puede recuperar el dia que la portada tenga su mapa precalentado antes del
+  clic. Hasta entonces, volver es instantaneo y eso es mejor UX que una
+  animacion que se atasca.
+*/
 
 /** Si ahora mismo hay un vuelo esperando destino. */
 export function vueloPendiente(): boolean {

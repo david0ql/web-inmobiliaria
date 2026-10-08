@@ -6,6 +6,7 @@ import { useNavigate } from '@/lib/nav'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { RangoPrecio } from '@/components/search/rango-precio'
 import { Skeleton } from '@/components/ui/misc'
 import {
   Sheet,
@@ -24,8 +25,9 @@ import {
 import {
   CONDITIONS,
   countActive,
-  digits,
+  DEPARTAMENTO_POR_DEFECTO,
   EMPTY_FILTERS,
+  PAIS_POR_DEFECTO,
   ROOM_OPTIONS,
   toApiQuery,
   writeFilters,
@@ -105,7 +107,23 @@ function AdvancedSearchForm({ initial }: { initial?: Filters }) {
   const navigate = useNavigate()
   const { pathname } = useLocation()
   const { catalogs } = useSiteData()
-  const [filters, setFilters] = useState<Filters>(initial ?? EMPTY_FILTERS)
+  /*
+    Se arranca donde opera la agencia.
+
+    El inventario entero esta en Santander, asi que abrir con "Todos" en pais y
+    en departamento es un paso de mas para todo el mundo. Se puede quitar: son
+    filtros normales, no una restriccion.
+
+    Solo cuando no venia nada en la URL. Si alguien llega con una busqueda
+    compartida —o le da a atras—, manda lo que trae, aunque sea "Todos".
+  */
+  const [filters, setFilters] = useState<Filters>(
+    initial ?? {
+      ...EMPTY_FILTERS,
+      countryId: PAIS_POR_DEFECTO,
+      regionId: DEPARTAMENTO_POR_DEFECTO,
+    },
+  )
   const compacto = usePantallaEstrecha()
   const [filtrosAbiertos, setFiltrosAbiertos] = useState(false)
   const [facets, setFacets] = useState<Facets | null>(null)
@@ -187,6 +205,27 @@ function AdvancedSearchForm({ initial }: { initial?: Filters }) {
   */
   const campos = (
     <>
+      {/*
+        Buscar por palabra, lo primero.
+
+        Es como busca quien ya sabe algo: un codigo que le pasaron, el nombre de
+        un conjunto, "Cabecera". Hasta ahora eso solo existia en la lupa de la
+        barra negra —que se ha retirado— y el formulario obligaba a traducir una
+        idea concreta a cinco desplegables.
+      */}
+      <FieldShell
+        label={t('search.field.match')}
+        className="min-w-0 sm:col-span-2 md:col-span-3 lg:col-span-4 xl:col-span-10"
+      >
+        <Input
+          className={CONTROL}
+          aria-label={t('search.field.match')}
+          placeholder={t('search.match.placeholder')}
+          value={filters.match}
+          onChange={(event) => set('match', event.target.value)}
+        />
+      </FieldShell>
+
       <FieldShell label={t('search.field.country')} className={CELDA}>
         <Select
           value={filters.countryId || ANY}
@@ -350,28 +389,127 @@ function AdvancedSearchForm({ initial }: { initial?: Filters }) {
         />
       </FieldShell>
 
-      <FieldShell label={t('search.field.minPrice')} className={CELDA}>
-        <Input
-          className={CONTROL}
-          aria-label={t('search.field.minPrice')}
-          inputMode="numeric"
-          placeholder={t('search.price.from')}
-          value={filters.minPrice}
-          onChange={(event) => set('minPrice', digits(event.target.value))}
+      <FieldShell label={t('search.field.garages')} className={ESTRECHA}>
+        <RoomSelect
+          label={t('search.field.garages')}
+          value={filters.garages}
+          onChange={(value) => set('garages', value)}
         />
       </FieldShell>
 
-      <FieldShell label={t('search.field.maxPrice')} className={CELDA}>
-        <Input
-          className={CONTROL}
-          aria-label={t('search.field.maxPrice')}
-          inputMode="numeric"
-          placeholder={t('search.price.to')}
-          value={filters.maxPrice}
-          onChange={(event) => set('maxPrice', digits(event.target.value))}
+      {/*
+        El rango sustituye a las dos casillas de precio y se lleva TODO lo que
+        queda de la fila: estado (2) mas alcobas, baños y parqueaderos (1 cada
+        uno) suman cinco de las diez columnas, asi que aqui van las otras cinco.
+        Con cuatro quedaba una columna muerta al final y la fila se veia
+        descuadrada por la derecha.
+      */}
+      <FieldShell label="" className="min-w-0 sm:col-span-2 xl:col-span-5">
+        <RangoPrecio
+          min={filters.minPrice}
+          max={filters.maxPrice}
+          onChange={(min, max) =>
+            setFilters((current) => ({ ...current, minPrice: min, maxPrice: max }))
+          }
         />
       </FieldShell>
     </>
+  )
+
+  /*
+    LA HOJA DE "MAS FILTROS", una sola para las dos pantallas.
+
+    En movil es donde vive el formulario entero; en escritorio, lo que no cabe
+    arriba. Antes habia dos copias y solo la de movil existia, asi que el enlace
+    de escritorio no abria nada.
+  */
+  const hojaDeFiltros = (
+    <Sheet open={filtrosAbiertos} onOpenChange={setFiltrosAbiertos}>
+      <SheetContent side="bottom" className="flex h-[92dvh] flex-col gap-0 p-0">
+        <SheetHeader className="border-b">
+          <SheetTitle>{t('search.filters.title')}</SheetTitle>
+          <SheetDescription>{t('search.filters.detail')}</SheetDescription>
+        </SheetHeader>
+
+        <div className="min-h-0 flex-1 overflow-y-auto p-4">
+          {/*
+            LO QUE MUEVE A COMPRAR, antes que las caracteristicas.
+
+            Un buscador de inmuebles pregunta por alcobas y baños, que es lo que
+            describe la casa. Lo que decide una compra suele ser otra cosa: "la
+            necesito ya". Esa urgencia no estaba en ninguna parte y es la que
+            separa a quien mira de quien firma.
+
+            De momento una, la que la agencia pidio primero. Las demas se
+            añaden aqui, en este mismo bloque y por delante de los campos.
+          */}
+          <fieldset className="mb-5 rounded-lg border bg-secondary/40 p-4">
+            <legend className="px-1.5 text-xs font-semibold tracking-wide uppercase">
+              {t('search.motivation.title')}
+            </legend>
+            <label className="flex cursor-pointer items-start gap-3">
+              <input
+                type="checkbox"
+                checked={filters.readyToMoveIn === 'true'}
+                onChange={(event) =>
+                  set('readyToMoveIn', event.target.checked ? 'true' : '')
+                }
+                className="mt-0.5 size-4 shrink-0 accent-primary"
+              />
+              <span>
+                <span className="block text-sm font-medium">
+                  {t('search.motivation.ready')}
+                </span>
+                <span className="block text-xs text-muted-foreground">
+                  {t('search.motivation.ready.detail')}
+                </span>
+              </span>
+            </label>
+          </fieldset>
+
+          <div className="grid grid-cols-1 gap-3">{campos}</div>
+        </div>
+
+        {/*
+          El pie se queda fijo: en una hoja de diez campos, un boton al final
+          del scroll es un boton que no se encuentra.
+        */}
+        <div className="flex items-center gap-2 border-t bg-background p-4">
+          {activos > 0 && (
+            <Button
+              type="button"
+              variant="outline"
+              className="h-11"
+              onClick={() => {
+                setFilters({ ...EMPTY_FILTERS, businessType: filters.businessType })
+                navigate(pathname)
+              }}
+            >
+              <Eraser className="size-4" />
+              {t('search.clear.title')}
+            </Button>
+          )}
+          {/*
+            `type="button"` con `onClick`, y no `type="submit"`.
+
+            ESTE ERA EL BUG: la hoja de Radix se pinta en un portal, al final
+            del `body`, asi que su contenido NO esta dentro del `<form>` aunque
+            lo parezca en el codigo. Un boton de envio sin formulario encima no
+            hace nada: ni buscaba ni cerraba, y desde el movil no habia forma de
+            lanzar la busqueda. Llamando a `submit` a mano da igual donde este
+            pintado.
+          */}
+          <Button
+            type="button"
+            onClick={submit}
+            className="h-11 flex-1 font-bold tracking-widest"
+          >
+            <Search />
+            {t('search.submit')}
+          </Button>
+        </div>
+      </SheetContent>
+    </Sheet>
   )
 
   /*
@@ -394,6 +532,24 @@ function AdvancedSearchForm({ initial }: { initial?: Filters }) {
   if (compacto) {
     return (
       <form onSubmit={submit} aria-label={t('search.form.aria')}>
+        {/*
+          La palabra va primera y sola, a lo ancho.
+
+          En un telefono es el camino mas corto que hay: quien llega con un
+          codigo, el nombre de un conjunto o un barrio en la cabeza lo escribe y
+          ya esta, sin abrir un solo desplegable. Debajo queda la ciudad, que es
+          el filtro que de verdad se usa cuando no se tiene una palabra.
+        */}
+        <FieldShell label={t('search.field.match')} className="mb-2 min-w-0">
+          <Input
+            className={CONTROL}
+            aria-label={t('search.field.match')}
+            placeholder={t('search.match.placeholder')}
+            value={filters.match}
+            onChange={(event) => set('match', event.target.value)}
+          />
+        </FieldShell>
+
         <div className="flex items-end gap-2">
           <FieldShell label={t('search.field.city')} className="min-w-0 flex-1">
             <Select
@@ -436,47 +592,7 @@ function AdvancedSearchForm({ initial }: { initial?: Filters }) {
           )}
         </button>
 
-        <Sheet open={filtrosAbiertos} onOpenChange={setFiltrosAbiertos}>
-          <SheetContent
-            side="bottom"
-            className="flex h-[92dvh] flex-col gap-0 p-0"
-          >
-            <SheetHeader className="border-b">
-              <SheetTitle>{t('search.filters.title')}</SheetTitle>
-              <SheetDescription>{t('search.filters.detail')}</SheetDescription>
-            </SheetHeader>
-
-            {/* Los mismos campos, a una columna y con sitio para desplazarse. */}
-            <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 overflow-y-auto p-4">
-              {campos}
-            </div>
-
-            {/*
-              El pie se queda fijo: en una hoja de diez campos, un boton al
-              final del scroll es un boton que no se encuentra.
-            */}
-            <div className="flex items-center gap-2 border-t bg-background p-4">
-              {activos > 0 && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="h-11"
-                  onClick={() => {
-                    setFilters({ ...EMPTY_FILTERS, businessType: filters.businessType })
-                    navigate(pathname)
-                  }}
-                >
-                  <Eraser className="size-4" />
-                  {t('search.clear.title')}
-                </Button>
-              )}
-              <Button type="submit" className="h-11 flex-1 font-bold tracking-widest">
-                <Search />
-                {t('search.submit')}
-              </Button>
-            </div>
-          </SheetContent>
-        </Sheet>
+        {hojaDeFiltros}
       </form>
     )
   }
@@ -537,6 +653,32 @@ function AdvancedSearchForm({ initial }: { initial?: Filters }) {
           </Button>
         )}
       </div>
+
+      {/*
+        "Mas filtros", debajo de Buscar y en toda la rejilla.
+
+        Va como palabra y no como boton con marco: lo de arriba es la busqueda
+        que usa todo el mundo y esto es la puerta a lo que usa alguno. Darle el
+        mismo peso visual que a Buscar invitaria a abrirlo siempre, que es justo
+        lo contrario de por que existe.
+      */}
+      <div className="sm:col-span-2 md:col-span-3 lg:col-span-4 xl:col-span-10">
+        <button
+          type="button"
+          onClick={() => setFiltrosAbiertos(true)}
+          className="flex items-center gap-1.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase transition-colors hover:text-foreground"
+        >
+          <SlidersHorizontal className="size-3.5" />
+          {t('search.more_filters')}
+          {activos > 0 && (
+            <span className="grid size-4 place-items-center rounded-full bg-primary text-[10px] text-primary-foreground">
+              {activos}
+            </span>
+          )}
+        </button>
+      </div>
+
+      {hojaDeFiltros}
     </form>
   )
 }

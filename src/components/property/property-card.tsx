@@ -2,6 +2,8 @@ import { Bath, BedDouble, Car, Ruler } from 'lucide-react'
 import { Link } from '@/lib/nav'
 
 import { CardCarousel } from '@/components/common/card-carousel'
+import { UnaLinea } from '@/components/common/una-linea'
+import { BotonMeGusta } from '@/components/property/boton-me-gusta'
 import { SpecRow } from '@/components/common/spec-row'
 import { prefetchProperty } from '@/lib/api'
 import { Badge } from '@/components/ui/misc'
@@ -57,6 +59,13 @@ export function PropertyCard({
   const built = property.builtArea ?? property.area
   /* El estrato, con su separador. */
   const estrato = stratumLabel(property.stratum, t)
+  /* Codigo, barrio, ciudad y estrato en una sola cadena: va a una linea y el
+     globo del hover necesita el texto en plano, no un arbol de nodos. */
+  const ubicacion =
+    t('property.card.code', { code: property.code }) +
+    (property.zone ? ` · ${property.zone.name}` : '') +
+    (property.city ? ` · ${property.city.name}` : '') +
+    estrato
 
   /* Al apuntar a una tarjeta se adelantan las dos cosas que hacen falta para
      pintar la ficha: su codigo de pantalla y sus datos. */
@@ -166,6 +175,12 @@ export function PropertyCard({
           </Link>
         </div>
 
+        {/* El corazon, en la esquina libre: la de la izquierda la ocupa la
+            etiqueta de disponibilidad. */}
+        <div className="absolute top-2 right-2 z-20">
+          <BotonMeGusta code={property.code} />
+        </div>
+
         <div className="absolute top-2.5 left-2.5 z-20">
           <Badge
             variant="tag"
@@ -215,17 +230,20 @@ export function PropertyCard({
         <p className="text-xs tracking-wide text-muted-foreground uppercase">
           {tipo(property.propertyType) ?? t('property.card.fallback_type')}
         </p>
-        <h2 className="line-clamp-2-title text-sm leading-snug font-semibold uppercase">
+        <UnaLinea
+          as="h2"
+          texto={titulo(property)}
+          className="text-sm leading-snug font-semibold uppercase"
+        >
           <Link to={to} className="hover:underline">
             {titulo(property)}
           </Link>
-        </h2>
-        <p className="line-clamp-2-title text-xs text-muted-foreground">
-          {t('property.card.code', { code: property.code })}
-          {property.zone ? ` · ${property.zone.name}` : ''}
-          {property.city ? ` · ${property.city.name}` : ''}
-          {estrato}
-        </p>
+        </UnaLinea>
+        <UnaLinea
+          as="p"
+          texto={ubicacion}
+          className="text-xs text-muted-foreground"
+        />
       </div>
 
       {/*

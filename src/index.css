@@ -247,13 +247,6 @@
     margin-top: 0.625rem;
     background: var(--primary);
   }
-
-  .line-clamp-2-title {
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
 }
 
 /*
@@ -415,4 +408,62 @@
 
 .leaflet-control-attribution a {
   color: inherit;
+}
+
+/*
+  Los dos deslizadores del rango de precio, superpuestos.
+
+  El carril de cada uno taparia al pulgar del otro en toda la mitad que
+  comparten, asi que los `input` no reciben el puntero y solo sus pulgares lo
+  recuperan. Es la unica forma de que dos controles nativos ocupen el mismo
+  sitio sin pelearse, y a cambio se hereda gratis lo dificil: teclado, foco,
+  gesto tactil y lector de pantalla.
+*/
+.rango-precio {
+  pointer-events: none;
+  appearance: none;
+  background: transparent;
+  margin: 0;
+}
+
+.rango-precio:focus {
+  outline: none;
+}
+
+.rango-precio::-webkit-slider-thumb {
+  pointer-events: auto;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 9999px;
+  background: #fff;
+  border: 2px solid var(--color-primary, #0d0d0d);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.25);
+  cursor: grab;
+}
+
+.rango-precio::-webkit-slider-thumb:active {
+  cursor: grabbing;
+}
+
+.rango-precio::-moz-range-thumb {
+  pointer-events: auto;
+  width: 18px;
+  height: 18px;
+  border-radius: 9999px;
+  background: #fff;
+  border: 2px solid var(--color-primary, #0d0d0d);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.25);
+  cursor: grab;
+}
+
+/* El foco tiene que verse: el pulgar es lo unico que se mueve con el teclado. */
+.rango-precio:focus-visible::-webkit-slider-thumb {
+  outline: 2px solid var(--color-ring, #0d0d0d);
+  outline-offset: 2px;
+}
+
+.rango-precio:focus-visible::-moz-range-thumb {
+  outline: 2px solid var(--color-ring, #0d0d0d);
+  outline-offset: 2px;
 }

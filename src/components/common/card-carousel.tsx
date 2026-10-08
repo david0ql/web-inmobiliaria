@@ -1,6 +1,7 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useRef, useState, type MouseEvent, type ReactNode } from 'react'
 
+import { PuntosCarrusel } from '@/components/common/puntos-carrusel'
 import { useT } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 
@@ -97,33 +98,15 @@ export function CardCarousel({
       <Flecha lado="left" onClick={(e) => control(e, () => ir(activo - 1))} />
       <Flecha lado="right" onClick={(e) => control(e, () => ir(activo + 1))} />
 
-      {/*
-        Los puntos se ven de 8 px pero el boton mide 24: en un movil no se
-        acierta a un punto de 8, y el area va por dentro para que los puntos no
-        se separen entre si.
-      */}
-      <div className="absolute inset-x-0 bottom-0.5 z-20 flex justify-center">
-        {Array.from({ length: total }, (_, indice) => (
-          <button
-            key={indice}
-            type="button"
-            onClick={(e) => control(e, () => ir(indice))}
-            aria-label={t('property.card.photo.go_to', {
-              index: indice + 1,
-              total,
-            })}
-            aria-current={indice === activo}
-            className="flex size-6 items-center justify-center"
-          >
-            <span
-              className={cn(
-                'block size-2 rounded-full shadow-[0_0_2px_rgba(0,0,0,0.6)] transition-all',
-                indice === activo ? 'w-4 bg-white' : 'bg-white/55',
-              )}
-            />
-          </button>
-        ))}
-      </div>
+      <PuntosCarrusel
+        total={total}
+        activo={activo}
+        onIr={(indice, evento) => control(evento, () => ir(indice))}
+        etiqueta={(index, total) =>
+          t('property.card.photo.go_to', { index, total })
+        }
+        className="absolute inset-x-0 bottom-0.5 z-20"
+      />
     </div>
   )
 }

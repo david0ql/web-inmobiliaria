@@ -18,7 +18,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/misc'
 import { menuTypes, typePath, useSiteData } from '@/lib/site-data'
-import { empezarVueloMapa } from '@/lib/hero-map'
+import { LanguageSwitch } from '@/components/layout/language-switch'
 import { useT } from '@/lib/i18n'
 import { ROUTES, SITE } from '@/lib/site'
 import { cn } from '@/lib/utils'
@@ -69,18 +69,14 @@ export function SiteHeader() {
     >
       <div className="container-site flex min-h-16 items-center gap-3 py-2.5 lg:min-h-20 lg:gap-4">
         {/* El logotipo es el otro camino de vuelta a la portada, ademas del
-            boton atras del navegador: tambien devuelve el mapa volando. */}
-        <Link
-          to={ROUTES.home}
-          onClick={() => empezarVueloMapa()}
-          className="shrink-0"
-        >
+            boton atras del navegador. Sin vuelo de mapa: ver `hero-map.ts`. */}
+        <Link to={ROUTES.home} className="shrink-0">
           <img
             src={SITE.logo}
-            /* La marca nueva es la S, cuadrada: con 250x90 el navegador
-               reservaba una caja apaisada y el logo saltaba al cargar. */
-            width={128}
-            height={128}
+            /* El logotipo completo, apaisado. La S sola se probó y se descartó:
+               a 40 px de alto una letra suelta no dice de quién es el sitio. */
+            width={500}
+            height={180}
             alt={SITE.name}
             /* El logo es lo primero que se ve: no se difiere. */
             fetchPriority="high"
@@ -146,6 +142,15 @@ export function SiteHeader() {
           {/* Las dos acciones van fuera de la lista de navegacion: no son sitios
               del sitio, son cosas que se hacen. */}
           <div className="ml-3 flex items-center gap-2">
+            {/*
+              El idioma sube aqui al retirarse la barra negra.
+
+              Vivia solo alli, asi que quitarla dejaba el sitio sin forma de
+              cambiar de idioma en escritorio — y el idioma arrastra tambien la
+              moneda. Va en claro y antes de las acciones: no es algo que se
+              hace, es como se lee todo lo demas.
+            */}
+            <LanguageSwitch tone="light" className="mr-1" />
             <OfferButton size="sm" className="tracking-wide uppercase" />
             {/* "Entrar" es de los propietarios, no del equipo: el acceso al
                 panel bajo al pie, que es donde lo busca quien trabaja aqui. */}

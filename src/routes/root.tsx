@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { Outlet, useLocation, useNavigate, useNavigation } from 'react-router-dom'
 
-import { vigilarVueltaAtras } from '@/lib/hero-map'
+import { vigilarSesionMeGusta } from '@/lib/me-gusta'
 import { useSmoothScrollTop } from '@/lib/scroll'
 import { CurrencyProvider } from '@/lib/currency'
 import { NotaVisitaProvider } from '@/lib/nota-visita'
@@ -11,7 +11,6 @@ import { usePortalSession } from '@/lib/use-portal'
 import { ChatFab } from '@/components/assistant/chat-fab'
 import { SiteFooter } from '@/components/layout/site-footer'
 import { SiteHeader } from '@/components/layout/site-header'
-import { TopBar } from '@/components/layout/top-bar'
 import { Toaster } from '@/components/ui/sonner'
 
 export function Root() {
@@ -24,8 +23,12 @@ export function Root() {
   */
   usePortalSession()
   useSmoothScrollTop()
-  // El boton atras del navegador tambien devuelve el mapa volando.
-  useEffect(vigilarVueltaAtras, [])
+  /*
+    Engancha los favoritos a la sesion: lo que se marco sin entrar sube a la
+    cuenta en cuanto hay una. Va en la raiz porque el corazon se pulsa en
+    cualquier pantalla, no solo en la de la cuenta.
+  */
+  useEffect(vigilarSesionMeGusta, [])
 
   const navigation = useNavigation()
 
@@ -40,7 +43,6 @@ export function Root() {
         <UbicacionProvider>
           <NotaVisitaProvider>
       <div className="flex min-h-screen flex-col">
-      <TopBar />
       <SiteHeader />
 
       {/* Una barra fina de progreso mientras el router cambia de pantalla: el

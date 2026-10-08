@@ -23,7 +23,7 @@ export const SITE = {
   email: 'contacto@serrano-inmobiliaria.com',
   address: 'Carrera 29 #45-45',
   city: 'Bucaramanga - Santander - Colombia',
-  logo: '/logo.png',
+  logo: '/logo-wordmark.png',
   url: 'https://web-clientes-inmobiliaria.nordikhat.com',
   /** Los municipios del area metropolitana donde hay inventario. */
   areaServed: [

@@ -1,5 +1,5 @@
 import { ApiError } from './api'
-import type { ConsignmentResult } from './types'
+import type { ConsignmentResult, Property } from './types'
 
 /**
  * Sesión del propietario en el portal.
@@ -188,6 +188,32 @@ export async function changePassword(
   clearSession()
 }
 
+// --- me gusta --------------------------------------------------------------
+
+/** Los codigos que esta cuenta tiene marcados. */
+export function fetchLikes(): Promise<string[]> {
+  return request<string[]>('/portal/likes')
+}
+
+/** Marca o desmarca uno, y dice como quedo. */
+export function toggleLike(
+  code: string,
+): Promise<{ liked: boolean; likes: number }> {
+  return request(`/portal/likes/${encodeURIComponent(code)}`, {
+    method: 'POST',
+  })
+}
+
+/**
+ * Sube lo marcado sin sesion y devuelve la union.
+ *
+ * Es lo primero que se hace al entrar: lo que la persona guardo desde el
+ * navegador pasa a su cuenta en lugar de quedarse ahi suelto.
+ */
+export function mergeLikes(codes: string[]): Promise<string[]> {
+  return request<string[]>('/portal/likes', { method: 'PUT', body: { codes } })
+}
+
 // --- datos -----------------------------------------------------------------
 
 export interface PortalProfile {
@@ -318,6 +344,9 @@ export const portal = {
     request<PortalVisit[]>('/portal/visits', { signal }),
   requests: (signal?: AbortSignal) =>
     request<PortalRequest[]>('/portal/requests', { signal }),
+  /** Las fichas completas de lo marcado con el corazon. */
+  savedProperties: (signal?: AbortSignal) =>
+    request<Property[]>('/portal/likes/saved', { signal }),
   propertyChanges: (signal?: AbortSignal) =>
     request<PropertyChangeRequest[]>('/portal/property-changes', { signal }),
   proposePropertyChange: (propertyId: string, body: Record<string, unknown>) =>

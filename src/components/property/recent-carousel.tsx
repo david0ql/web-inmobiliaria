@@ -4,6 +4,7 @@ import useEmblaCarousel from 'embla-carousel-react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { use, useCallback, useEffect, useState } from 'react'
 
+import { PuntosCarrusel } from '@/components/common/puntos-carrusel'
 import { PropertyCard } from '@/components/property/property-card'
 import type { Showcase } from '@/lib/api'
 import { useT } from '@/lib/i18n'
@@ -113,33 +114,16 @@ export function RecentCarousel({ promise }: { promise: Promise<Showcase> }) {
             onClick={() => embla?.scrollNext()}
           />
 
-          {/*
-            El punto se ve de 8 px pero el boton mide 24: lo que se pulsa con
-            el pulgar no es lo que se ve, y un punto de 8 px en un movil no se
-            acierta. El area va por dentro, con `p-2`, para no separar los
-            puntos entre si.
-          */}
-          <div className="mt-3 flex justify-center">
-            {snaps.map((_, i) => (
-              <button
-                key={i}
-                type="button"
-                onClick={() => embla?.scrollTo(i)}
-                aria-label={t('property.carousel.go_to_group', { index: i + 1 })}
-                aria-current={i === selected}
-                className="group flex size-6 items-center justify-center"
-              >
-                <span
-                  className={cn(
-                    'block h-2 rounded-full transition-all',
-                    i === selected
-                      ? 'w-5 bg-foreground'
-                      : 'w-2 bg-muted-foreground/35 group-hover:bg-muted-foreground/60',
-                  )}
-                />
-              </button>
-            ))}
-          </div>
+          <PuntosCarrusel
+            total={snaps.length}
+            activo={selected}
+            onIr={(i) => embla?.scrollTo(i)}
+            tono="oscuro"
+            etiqueta={(index) =>
+              t('property.carousel.go_to_group', { index })
+            }
+            className="mt-3"
+          />
         </>
       )}
     </div>

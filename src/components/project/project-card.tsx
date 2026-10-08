@@ -2,6 +2,7 @@ import { Building2, CalendarClock, Layers, KeyRound } from 'lucide-react'
 import { Link } from '@/lib/nav'
 
 import { CardCarousel } from '@/components/common/card-carousel'
+import { UnaLinea } from '@/components/common/una-linea'
 import { SpecRow } from '@/components/common/spec-row'
 import { Badge } from '@/components/ui/misc'
 import { useCurrency } from '@/lib/currency'
@@ -173,15 +174,17 @@ export function ProjectCard({ project }: { project: ProjectSummary }) {
             {project.developer}
           </p>
         )}
-        <h2 className="line-clamp-2-title text-sm leading-snug font-semibold uppercase">
+        <UnaLinea
+          as="h2"
+          texto={project.name}
+          className="text-sm leading-snug font-semibold uppercase"
+        >
           <Link to={to} className="hover:underline">
             {project.name}
           </Link>
-        </h2>
+        </UnaLinea>
         {place && (
-          <p className="line-clamp-2-title text-xs text-muted-foreground">
-            {place}
-          </p>
+          <UnaLinea as="p" texto={place} className="text-xs text-muted-foreground" />
         )}
       </div>
 
